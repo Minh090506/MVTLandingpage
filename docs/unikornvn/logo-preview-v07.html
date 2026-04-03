@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unikorn Logo Variants v07</title>
+    <style>
+        :root {
+            --primary: #6366F1;
+            --primary-light: #818CF8;
+            --accent: #0EA5E9;
+            --bg-light: #F8FAFC;
+            --bg-dark: #0F172A;
+            --text-light: #1E293B;
+            --text-dark: #F1F5F9;
+            --card-light: #FFFFFF;
+            --card-dark: #1E293B;
+            --border-light: #E2E8F0;
+            --border-dark: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        body.dark {
+            background: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #64748B;
+            font-size: 1.1rem;
+        }
+
+        body.dark .subtitle {
+            color: #94A3B8;
+        }
+
+        .toggle-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 100;
+        }
+
+        .theme-toggle {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge.pro {
+            background: linear-gradient(135deg, #F59E0B, #EF4444);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-light);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+        }
+
+        body.dark .card {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+        }
+
+        body.dark .card:hover {
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.25);
+        }
+
+        .card-image {
+            position: relative;
+            aspect-ratio: 1;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .card-image img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover .card-image img {
+            transform: scale(1.05);
+        }
+
+        .card-content {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        body.dark .card-content {
+            border-top-color: var(--border-dark);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-style {
+            font-size: 0.85rem;
+            color: #64748B;
+            margin-bottom: 0.75rem;
+        }
+
+        body.dark .card-style {
+            color: #94A3B8;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover {
+            background: var(--primary-light);
+            transform: translateX(2px);
+        }
+
+        /* Comparison Section */
+        .comparison {
+            margin-top: 4rem;
+            padding: 2rem;
+            background: var(--card-light);
+            border-radius: 1rem;
+            border: 1px solid var(--border-light);
+        }
+
+        body.dark .comparison {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .comparison h2 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .comparison-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .comparison-item {
+            text-align: center;
+        }
+
+        .comparison-item img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .comparison-label {
+            font-size: 0.85rem;
+            color: #64748B;
+        }
+
+        body.dark .comparison-label {
+            color: #94A3B8;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 0.5rem;
+            background: white;
+            padding: 2rem;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #64748B;
+            font-size: 0.9rem;
+        }
+
+        body.dark footer {
+            color: #94A3B8;
+        }
+    </style>
+</head>
+<body>
+    <div class="toggle-container">
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-text">Dark Mode</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Unikorn Logo Variants</h1>
+            <p class="subtitle">Version 07 - 4 Typography Styles × 2 AI Models</p>
+        </header>
+
+        <!-- Flash Model Section -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="badge">Flash</span>
+                Gemini 2.5 Flash Image (Nano Banana)
+            </h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-flash/unikorn-wordmark-01.png')">
+                        <img src="v07-flash/unikorn-wordmark-01.png" alt="Unikorn Wordmark">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Wordmark</h3>
+                        <p class="card-style">Custom typography logotype</p>
+                        <a href="v07-flash/unikorn-wordmark-01.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-flash/unikorn-lettermark-02.png')">
+                        <img src="v07-flash/unikorn-lettermark-02.png" alt="Unikorn Lettermark">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Lettermark</h3>
+                        <p class="card-style">Stylized U monogram with horn</p>
+                        <a href="v07-flash/unikorn-lettermark-02.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-flash/unikorn-combination-03.png')">
+                        <img src="v07-flash/unikorn-combination-03.png" alt="Unikorn Combination Mark">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Combination Mark</h3>
+                        <p class="card-style">Icon + text composition</p>
+                        <a href="v07-flash/unikorn-combination-03.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-flash/unikorn-abstract-04.png')">
+                        <img src="v07-flash/unikorn-abstract-04.png" alt="Unikorn Abstract">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Abstract Mark</h3>
+                        <p class="card-style">Geometric unicorn horn symbol</p>
+                        <a href="v07-flash/unikorn-abstract-04.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pro Model Section -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="badge pro">Pro</span>
+                Gemini 3 Pro Image Preview (Nano Banana Pro)
+            </h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-pro/unikorn-wordmark-01.png')">
+                        <img src="v07-pro/unikorn-wordmark-01.png" alt="Unikorn Wordmark Pro">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Wordmark</h3>
+                        <p class="card-style">Custom typography logotype</p>
+                        <a href="v07-pro/unikorn-wordmark-01.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-pro/unikorn-lettermark-02.png')">
+                        <img src="v07-pro/unikorn-lettermark-02.png" alt="Unikorn Lettermark Pro">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Lettermark</h3>
+                        <p class="card-style">Stylized U monogram with horn</p>
+                        <a href="v07-pro/unikorn-lettermark-02.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-pro/unikorn-combination-03.png')">
+                        <img src="v07-pro/unikorn-combination-03.png" alt="Unikorn Combination Mark Pro">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Combination Mark</h3>
+                        <p class="card-style">Icon + text composition</p>
+                        <a href="v07-pro/unikorn-combination-03.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-image" onclick="openLightbox('v07-pro/unikorn-abstract-04.png')">
+                        <img src="v07-pro/unikorn-abstract-04.png" alt="Unikorn Abstract Pro">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Abstract Mark</h3>
+                        <p class="card-style">Geometric unicorn horn symbol</p>
+                        <a href="v07-pro/unikorn-abstract-04.png" download class="download-btn">
+                            ⬇ Download PNG
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Side-by-Side Comparison -->
+        <div class="comparison">
+            <h2>Flash vs Pro Comparison</h2>
+            <div class="comparison-grid">
+                <div class="comparison-item">
+                    <img src="v07-flash/unikorn-wordmark-01.png" alt="Wordmark Flash">
+                    <p class="comparison-label">Wordmark (Flash)</p>
+                </div>
+                <div class="comparison-item">
+                    <img src="v07-pro/unikorn-wordmark-01.png" alt="Wordmark Pro">
+                    <p class="comparison-label">Wordmark (Pro)</p>
+                </div>
+                <div class="comparison-item">
+                    <img src="v07-flash/unikorn-lettermark-02.png" alt="Lettermark Flash">
+                    <p class="comparison-label">Lettermark (Flash)</p>
+                </div>
+                <div class="comparison-item">
+                    <img src="v07-pro/unikorn-lettermark-02.png" alt="Lettermark Pro">
+                    <p class="comparison-label">Lettermark (Pro)</p>
+                </div>
+                <div class="comparison-item">
+                    <img src="v07-flash/unikorn-combination-03.png" alt="Combination Flash">
+                    <p class="comparison-label">Combination (Flash)</p>
+                </div>
+                <div class="comparison-item">
+                    <img src="v07-pro/unikorn-combination-03.png" alt="Combination Pro">
+                    <p class="comparison-label">Combination (Pro)</p>
+                </div>
+                <div class="comparison-item">
+                    <img src="v07-flash/unikorn-abstract-04.png" alt="Abstract Flash">
+                    <p class="comparison-label">Abstract (Flash)</p>
+                </div>
+                <div class="comparison-item">
+                    <img src="v07-pro/unikorn-abstract-04.png" alt="Abstract Pro">
+                    <p class="comparison-label">Abstract (Pro)</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Generated for Unikorn.vn - Vietnamese Tech Product Discovery Platform</p>
+            <p>January 22, 2026 | ClaudeKit Logo Design Skill</p>
+        </footer>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="closeLightbox()">×</button>
+        <img id="lightbox-img" src="" alt="Logo Preview">
+    </div>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            if (document.body.classList.contains('dark')) {
+                icon.textContent = '☀️';
+                text.textContent = 'Light Mode';
+            } else {
+                icon.textContent = '🌙';
+                text.textContent = 'Dark Mode';
+            }
+        }
+
+        function openLightbox(src) {
+            const lightbox = document.getElementById('lightbox');
+            const img = document.getElementById('lightbox-img');
+            img.src = src;
+            lightbox.classList.add('active');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+    </script>
+</body>
+</html>

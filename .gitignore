@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Wrangler
+.wrangler/
+
+# Claude/AI
+.claude/
+.auto-memory/
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Large video files (>50MB, GitHub limit is 100MB)
+assets/videos/introduction/claudekit-engineer-2-intro.mp4
+
+# Temp files
+*.tmp
+*.swp
+*~

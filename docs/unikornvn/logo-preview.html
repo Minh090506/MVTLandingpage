@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unikorn Logo Variants - Preview</title>
+    <style>
+        :root {
+            --primary: #EF4444;
+            --primary-light: #FCA5A5;
+            --bg-dark: #0f0f0f;
+            --bg-card: #1a1a1a;
+            --bg-hover: #252525;
+            --text: #ffffff;
+            --text-muted: #9ca3af;
+            --border: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .toggle-btn {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .toggle-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+            display: inline-block;
+        }
+
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .column {
+            min-width: 0;
+        }
+
+        .column-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(239, 68, 68, 0.15);
+        }
+
+        .card-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .card-image img {
+            max-width: 85%;
+            max-height: 85%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover .card-image img {
+            transform: scale(1.1);
+        }
+
+        .card-content {
+            padding: 1rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-model {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        /* Modal for enlarged view */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90vmin;
+            max-height: 90vmin;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .modal-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .modal-close {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 48px;
+            height: 48px;
+            background: var(--bg-card);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--primary);
+        }
+
+        /* Light mode */
+        body.light {
+            --bg-dark: #f5f5f5;
+            --bg-card: #ffffff;
+            --bg-hover: #f0f0f0;
+            --text: #1a1a1a;
+            --text-muted: #6b7280;
+            --border: #e5e5e5;
+        }
+
+        body.light .card-image {
+            background: #f8f8f8;
+        }
+
+        @media (max-width: 1200px) {
+            .comparison-container {
+                grid-template-columns: 1fr;
+            }
+
+            .column-header {
+                position: relative;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Unikorn Logo Variants</h1>
+        <p>Vietnamese Tech Product Discovery Platform</p>
+    </div>
+
+    <div class="toggle-container">
+        <button class="toggle-btn active" onclick="setTheme('dark')">Dark Mode</button>
+        <button class="toggle-btn" onclick="setTheme('light')">Light Mode</button>
+    </div>
+
+    <section class="section">
+        <h2 class="section-title">Model Comparison</h2>
+        <div class="comparison-container">
+            <!-- Flash Column -->
+            <div class="column">
+                <div class="column-header">Flash (gemini-2.5-flash-image)</div>
+                <div class="grid" id="flash-grid">
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_minimalist_01.png')">
+                            <img src="v04-flash/unikorn_minimalist_01.png" alt="Minimalist">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Minimalist</h3>
+                            <p class="card-model">Clean geometric shape, minimal details</p>
+                            <a href="v04-flash/unikorn_minimalist_01.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_modern_02.png')">
+                            <img src="v04-flash/unikorn_modern_02.png" alt="Modern">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Modern</h3>
+                            <p class="card-model">Sleek gradient, tech-forward</p>
+                            <a href="v04-flash/unikorn_modern_02.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_geometric_03.png')">
+                            <img src="v04-flash/unikorn_geometric_03.png" alt="Geometric">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Geometric</h3>
+                            <p class="card-model">Abstract patterns, mathematical precision</p>
+                            <a href="v04-flash/unikorn_geometric_03.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_gradient_04.png')">
+                            <img src="v04-flash/unikorn_gradient_04.png" alt="Gradient">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Gradient</h3>
+                            <p class="card-model">Vibrant color transitions, digital feel</p>
+                            <a href="v04-flash/unikorn_gradient_04.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_abstract_05.png')">
+                            <img src="v04-flash/unikorn_abstract_05.png" alt="Abstract">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Abstract</h3>
+                            <p class="card-model">Conceptual symbolic representation</p>
+                            <a href="v04-flash/unikorn_abstract_05.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_lettermark_06.png')">
+                            <img src="v04-flash/unikorn_lettermark_06.png" alt="Lettermark">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Lettermark</h3>
+                            <p class="card-model">Stylized 'U' monogram</p>
+                            <a href="v04-flash/unikorn_lettermark_06.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_negative-space_07.png')">
+                            <img src="v04-flash/unikorn_negative-space_07.png" alt="Negative Space">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Negative Space</h3>
+                            <p class="card-model">Clever use of white space</p>
+                            <a href="v04-flash/unikorn_negative-space_07.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_lineart_08.png')">
+                            <img src="v04-flash/unikorn_lineart_08.png" alt="Line Art">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Line Art</h3>
+                            <p class="card-model">Single stroke continuous line</p>
+                            <a href="v04-flash/unikorn_lineart_08.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-flash/unikorn_3d_09.png')">
+                            <img src="v04-flash/unikorn_3d_09.png" alt="3D">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">3D</h3>
+                            <p class="card-model">Dimensional with depth and shadows</p>
+                            <a href="v04-flash/unikorn_3d_09.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pro Column -->
+            <div class="column">
+                <div class="column-header">Pro (gemini-3-pro-image-preview)</div>
+                <div class="grid" id="pro-grid">
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_minimalist_01.png')">
+                            <img src="v04-pro/unikorn_minimalist_01.png" alt="Minimalist">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Minimalist</h3>
+                            <p class="card-model">Clean geometric shape, minimal details</p>
+                            <a href="v04-pro/unikorn_minimalist_01.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_modern_02.png')">
+                            <img src="v04-pro/unikorn_modern_02.png" alt="Modern">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Modern</h3>
+                            <p class="card-model">Sleek gradient, tech-forward</p>
+                            <a href="v04-pro/unikorn_modern_02.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_geometric_03.png')">
+                            <img src="v04-pro/unikorn_geometric_03.png" alt="Geometric">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Geometric</h3>
+                            <p class="card-model">Abstract patterns, mathematical precision</p>
+                            <a href="v04-pro/unikorn_geometric_03.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_gradient_04.png')">
+                            <img src="v04-pro/unikorn_gradient_04.png" alt="Gradient">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Gradient</h3>
+                            <p class="card-model">Vibrant color transitions, digital feel</p>
+                            <a href="v04-pro/unikorn_gradient_04.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_abstract_05.png')">
+                            <img src="v04-pro/unikorn_abstract_05.png" alt="Abstract">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Abstract</h3>
+                            <p class="card-model">Conceptual symbolic representation</p>
+                            <a href="v04-pro/unikorn_abstract_05.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_lettermark_06.png')">
+                            <img src="v04-pro/unikorn_lettermark_06.png" alt="Lettermark">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Lettermark</h3>
+                            <p class="card-model">Stylized 'U' monogram</p>
+                            <a href="v04-pro/unikorn_lettermark_06.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_negative-space_07.png')">
+                            <img src="v04-pro/unikorn_negative-space_07.png" alt="Negative Space">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Negative Space</h3>
+                            <p class="card-model">Clever use of white space</p>
+                            <a href="v04-pro/unikorn_negative-space_07.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_lineart_08.png')">
+                            <img src="v04-pro/unikorn_lineart_08.png" alt="Line Art">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Line Art</h3>
+                            <p class="card-model">Single stroke continuous line</p>
+                            <a href="v04-pro/unikorn_lineart_08.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-image" onclick="openModal('v04-pro/unikorn_3d_09.png')">
+                            <img src="v04-pro/unikorn_3d_09.png" alt="3D">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">3D</h3>
+                            <p class="card-model">Dimensional with depth and shadows</p>
+                            <a href="v04-pro/unikorn_3d_09.png" download class="download-btn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal for enlarged view -->
+    <div class="modal" id="modal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <div class="modal-content">
+            <img id="modal-img" src="" alt="Enlarged logo">
+        </div>
+    </div>
+
+    <script>
+        function setTheme(theme) {
+            document.body.className = theme === 'light' ? 'light' : '';
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function openModal(src) {
+            document.getElementById('modal-img').src = src;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Close modal on background click
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>

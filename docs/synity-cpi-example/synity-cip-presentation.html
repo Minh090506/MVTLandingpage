@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNITY - Bộ Nhận Dạng Thương Hiệu | Corporate Identity Program</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --synity-navy: #0f172a;
+            --synity-dark: #1e293b;
+            --synity-white: #ffffff;
+            --synity-gray: #64748b;
+            --synity-light: #f1f5f9;
+            --synity-accent: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--synity-navy);
+            color: var(--synity-white);
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--synity-navy) 0%, #1a365d 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+        }
+
+        .hero-logo {
+            font-size: 5rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--synity-white) 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-tagline {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--synity-gray);
+            margin-bottom: 1rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.6);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-indicator svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--synity-gray);
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-10px); }
+            60% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        /* Section Styles */
+        .section {
+            padding: 6rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-number {
+            font-size: 0.875rem;
+            color: var(--synity-accent);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-description {
+            font-size: 1.125rem;
+            color: var(--synity-gray);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--synity-dark);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            margin-bottom: 4rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-image {
+            width: 100%;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-content {
+            padding: 2.5rem;
+        }
+
+        .card-category {
+            font-size: 0.75rem;
+            color: var(--synity-accent);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .card-story {
+            color: var(--synity-gray);
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+
+        .card-story em {
+            color: var(--synity-white);
+            font-style: normal;
+            font-weight: 500;
+        }
+
+        /* Grid Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+
+        .grid-2 .card {
+            margin-bottom: 0;
+        }
+
+        /* Founder Section */
+        .founder-section {
+            background: linear-gradient(180deg, var(--synity-navy) 0%, var(--synity-dark) 100%);
+            padding: 6rem 2rem;
+        }
+
+        .founder-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .founder-image {
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .founder-image img {
+            width: 100%;
+            display: block;
+        }
+
+        .founder-content h3 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .founder-quote {
+            font-size: 1.25rem;
+            font-style: italic;
+            color: var(--synity-gray);
+            border-left: 3px solid var(--synity-accent);
+            padding-left: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .founder-bio {
+            color: var(--synity-gray);
+            line-height: 1.8;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+            margin: 4rem 0;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--synity-dark);
+        }
+
+        .footer-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .footer-tagline {
+            color: var(--synity-gray);
+            font-size: 0.875rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .footer-note {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.75rem;
+            color: var(--synity-gray);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .founder-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-logo {
+                font-size: 3rem;
+            }
+
+            .hero-tagline {
+                font-size: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.75rem;
+            }
+
+            .card-content {
+                padding: 1.5rem;
+            }
+
+            .card-title {
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Animation */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-logo">SYNITY</h1>
+            <p class="hero-tagline">Technology Architect & Digital Transformation</p>
+            <p class="hero-subtitle">
+                Khám phá hành trình xây dựng bộ nhận dạng thương hiệu cho một công ty công nghệ
+                tiên phong trong chuyển đổi số và kiến trúc dữ liệu.
+            </p>
+        </div>
+        <div class="scroll-indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Logo Section -->
+    <section class="section">
+        <div class="section-header fade-in">
+            <p class="section-number">01 — Biểu Tượng Thương Hiệu</p>
+            <h2 class="section-title">Logo: Khởi Nguồn Của Mọi Kết Nối</h2>
+            <p class="section-description">
+                Logo SYNITY được thiết kế với triết lý tối giản nhưng mạnh mẽ —
+                nơi sự đồng bộ (Synchronize) gặp gỡ sự thống nhất (Unity).
+            </p>
+        </div>
+
+        <div class="card fade-in">
+            <img src="synity-logo_photo_2026-01-21_14-19-23.jpg" alt="SYNITY Logo" class="card-image">
+            <div class="card-content">
+                <p class="card-category">Logo chính</p>
+                <h3 class="card-title">Sức Mạnh Của Sự Đơn Giản</h3>
+                <p class="card-story">
+                    Trên nền xanh navy sâu thẳm như vũ trụ dữ liệu vô tận, logo SYNITY tỏa sáng với
+                    <em>typography hiện đại và thanh lịch</em>. Chữ "Y" cuối cùng được cách điệu thành
+                    biểu tượng bay lên — đại diện cho <em>khát vọng vươn xa</em> và <em>sự đột phá không ngừng</em>
+                    trong lĩnh vực công nghệ. Mỗi đường nét đều mang thông điệp: dữ liệu không chỉ là con số,
+                    mà là câu chuyện chờ được kể.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cover & LED Section -->
+    <section class="section">
+        <div class="section-header fade-in">
+            <p class="section-number">02 — Truyền Thông Số</p>
+            <h2 class="section-title">Bản Sắc Trong Thế Giới Digital</h2>
+            <p class="section-description">
+                Từ banner social media đến màn hình LED phòng họp,
+                SYNITY hiện diện nhất quán và đầy ấn tượng.
+            </p>
+        </div>
+
+        <div class="grid-2 fade-in">
+            <div class="card">
+                <img src="synity-cover_photo_2026-01-21_14-20-08.jpg" alt="SYNITY Cover" class="card-image">
+                <div class="card-content">
+                    <p class="card-category">Cover Banner</p>
+                    <h3 class="card-title">Cánh Cửa Đầu Tiên</h3>
+                    <p class="card-story">
+                        Khi khách hàng ghé thăm profile SYNITY, họ không chỉ thấy một banner —
+                        họ thấy <em>một lời hứa</em>. Những đường mạch circuit điện tử chạy dọc
+                        như huyết mạch công nghệ, kết nối từ logo đến tagline
+                        "Technology Architect & Digital Transformation". Đây là <em>tuyên ngôn thầm lặng</em>
+                        của một đội ngũ kiến trúc sư dữ liệu.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="synity-led_photo_2026-01-21_14-20-03.jpg" alt="SYNITY LED Display" class="card-image">
+                <div class="card-content">
+                    <p class="card-category">LED Display</p>
+                    <h3 class="card-title">Tỏa Sáng Trong Mọi Cuộc Họp</h3>
+                    <p class="card-story">
+                        <em>"Innovating Data Excellence. Simplified."</em> — slogan hiện lên trên màn hình LED
+                        trong phòng họp sang trọng. Ánh sáng dịu nhẹ từ màn hình lan tỏa khắp không gian,
+                        tạo nên bầu không khí <em>chuyên nghiệp nhưng không xa cách</em>. Đây là nơi
+                        những quyết định quan trọng được đưa ra, những ý tưởng đột phá được sinh ra.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stationery Section -->
+    <section class="section">
+        <div class="section-header fade-in">
+            <p class="section-number">03 — Văn Phòng Phẩm</p>
+            <h2 class="section-title">Chạm Vào Thương Hiệu</h2>
+            <p class="section-description">
+                Mỗi tấm name card, mỗi bức thư, mỗi chiếc phong bì đều là một trải nghiệm
+                cầm nắm được — nơi digital gặp gỡ vật lý.
+            </p>
+        </div>
+
+        <div class="grid-2 fade-in">
+            <div class="card">
+                <img src="synity-namecard_photo_2026-01-21_14-19-40.jpg" alt="SYNITY Name Card" class="card-image">
+                <div class="card-content">
+                    <p class="card-category">Name Card</p>
+                    <h3 class="card-title">Ấn Tượng Đầu Tiên, Kết Nối Lâu Dài</h3>
+                    <p class="card-story">
+                        Đặt trên nền đá marble sang trọng, tấm name card SYNITY trở thành
+                        <em>một tác phẩm nghệ thuật tối giản</em>. Màu navy đậm, logo trắng tinh khiết,
+                        chất liệu giấy cao cấp với độ dày vừa phải — tất cả tạo nên cảm giác
+                        <em>chắc chắn và đáng tin cậy</em>. Đây không chỉ là thông tin liên hệ,
+                        mà là <em>lời mời hợp tác</em>.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="synity-letter_photo_2026-01-21_14-20-13.jpg" alt="SYNITY Stationery Set" class="card-image">
+                <div class="card-content">
+                    <p class="card-category">Stationery Set</p>
+                    <h3 class="card-title">Bộ Sưu Tập Thanh Lịch</h3>
+                    <p class="card-story">
+                        Phong bì, giấy tiêu đề, name card và bút ký — tất cả được sắp xếp
+                        trên nền vải nhung navy như <em>một bản giao hưởng thị giác</em>.
+                        Logo "SY" thu gọn xuất hiện tinh tế trên phong bì, trong khi logo đầy đủ
+                        trang trọng trên giấy tiêu đề. Mỗi chi tiết đều được <em>cân nhắc kỹ lưỡng</em>,
+                        mỗi khoảng trống đều có ý nghĩa.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Office & Meeting Section -->
+    <section class="section">
+        <div class="section-header fade-in">
+            <p class="section-number">04 — Không Gian Làm Việc</p>
+            <h2 class="section-title">Nơi Ý Tưởng Thành Hiện Thực</h2>
+            <p class="section-description">
+                Văn phòng SYNITY không chỉ là nơi làm việc — đó là không gian
+                truyền cảm hứng cho mọi cuộc chuyển đổi số.
+            </p>
+        </div>
+
+        <div class="card fade-in">
+            <img src="synity-office_photo_2026-01-21_14-19-46.jpg" alt="SYNITY Office Lobby" class="card-image">
+            <div class="card-content">
+                <p class="card-category">Office Lobby</p>
+                <h3 class="card-title">Cánh Cổng Đến Tương Lai</h3>
+                <p class="card-story">
+                    Bước vào sảnh SYNITY, khách hàng được chào đón bởi <em>logo LED backlit</em>
+                    tỏa sáng trên bức tường navy đặc trưng. Gỗ ấm áp kết hợp với đá marble lạnh
+                    tạo nên sự cân bằng hoàn hảo giữa <em>công nghệ và con người</em>.
+                    Chiếc ghế da nâu cognac, cây xanh tươi mát — tất cả nhắc nhở rằng đằng sau
+                    mọi dữ liệu luôn là <em>câu chuyện của con người</em>.
+                </p>
+            </div>
+        </div>
+
+        <div class="card fade-in">
+            <img src="synity-meeting_photo_2026-01-21_14-19-58.jpg" alt="SYNITY Meeting Room" class="card-image">
+            <div class="card-content">
+                <p class="card-category">Meeting Room</p>
+                <h3 class="card-title">Nơi Chiến Lược Được Định Hình</h3>
+                <p class="card-story">
+                    Phòng họp SYNITY với view toàn cảnh thành phố là nơi <em>những quyết định lớn</em>
+                    được đưa ra. Màn hình hiển thị logo bên cạnh biểu đồ tăng trưởng —
+                    minh chứng cho sức mạnh của dữ liệu. Đội ngũ chuyên gia trong trang phục chuyên nghiệp,
+                    tập trung thảo luận, <em>biến dữ liệu thành insight, insight thành hành động</em>.
+                    Đây là nhịp đập của SYNITY.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Uniform & Accessories Section -->
+    <section class="section">
+        <div class="section-header fade-in">
+            <p class="section-number">05 — Đồng Phục & Phụ Kiện</p>
+            <h2 class="section-title">Mang Thương Hiệu Bên Mình</h2>
+            <p class="section-description">
+                Từ áo polo đến thẻ nhân viên, mỗi chi tiết đều giúp team SYNITY
+                tự hào về nơi họ thuộc về.
+            </p>
+        </div>
+
+        <div class="grid-2 fade-in">
+            <div class="card">
+                <img src="synity-tshirt_photo_2026-01-21_14-20-17.jpg" alt="SYNITY Polo Shirt" class="card-image">
+                <div class="card-content">
+                    <p class="card-category">Uniform</p>
+                    <h3 class="card-title">Phong Cách Chuyên Nghiệp</h3>
+                    <p class="card-story">
+                        Chiếc áo polo navy với logo thêu tinh tế bên ngực trái —
+                        <em>đơn giản nhưng nói lên tất cả</em>. Chất vải piqué cao cấp,
+                        form dáng thoải mái cho những ngày làm việc dài. Khi mỗi thành viên
+                        khoác lên chiếc áo này, họ không chỉ mặc đồng phục —
+                        họ <em>khoác lên niềm tự hào</em> thuộc về một tập thể tiên phong.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="synity-access-pass_photo_2026-01-21_14-19-51.jpg" alt="SYNITY Access Pass" class="card-image">
+                <div class="card-content">
+                    <p class="card-category">Access Pass</p>
+                    <h3 class="card-title">Chìa Khóa Vào Thế Giới SYNITY</h3>
+                    <p class="card-story">
+                        Dây đeo lanyard với logo lặp lại theo pattern tinh tế,
+                        thẻ nhân viên thiết kế gọn gàng với thông tin rõ ràng.
+                        <em>"Global Conference 2024"</em> — minh chứng cho tầm vóc quốc tế của SYNITY.
+                        Mỗi chiếc thẻ là <em>một câu chuyện cá nhân</em> trong hành trình chung,
+                        là niềm tự hào được là một phần của đội ngũ.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vehicle Section -->
+    <section class="section">
+        <div class="section-header fade-in">
+            <p class="section-number">06 — Phương Tiện Di Chuyển</p>
+            <h2 class="section-title">Thương Hiệu Trên Mọi Nẻo Đường</h2>
+            <p class="section-description">
+                Khi SYNITY di chuyển, cả thành phố nhìn thấy —
+                một billboard di động của sự chuyên nghiệp.
+            </p>
+        </div>
+
+        <div class="card fade-in">
+            <img src="synity-car_photo_2026-01-21_14-20-21.jpg" alt="SYNITY Corporate Vehicle" class="card-image">
+            <div class="card-content">
+                <p class="card-category">Corporate Vehicle</p>
+                <h3 class="card-title">Di Chuyển Với Phong Cách</h3>
+                <p class="card-story">
+                    Chiếc Mercedes-Benz S-Class màu navy đậm với logo SYNITY trắng bên hông —
+                    <em>sự kết hợp hoàn hảo giữa đẳng cấp và bản sắc</em>. Khi chiếc xe lướt qua
+                    phố phường, nó không chỉ chở người — nó <em>truyền tải thông điệp</em>
+                    về một công ty coi trọng chất lượng, chi tiết và sự xuất sắc trong mọi khía cạnh.
+                    Đây là cách SYNITY nói với thế giới: <em>"Chúng tôi nghiêm túc với mọi thứ chúng tôi làm."</em>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Founder Section -->
+    <section class="founder-section">
+        <div class="section-header fade-in">
+            <p class="section-number">07 — Người Sáng Lập</p>
+            <h2 class="section-title">Tầm Nhìn Đằng Sau Thương Hiệu</h2>
+        </div>
+
+        <div class="founder-grid fade-in">
+            <div class="founder-image">
+                <img src="founder-ai-generated-based-on-real-profile-pic_photo_2026-01-21_14-19-35.jpg" alt="SYNITY Founder Speaking">
+            </div>
+            <div class="founder-content">
+                <h3>Truyền Cảm Hứng Cho Tương Lai</h3>
+                <blockquote class="founder-quote">
+                    "Dữ liệu không chỉ là con số. Dữ liệu là câu chuyện của doanh nghiệp bạn,
+                    là cơ hội ẩn giấu, là tương lai đang chờ được khám phá."
+                </blockquote>
+                <p class="founder-bio">
+                    Đứng trước hàng trăm nhà lãnh đạo doanh nghiệp, founder của SYNITY
+                    không chỉ chia sẻ kiến thức — ông truyền cảm hứng. Với background
+                    trong lĩnh vực kiến trúc dữ liệu và chuyển đổi số, ông đã dẫn dắt SYNITY
+                    từ một startup nhỏ thành đối tác đáng tin cậy của các tập đoàn lớn.
+                    <br><br>
+                    Triết lý của ông đơn giản: <strong>làm cho phức tạp trở nên đơn giản,
+                    làm cho dữ liệu trở nên có ý nghĩa</strong>. Và mỗi ngày, đội ngũ SYNITY
+                    đang biến triết lý đó thành hiện thực.
+                </p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="founder-grid fade-in" style="margin-top: 4rem;">
+            <div class="founder-content">
+                <h3>Từ Ý Tưởng Đến Hành Động</h3>
+                <blockquote class="founder-quote">
+                    "Mỗi doanh nghiệp đều có tiềm năng vô hạn. Nhiệm vụ của chúng tôi là
+                    giúp họ nhìn thấy tiềm năng đó thông qua lăng kính dữ liệu."
+                </blockquote>
+                <p class="founder-bio">
+                    Hình ảnh founder trên sân khấu, micro trong tay, ánh mắt tập trung —
+                    đó là SYNITY. Không phải công ty, mà là con người. Không phải dịch vụ,
+                    mà là sứ mệnh.
+                    <br><br>
+                    Khi ông nói về chuyển đổi số, khán giả không chỉ nghe — họ <strong>tin</strong>.
+                    Bởi vì đằng sau mỗi lời nói là <strong>kinh nghiệm thực chiến</strong>,
+                    là những dự án đã thay đổi cách doanh nghiệp vận hành,
+                    là niềm đam mê không ngừng với công nghệ và con người.
+                </p>
+            </div>
+            <div class="founder-image">
+                <img src="founder-real-profile-pic.jpg" alt="SYNITY Founder Portrait">
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-logo">SYNITY</p>
+        <p class="footer-tagline">Innovating Data Excellence. Simplified.</p>
+        <div class="footer-note">
+            <p>Bộ nhận dạng thương hiệu được thiết kế bởi ClaudeKit Marketing</p>
+            <p style="margin-top: 0.5rem;">© 2026 SYNITY. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Fade in animation on scroll
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

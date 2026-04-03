@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Images to Supabase Storage</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #fff; padding: 2rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #D4AF37; margin-bottom: 0.5rem; }
+        .subtitle { color: #999; margin-bottom: 2rem; }
+        .config { background: #16213e; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+        .config label { display: block; color: #D4AF37; font-size: 0.85rem; margin-bottom: 0.3rem; font-weight: 600; }
+        .config input { width: 100%; padding: 0.7rem; border: 1px solid #333; border-radius: 8px; background: #0f1629; color: #fff; font-family: monospace; margin-bottom: 1rem; }
+        .config input:focus { outline: none; border-color: #D4AF37; }
+        .note { background: #2a1a0a; border: 1px solid #D4AF37; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.9rem; line-height: 1.6; }
+        .note strong { color: #D4AF37; }
+        .upload-area { border: 2px dashed #444; border-radius: 12px; padding: 3rem; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 2rem; }
+        .upload-area:hover { border-color: #D4AF37; background: rgba(212,175,55,0.05); }
+        .upload-area input { display: none; }
+        .btn { background: #D4AF37; color: #1a1a2e; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; width: 100%; margin-bottom: 1rem; }
+        .btn:hover { background: #e6c655; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .progress { margin-top: 1rem; }
+        .file-item { background: #16213e; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .file-item.success { border-left: 3px solid #10B981; }
+        .file-item.error { border-left: 3px solid #EF4444; }
+        .file-item.pending { border-left: 3px solid #6B7280; }
+        .url-box { background: #0f1629; padding: 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.75rem; color: #10B981; word-break: break-all; margin-top: 0.3rem; cursor: pointer; }
+        .url-box:hover { background: #1a2040; }
+        .results { margin-top: 2rem; }
+        .results textarea { width: 100%; height: 300px; background: #0f1629; color: #10B981; border: 1px solid #333; border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.8rem; }
+        .step { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; color: #999; }
+        .step.active { color: #D4AF37; }
+        .step.done { color: #10B981; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ Upload Images to Supabase</h1>
+        <p class="subtitle">For MyVivaTour Landing Page - escape.myvivatour.com</p>
+
+        <div class="note">
+            <strong>Hướng dẫn nhanh:</strong><br>
+            1. Trước tiên, vào <a href="https://supabase.com/dashboard/project/tnwelgvypmhhksqwnfmr/storage/buckets" target="_blank" style="color:#D4AF37">Supabase Dashboard → Storage</a><br>
+            2. Tạo bucket mới tên <strong>landing-images</strong>, tick <strong>Public bucket</strong><br>
+            3. Quay lại đây, chọn ảnh từ folder <strong>upload-ready</strong> và bấm Upload<br>
+            4. Copy tất cả URLs ở cuối trang
+        </div>
+
+        <div class="config">
+            <label>Supabase Project URL</label>
+            <input type="text" id="supabaseUrl" value="https://tnwelgvypmhhksqwnfmr.supabase.co">
+
+            <label>Supabase Anon Key</label>
+            <input type="text" id="supabaseKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRud2VsZ3Z5cG1oaGtzcXduZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTE3MDQsImV4cCI6MjA4MjkyNzcwNH0.-FIQcLNuGcQMCcuQ49ysUAqijWrF3w4dOUxFhVLtQ_U">
+
+            <label>Bucket Name</label>
+            <input type="text" id="bucketName" value="landing-images">
+
+            <label>Folder Path (optional)</label>
+            <input type="text" id="folderPath" value="escape" placeholder="e.g., escape or leave empty">
+        </div>
+
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <p style="font-size:2rem;margin-bottom:0.5rem">📁</p>
+            <p>Click to select images from <strong>upload-ready</strong> folder</p>
+            <p style="color:#666;font-size:0.85rem;margin-top:0.5rem">Select all 21 .jpg files</p>
+            <input type="file" id="fileInput" multiple accept="image/*">
+        </div>
+
+        <div id="fileList"></div>
+
+        <button class="btn" id="uploadBtn" onclick="uploadAll()" disabled>Upload All Images</button>
+
+        <div id="status"></div>
+
+        <div class="results" id="resultsSection" style="display:none">
+            <h3 style="color:#D4AF37;margin-bottom:1rem">✅ All URLs (copy this):</h3>
+            <textarea id="urlOutput" readonly></textarea>
+            <button class="btn" onclick="copyUrls()" style="margin-top:1rem">📋 Copy All URLs</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        const uploadResults = {};
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files);
+            const listEl = document.getElementById('fileList');
+            listEl.innerHTML = selectedFiles.map(f =>
+                `<div class="file-item pending" id="file-${f.name.replace(/[^a-z0-9]/gi, '_')}">
+                    <span>${f.name} (${(f.size/1024).toFixed(0)}KB)</span>
+                    <span id="status-${f.name.replace(/[^a-z0-9]/gi, '_')}">⏳ Ready</span>
+                </div>`
+            ).join('');
+            document.getElementById('uploadBtn').disabled = false;
+            document.getElementById('uploadBtn').textContent = `Upload ${selectedFiles.length} Images`;
+        });
+
+        async function uploadAll() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            const bucket = document.getElementById('bucketName').value;
+            const folder = document.getElementById('folderPath').value;
+
+            const supabase = window.supabase.createClient(url, key);
+            const btn = document.getElementById('uploadBtn');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+
+            let successCount = 0;
+            const urls = [];
+
+            for (const file of selectedFiles) {
+                const fileId = file.name.replace(/[^a-z0-9]/gi, '_');
+                const statusEl = document.getElementById(`status-${fileId}`);
+                const fileEl = document.getElementById(`file-${fileId}`);
+
+                statusEl.textContent = '⏳ Uploading...';
+
+                const filePath = folder ? `${folder}/${file.name}` : file.name;
+
+                try {
+                    const { data, error } = await supabase.storage
+                        .from(bucket)
+                        .upload(filePath, file, {
+                            cacheControl: '31536000',
+                            upsert: true
+                        });
+
+                    if (error) throw error;
+
+                    const publicUrl = `${url}/storage/v1/object/public/${bucket}/${filePath}`;
+                    urls.push({ name: file.name, url: publicUrl });
+
+                    statusEl.textContent = '✅ Done';
+                    statusEl.style.color = '#10B981';
+                    fileEl.className = 'file-item success';
+
+                    // Show URL below
+                    const urlDiv = document.createElement('div');
+                    urlDiv.className = 'url-box';
+                    urlDiv.textContent = publicUrl;
+                    urlDiv.onclick = () => { navigator.clipboard.writeText(publicUrl); urlDiv.style.color = '#D4AF37'; };
+                    fileEl.appendChild(urlDiv);
+
+                    successCount++;
+                } catch (err) {
+                    statusEl.textContent = `❌ ${err.message}`;
+                    statusEl.style.color = '#EF4444';
+                    fileEl.className = 'file-item error';
+                }
+            }
+
+            btn.textContent = `Done! ${successCount}/${selectedFiles.length} uploaded`;
+
+            if (urls.length > 0) {
+                const resultsSection = document.getElementById('resultsSection');
+                resultsSection.style.display = 'block';
+
+                const urlMap = urls.map(u => `${u.name}: ${u.url}`).join('\n');
+                document.getElementById('urlOutput').value = urlMap;
+            }
+        }
+
+        function copyUrls() {
+            const textarea = document.getElementById('urlOutput');
+            textarea.select();
+            navigator.clipboard.writeText(textarea.value);
+            alert('URLs copied to clipboard!');
+        }
+    </script>
+</body>
+</html>

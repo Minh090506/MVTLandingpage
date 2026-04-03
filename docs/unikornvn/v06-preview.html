@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unikorn Logo Preview - v06</title>
+    <style>
+        :root {
+            --primary: #6366F1;
+            --secondary: #0EA5E9;
+            --accent: #10B981;
+            --bg-light: #F8FAFC;
+            --bg-dark: #0F172A;
+            --card-light: #FFFFFF;
+            --card-dark: #1E293B;
+            --text-light: #1E293B;
+            --text-dark: #F1F5F9;
+            --border-light: #E2E8F0;
+            --border-dark: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        body.dark {
+            background: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            padding: 2rem;
+            text-align: center;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .model-section {
+            margin-bottom: 3rem;
+        }
+
+        .model-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .model-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            background: var(--primary);
+            color: white;
+        }
+
+        .model-badge.pro {
+            background: linear-gradient(135deg, #F59E0B, #EF4444);
+        }
+
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .logo-card {
+            background: var(--card-light);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+        }
+
+        body.dark .logo-card {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .logo-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
+        }
+
+        .logo-image-container {
+            aspect-ratio: 1;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFFFFF;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-card:hover .logo-image-container img {
+            transform: scale(1.05);
+        }
+
+        .logo-info {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        body.dark .logo-info {
+            border-color: var(--border-dark);
+        }
+
+        .logo-style {
+            font-weight: 600;
+            font-size: 1rem;
+            text-transform: capitalize;
+            margin-bottom: 0.25rem;
+        }
+
+        .logo-file {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            margin-bottom: 0.75rem;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #4F46E5;
+            transform: translateX(2px);
+        }
+
+        .comparison-section {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: var(--card-light);
+            border-radius: 1rem;
+            border: 1px solid var(--border-light);
+        }
+
+        body.dark .comparison-section {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .comparison-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 0.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .comparison-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .comparison-item {
+            text-align: center;
+        }
+
+        .comparison-item img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            background: white;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            border: 1px solid var(--border-light);
+        }
+
+        body.dark .comparison-item img {
+            border-color: var(--border-dark);
+        }
+
+        .comparison-item .label {
+            font-size: 0.7rem;
+            margin-top: 0.25rem;
+            opacity: 0.7;
+        }
+
+        .comparison-row {
+            display: contents;
+        }
+
+        .row-label {
+            grid-column: 1 / -1;
+            font-weight: 600;
+            padding: 1rem 0 0.5rem;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0.6;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Unikorn Logo Preview</h1>
+        <p>Vietnamese Tech Product Discovery Platform - Logo Variants v06</p>
+        <div class="controls">
+            <button class="toggle-btn" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Flash Model Section -->
+        <section class="model-section">
+            <h2 class="model-title">
+                Gemini Flash Model
+                <span class="model-badge">gemini-2.5-flash-image</span>
+            </h2>
+            <div class="logo-grid">
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_minimalist_01.png" alt="Minimalist Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Minimalist</div>
+                        <div class="logo-file">unikorn_minimalist_01.png</div>
+                        <a href="v06-flash/unikorn_minimalist_01.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_modern_02.png" alt="Modern Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Modern</div>
+                        <div class="logo-file">unikorn_modern_02.png</div>
+                        <a href="v06-flash/unikorn_modern_02.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_geometric_03.png" alt="Geometric Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Geometric</div>
+                        <div class="logo-file">unikorn_geometric_03.png</div>
+                        <a href="v06-flash/unikorn_geometric_03.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_gradient_04.png" alt="Gradient Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Gradient</div>
+                        <div class="logo-file">unikorn_gradient_04.png</div>
+                        <a href="v06-flash/unikorn_gradient_04.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_abstract_05.png" alt="Abstract Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Abstract</div>
+                        <div class="logo-file">unikorn_abstract_05.png</div>
+                        <a href="v06-flash/unikorn_abstract_05.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_lettermark_06.png" alt="Lettermark Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Lettermark</div>
+                        <div class="logo-file">unikorn_lettermark_06.png</div>
+                        <a href="v06-flash/unikorn_lettermark_06.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_negative-space_07.png" alt="Negative Space Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Negative Space</div>
+                        <div class="logo-file">unikorn_negative-space_07.png</div>
+                        <a href="v06-flash/unikorn_negative-space_07.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_lineart_08.png" alt="Line Art Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Line Art</div>
+                        <div class="logo-file">unikorn_lineart_08.png</div>
+                        <a href="v06-flash/unikorn_lineart_08.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-flash/unikorn_3d_09.png" alt="3D Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">3D</div>
+                        <div class="logo-file">unikorn_3d_09.png</div>
+                        <a href="v06-flash/unikorn_3d_09.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pro Model Section -->
+        <section class="model-section">
+            <h2 class="model-title">
+                Gemini Pro Model
+                <span class="model-badge pro">gemini-3-pro-image-preview</span>
+            </h2>
+            <div class="logo-grid">
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_minimalist_01.png" alt="Minimalist Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Minimalist</div>
+                        <div class="logo-file">unikorn_minimalist_01.png</div>
+                        <a href="v06-pro/unikorn_minimalist_01.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_modern_02.png" alt="Modern Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Modern</div>
+                        <div class="logo-file">unikorn_modern_02.png</div>
+                        <a href="v06-pro/unikorn_modern_02.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_geometric_03.png" alt="Geometric Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Geometric</div>
+                        <div class="logo-file">unikorn_geometric_03.png</div>
+                        <a href="v06-pro/unikorn_geometric_03.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_gradient_04.png" alt="Gradient Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Gradient</div>
+                        <div class="logo-file">unikorn_gradient_04.png</div>
+                        <a href="v06-pro/unikorn_gradient_04.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_abstract_05.png" alt="Abstract Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Abstract</div>
+                        <div class="logo-file">unikorn_abstract_05.png</div>
+                        <a href="v06-pro/unikorn_abstract_05.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_lettermark_06.png" alt="Lettermark Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Lettermark</div>
+                        <div class="logo-file">unikorn_lettermark_06.png</div>
+                        <a href="v06-pro/unikorn_lettermark_06.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_negative-space_07.png" alt="Negative Space Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Negative Space</div>
+                        <div class="logo-file">unikorn_negative-space_07.png</div>
+                        <a href="v06-pro/unikorn_negative-space_07.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_lineart_08.png" alt="Line Art Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">Line Art</div>
+                        <div class="logo-file">unikorn_lineart_08.png</div>
+                        <a href="v06-pro/unikorn_lineart_08.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+                <div class="logo-card">
+                    <div class="logo-image-container">
+                        <img src="v06-pro/unikorn_3d_09.png" alt="3D Logo">
+                    </div>
+                    <div class="logo-info">
+                        <div class="logo-style">3D</div>
+                        <div class="logo-file">unikorn_3d_09.png</div>
+                        <a href="v06-pro/unikorn_3d_09.png" download class="download-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Side-by-Side Comparison -->
+        <section class="comparison-section">
+            <h2 class="comparison-title">Flash vs Pro - Side by Side Comparison</h2>
+            <div class="comparison-grid">
+                <div class="row-label">Flash Model (gemini-2.5-flash-image)</div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_minimalist_01.png" alt="Flash Minimalist"><div class="label">Minimalist</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_modern_02.png" alt="Flash Modern"><div class="label">Modern</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_geometric_03.png" alt="Flash Geometric"><div class="label">Geometric</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_gradient_04.png" alt="Flash Gradient"><div class="label">Gradient</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_abstract_05.png" alt="Flash Abstract"><div class="label">Abstract</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_lettermark_06.png" alt="Flash Lettermark"><div class="label">Lettermark</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_negative-space_07.png" alt="Flash Negative Space"><div class="label">Negative Space</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_lineart_08.png" alt="Flash Line Art"><div class="label">Line Art</div></div>
+                <div class="comparison-item"><img src="v06-flash/unikorn_3d_09.png" alt="Flash 3D"><div class="label">3D</div></div>
+
+                <div class="row-label">Pro Model (gemini-3-pro-image-preview)</div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_minimalist_01.png" alt="Pro Minimalist"><div class="label">Minimalist</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_modern_02.png" alt="Pro Modern"><div class="label">Modern</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_geometric_03.png" alt="Pro Geometric"><div class="label">Geometric</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_gradient_04.png" alt="Pro Gradient"><div class="label">Gradient</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_abstract_05.png" alt="Pro Abstract"><div class="label">Abstract</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_lettermark_06.png" alt="Pro Lettermark"><div class="label">Lettermark</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_negative-space_07.png" alt="Pro Negative Space"><div class="label">Negative Space</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_lineart_08.png" alt="Pro Line Art"><div class="label">Line Art</div></div>
+                <div class="comparison-item"><img src="v06-pro/unikorn_3d_09.png" alt="Pro 3D"><div class="label">3D</div></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Generated with ClaudeKit Logo Design Skill | Unikorn.vn - Vietnamese Tech Product Discovery Platform</p>
+    </footer>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+        }
+    </script>
+</body>
+</html>
