@@ -7,6 +7,9 @@ on:
       - 'pages/**'
       - 'build.js'
       - 'wrangler.toml'
+      - 'dashboard.html'
+      - 'build-dashboard.js'
+      - 'wrangler-dashboard.toml'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:  # Allow manual trigger
 
@@ -28,21 +31,29 @@ jobs:
       - name: Build worker.js from pages
         run: node build.js
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy Landing Pages Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
 
+      - name: Build dashboard-worker.js
+        run: node build-dashboard.js
+
+      - name: Deploy Dashboard Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy -c wrangler-dashboard.toml
+
       - name: Deployment summary
         run: |
           echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Landing Pages (escape.myvivatour.com)" >> $GITHUB_STEP_SUMMARY
           echo "**Worker:** escape-myvivatour" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** https://escape.myvivatour.com" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Landing Pages Deployed:" >> $GITHUB_STEP_SUMMARY
           for dir in pages/*/; do
             page=$(basename "$dir")
             if [ "$page" = "escape" ]; then
@@ -51,6 +62,10 @@ jobs:
               echo "- **$page** → https://escape.myvivatour.com/$page" >> $GITHUB_STEP_SUMMARY
             fi
           done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Dashboard (googlead.myvivatour.com)" >> $GITHUB_STEP_SUMMARY
+          echo "**Worker:** mvt-dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dashboard** → https://googlead.myvivatour.com/" >> $GITHUB_STEP_SUMMARY
 
   upload-images:
     name: Upload images to Supabase Storage

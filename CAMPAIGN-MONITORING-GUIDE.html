@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVT Campaign Monitoring Dashboard & Guide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { font-size: 28px; color: #60a5fa; margin-bottom: 8px; }
+h2 { font-size: 22px; color: #f59e0b; margin: 32px 0 16px; border-bottom: 2px solid #334155; padding-bottom: 8px; }
+h3 { font-size: 18px; color: #34d399; margin: 20px 0 12px; }
+.subtitle { color: #94a3b8; margin-bottom: 24px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+.card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
+.card-header { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.card-value { font-size: 32px; font-weight: 700; color: #f8fafc; }
+.card-unit { font-size: 14px; color: #64748b; margin-left: 4px; }
+.card-note { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+.good { color: #34d399; }
+.warn { color: #fbbf24; }
+.bad { color: #f87171; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.tag-good { background: #064e3b; color: #34d399; }
+.tag-warn { background: #78350f; color: #fbbf24; }
+.tag-bad { background: #7f1d1d; color: #f87171; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+th { background: #1e293b; color: #94a3b8; text-align: left; padding: 10px 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+td { padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 14px; }
+tr:hover { background: #1e293b; }
+.section { background: #1e293b; border-radius: 12px; padding: 24px; margin: 16px 0; border: 1px solid #334155; }
+.step { display: flex; gap: 16px; margin: 12px 0; align-items: flex-start; }
+.step-num { background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.step-content { flex: 1; }
+.link { color: #60a5fa; text-decoration: none; border-bottom: 1px dashed #60a5fa; }
+.link:hover { color: #93c5fd; }
+code { background: #334155; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 13px; color: #fbbf24; }
+.checklist { list-style: none; }
+.checklist li { padding: 6px 0; padding-left: 28px; position: relative; }
+.checklist li::before { content: "☐"; position: absolute; left: 0; color: #64748b; }
+.divider { height: 1px; background: #334155; margin: 24px 0; }
+.phase { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #0f172a; border-radius: 8px; margin: 8px 0; }
+.phase-label { font-weight: 600; min-width: 120px; }
+.phase-bar { flex: 1; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+.phase-fill { height: 100%; border-radius: 4px; }
+.alert-box { background: #7f1d1d33; border: 1px solid #f87171; border-radius: 8px; padding: 16px; margin: 16px 0; }
+.success-box { background: #064e3b33; border: 1px solid #34d399; border-radius: 8px; padding: 16px; margin: 16px 0; }
+.info-box { background: #1e3a5f33; border: 1px solid #60a5fa; border-radius: 8px; padding: 16px; margin: 16px 0; }
+.tabs { display: flex; gap: 4px; margin-bottom: 0; }
+.tab { padding: 10px 20px; background: #0f172a; color: #94a3b8; border: 1px solid #334155; border-bottom: none; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: 500; }
+.tab.active { background: #1e293b; color: #f8fafc; border-color: #334155; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>MVT Campaign Monitoring Dashboard</h1>
+<p class="subtitle">Campaign: MVT - Escape - High Intent | Account: 806-163-1566 | Launched: 7/4/2026</p>
+
+<!-- ===== CAMPAIGN INFO ===== -->
+<div class="grid">
+  <div class="card">
+    <div class="card-header">Campaign</div>
+    <div class="card-value" style="font-size:20px">MVT - Escape - High Intent</div>
+    <div class="card-note">Search Campaign | Australia</div>
+  </div>
+  <div class="card">
+    <div class="card-header">Budget</div>
+    <div class="card-value">800K<span class="card-unit">VND/ngay</span></div>
+    <div class="card-note">~ $50 AUD/ngay</div>
+  </div>
+  <div class="card">
+    <div class="card-header">Bidding</div>
+    <div class="card-value" style="font-size:20px">Max Clicks</div>
+    <div class="card-note">Max CPC: 80,000 VND</div>
+  </div>
+  <div class="card">
+    <div class="card-header">Landing Page</div>
+    <div class="card-value" style="font-size:16px"><a class="link" href="https://escape.myvivatour.com" target="_blank">escape.myvivatour.com</a></div>
+    <div class="card-note">10-Day Vietnam Tour | $2,099 AUD</div>
+  </div>
+</div>
+
+<!-- ===== TRACKING VERIFICATION ===== -->
+<h2>1. Xac Minh Tracking (Lam NGAY)</h2>
+<div class="success-box">
+  <strong>Source Code: ✅ DA CO DU</strong> — GTM, GA4, Google Ads Conversion, Facebook Pixel deu co trong HTML source.
+</div>
+
+<div class="section">
+  <h3>Kiem tra tracking THUC TE dang fire dung:</h3>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>Google Tag Manager Preview</strong><br>
+      Vao <a class="link" href="https://tagmanager.google.com/#/container/accounts/7771865759/containers/GTM-TPQWV864/workspaces" target="_blank">tagmanager.google.com</a>
+      → Click <code>Preview</code> → Nhap URL <code>https://escape.myvivatour.com</code><br>
+      Kiem tra: Tags fired on Page View? Form Submit event co fire Google Ads Conversion + FB Pixel?
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>GA4 Realtime</strong><br>
+      Vao <a class="link" href="https://analytics.google.com/analytics/web/#/p/14312720580/reports/dashboard?params=_u..nav%3Dmaui&r=realtime" target="_blank">GA4 → Realtime</a><br>
+      Tu mo <code>escape.myvivatour.com</code> trong tab khac → Xem co hien thi 1 user active khong?<br>
+      Kiem tra: Event <code>page_view</code>, source/medium co hien dung?
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>Google Ads Conversion Tracking</strong><br>
+      Vao <a class="link" href="https://ads.google.com/aw/conversions" target="_blank">Google Ads → Tools → Conversions</a><br>
+      Kiem tra conversion action co trang thai <span class="tag tag-good">Recording conversions</span> hay <span class="tag tag-warn">No recent conversions</span>?<br>
+      Neu "Unverified tag" → can test form submit 1 lan de verify
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>Facebook Pixel Helper</strong><br>
+      Cai extension <a class="link" href="https://chrome.google.com/webstore/detail/facebook-pixel-helper/fdgfkebogiimcoedlicjlajpkdmockpc" target="_blank">Facebook Pixel Helper</a> cho Chrome<br>
+      Vao <code>escape.myvivatour.com</code> → Icon extension phai hien so <span class="tag tag-good">2</span> (PageView + init)
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <strong>Test Form Submit (QUAN TRONG!)</strong><br>
+      Dien form tren landing page voi email test → Submit → Kiem tra:<br>
+      ✅ Web3Forms nhan duoc (check inbox info@myvivatour.com)<br>
+      ✅ GA4 Realtime hien event <code>form_submit</code><br>
+      ✅ Google Ads: conversion duoc ghi nhan<br>
+      ✅ Facebook Events Manager: Lead event xuat hien
+    </div>
+  </div>
+</div>
+
+<!-- ===== KPI BENCHMARKS ===== -->
+<h2>2. KPI Benchmarks — Danh Gia Hieu Qua</h2>
+
+<div class="info-box">
+  <strong>Nganh Travel (Australia → Vietnam):</strong> Du lieu benchmark tu Google Ads industry averages cho nganh Travel & Tourism. Campaign moi can 2-4 tuan hoc (learning phase) truoc khi danh gia chinh xac.
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Chi so (KPI)</th>
+      <th>Benchmark nganh Travel</th>
+      <th>Muc tieu MVT</th>
+      <th>Canh bao</th>
+      <th>Cach tinh</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>CTR</strong> (Click-Through Rate)</td>
+      <td>4-5%</td>
+      <td class="good">&gt; 5%</td>
+      <td class="bad">&lt; 3%</td>
+      <td>Clicks / Impressions</td>
+    </tr>
+    <tr>
+      <td><strong>CPC</strong> (Cost Per Click)</td>
+      <td>$1.5-3 AUD</td>
+      <td class="good">&lt; 50,000 VND</td>
+      <td class="bad">&gt; 80,000 VND</td>
+      <td>Cost / Clicks</td>
+    </tr>
+    <tr>
+      <td><strong>Conversion Rate</strong></td>
+      <td>2-5%</td>
+      <td class="good">&gt; 3%</td>
+      <td class="bad">&lt; 1%</td>
+      <td>Conversions / Clicks</td>
+    </tr>
+    <tr>
+      <td><strong>CPA</strong> (Cost Per Acquisition)</td>
+      <td>$30-80 AUD</td>
+      <td class="good">&lt; 800,000 VND</td>
+      <td class="bad">&gt; 1,500,000 VND</td>
+      <td>Cost / Conversions</td>
+    </tr>
+    <tr>
+      <td><strong>Quality Score</strong></td>
+      <td>5-6</td>
+      <td class="good">&gt; 7</td>
+      <td class="bad">&lt; 5</td>
+      <td>Google Ads → Keywords tab</td>
+    </tr>
+    <tr>
+      <td><strong>Impression Share</strong></td>
+      <td>—</td>
+      <td class="good">&gt; 60%</td>
+      <td class="bad">&lt; 30%</td>
+      <td>Columns → Competitive metrics</td>
+    </tr>
+    <tr>
+      <td><strong>Bounce Rate</strong> (GA4)</td>
+      <td>40-60%</td>
+      <td class="good">&lt; 50%</td>
+      <td class="bad">&gt; 70%</td>
+      <td>GA4 → Pages report</td>
+    </tr>
+    <tr>
+      <td><strong>Avg. Session Duration</strong></td>
+      <td>1-2 phut</td>
+      <td class="good">&gt; 2 phut</td>
+      <td class="bad">&lt; 30 giay</td>
+      <td>GA4 → Engagement</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== BIDDING ROADMAP ===== -->
+<h2>3. Roadmap Bidding Strategy</h2>
+<div class="section">
+  <div class="phase">
+    <span class="phase-label"><span class="tag tag-good">HIEN TAI</span></span>
+    <div style="flex:1">
+      <strong>Phase 1: Maximize Clicks</strong> (Tuan 1-2)<br>
+      <span style="color:#94a3b8">Thu thap data, 30-50 clicks/ngay, max CPC 80,000 VND. <strong>Muc tieu: 50+ conversions.</strong></span>
+    </div>
+  </div>
+  <div class="phase">
+    <span class="phase-label" style="color:#94a3b8">Tuan 3-4</span>
+    <div style="flex:1">
+      <strong>Phase 2: Maximize Conversions</strong><br>
+      <span style="color:#94a3b8">Khi da co 30-50 conversions → Chuyen sang Maximize Conversions. Google se tu dong toi uu.</span>
+    </div>
+  </div>
+  <div class="phase">
+    <span class="phase-label" style="color:#94a3b8">Thang 2+</span>
+    <div style="flex:1">
+      <strong>Phase 3: Target CPA</strong><br>
+      <span style="color:#94a3b8">Khi co 50+ conversions → Dat Target CPA = CPA trung binh hien tai. Giam dan 10% moi 2 tuan.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DAILY/WEEKLY CHECKLIST ===== -->
+<h2>4. Lich Kiem Tra</h2>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr;">
+  <div class="card">
+    <h3 style="margin-top:0">Hang Ngay (5 phut)</h3>
+    <ul class="checklist">
+      <li>Vao Google Ads → Overview: campaign co dang chay?</li>
+      <li>Kiem tra so du tai khoan (canh bao thap → nap tien)</li>
+      <li>Xem Clicks, Impressions, CTR, CPC hom nay</li>
+      <li>Kiem tra co conversion nao moi?</li>
+      <li>Check email: co lead moi tu Web3Forms?</li>
+      <li>Check WhatsApp: co tin nhan moi?</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Hang Tuan (30 phut)</h3>
+    <ul class="checklist">
+      <li>So sanh KPIs tuan nay vs tuan truoc</li>
+      <li>Kiem tra Search Terms report → them Negative Keywords</li>
+      <li>Xem Quality Score tung keyword</li>
+      <li>Kiem tra Ad copy nao co CTR cao nhat</li>
+      <li>GA4: Bounce rate, session duration, pages/session</li>
+      <li>Kiem tra Impression Share → tang budget neu can</li>
+      <li>Xem device performance (mobile vs desktop)</li>
+      <li>Review va tra loi cac leads moi</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h3 style="margin-top:0">2 Tuan 1 Lan (1 gio)</h3>
+  <ul class="checklist">
+    <li>Danh gia tong the: ROI, CPA, so leads, chat luong leads</li>
+    <li>A/B test: Thay doi headline/description cua ad → so sanh</li>
+    <li>Kiem tra va loai bo keywords khong hieu qua (high cost, 0 conversion)</li>
+    <li>Xem xet chuyen doi bidding strategy (theo roadmap Phase 1→2→3)</li>
+    <li>Toi uu landing page dua tren GA4 data (bounce rate cao → sua content)</li>
+    <li>Xem xet mo rong keywords moi tu Search Terms report</li>
+    <li>Cap nhat negative keywords list</li>
+  </ul>
+</div>
+
+<!-- ===== WHERE TO CHECK ===== -->
+<h2>5. Links Truy Cap Nhanh</h2>
+<table>
+  <thead>
+    <tr><th>Tool</th><th>Link</th><th>Xem gi?</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Google Ads</strong></td>
+      <td><a class="link" href="https://ads.google.com/aw/campaigns?ocid=6796843167" target="_blank">ads.google.com → Campaigns</a></td>
+      <td>Clicks, Impressions, CTR, CPC, Cost, Conversions</td>
+    </tr>
+    <tr>
+      <td><strong>Google Ads Keywords</strong></td>
+      <td><a class="link" href="https://ads.google.com/aw/keywords?ocid=6796843167" target="_blank">ads.google.com → Keywords</a></td>
+      <td>Quality Score, keyword-level CTR/CPC, Search Terms</td>
+    </tr>
+    <tr>
+      <td><strong>Google Ads Search Terms</strong></td>
+      <td><a class="link" href="https://ads.google.com/aw/keywordsearchterminsight?ocid=6796843167" target="_blank">ads.google.com → Search Terms</a></td>
+      <td>Thuc te nguoi ta search gi? → Them negative keywords</td>
+    </tr>
+    <tr>
+      <td><strong>GA4 Realtime</strong></td>
+      <td><a class="link" href="https://analytics.google.com" target="_blank">analytics.google.com → Realtime</a></td>
+      <td>Users dang online, event tracking, source/medium</td>
+    </tr>
+    <tr>
+      <td><strong>GA4 Acquisition</strong></td>
+      <td><a class="link" href="https://analytics.google.com" target="_blank">GA4 → Reports → Acquisition</a></td>
+      <td>Traffic sources: google/cpc vs organic vs direct</td>
+    </tr>
+    <tr>
+      <td><strong>GA4 Engagement</strong></td>
+      <td><a class="link" href="https://analytics.google.com" target="_blank">GA4 → Reports → Engagement</a></td>
+      <td>Bounce rate, session duration, events (form_submit)</td>
+    </tr>
+    <tr>
+      <td><strong>GTM</strong></td>
+      <td><a class="link" href="https://tagmanager.google.com" target="_blank">tagmanager.google.com</a></td>
+      <td>Preview mode: kiem tra tags fire dung</td>
+    </tr>
+    <tr>
+      <td><strong>Facebook Events</strong></td>
+      <td><a class="link" href="https://business.facebook.com/events_manager2/list/pixel/579298288600609" target="_blank">business.facebook.com → Events Manager</a></td>
+      <td>PageView, Lead events, diagnostics</td>
+    </tr>
+    <tr>
+      <td><strong>Web3Forms</strong></td>
+      <td><a class="link" href="https://web3forms.com/dashboard" target="_blank">web3forms.com → Dashboard</a></td>
+      <td>Form submissions, email delivery status</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== OPTIMIZATION ACTIONS ===== -->
+<h2>6. Xu Ly Tinh Huong</h2>
+
+<div class="section">
+  <h3>Neu CTR thap (&lt; 3%)</h3>
+  <p>→ Ad copy chua hap dan hoac keywords khong phu hop</p>
+  <ul class="checklist" style="margin-top:8px">
+    <li>Kiem tra headline co chua gia ($2,099), USP (All-Inclusive, Flights Included)?</li>
+    <li>Them cac headline moi voi urgency ("Limited Spots", "Book Now")</li>
+    <li>Kiem tra keyword relevance: search term co match voi ad copy?</li>
+    <li>Loai bo keywords rong (vd: "vietnam" qua chung chung)</li>
+    <li>Kiem tra ad position: neu thap → tang bid hoac cai thien Quality Score</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>Neu CPC qua cao (&gt; 80,000 VND)</h3>
+  <p>→ Canh tranh cao hoac Quality Score thap</p>
+  <ul class="checklist" style="margin-top:8px">
+    <li>Kiem tra Quality Score tung keyword (target &gt; 7)</li>
+    <li>Cai thien Ad Relevance: dam bao ad copy chua keyword</li>
+    <li>Cai thien Landing Page Experience: page load nhanh, mobile-friendly</li>
+    <li>Thu long-tail keywords it canh tranh hon</li>
+    <li>Giam max CPC xuong va theo doi volume</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>Neu Conversion Rate thap (&lt; 1%)</h3>
+  <p>→ Landing page chua thuyat phuc hoac traffic khong dung doi tuong</p>
+  <ul class="checklist" style="margin-top:8px">
+    <li>Kiem tra GA4 Bounce Rate: &gt; 70% = nguoi vao roi di ngay</li>
+    <li>Kiem tra mobile experience: form co de dien tren dien thoai?</li>
+    <li>Xem Search Terms: nguoi ta co thuc su tim tour Vietnam?</li>
+    <li>A/B test: thay doi hero section, gia, CTA button text</li>
+    <li>Kiem tra form co loi ky thuat? Test submit thu</li>
+    <li>Them urgency: countdown timer, "X spots left"</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>Neu Impressions thap (&lt; 100/ngay)</h3>
+  <p>→ Keywords qua hep hoac budget/bid qua thap</p>
+  <ul class="checklist" style="margin-top:8px">
+    <li>Kiem tra Impression Share: thap = can tang budget/bid</li>
+    <li>Mo rong keywords: them broad match modifier, them keywords moi</li>
+    <li>Tang budget neu Impression Share Lost (Budget) cao</li>
+    <li>Kiem tra location targeting: dung la Australia?</li>
+    <li>Tao Campaign 2 (Destination) de mo rong reach</li>
+  </ul>
+</div>
+
+<!-- ===== GOOGLE ADS COLUMNS SETUP ===== -->
+<h2>7. Cai Dat Columns Trong Google Ads</h2>
+<div class="section">
+  <p>De theo doi hieu qua, can hien thi day du columns trong Google Ads:</p>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      Vao <strong>Campaigns</strong> → Click <strong>"Cot"</strong> (Columns) → <strong>"Sra doi cot"</strong> (Modify columns)
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      Them cac columns sau:
+      <table style="margin-top:8px">
+        <tr><td><code>Conversions</code></td><td>So leads (form submit)</td></tr>
+        <tr><td><code>Conv. rate</code></td><td>Ty le chuyen doi</td></tr>
+        <tr><td><code>Cost/conv.</code></td><td>Chi phi moi lead (CPA)</td></tr>
+        <tr><td><code>Impr. (Top) %</code></td><td>Vi tri hien thi tren cung</td></tr>
+        <tr><td><code>Search impr. share</code></td><td>Ty le hien thi so voi tiem nang</td></tr>
+        <tr><td><code>Search lost IS (budget)</code></td><td>Mat vi thieu budget</td></tr>
+        <tr><td><code>Search lost IS (rank)</code></td><td>Mat vi xep hang thap</td></tr>
+        <tr><td><code>Quality Score</code></td><td>Diem chat luong keyword</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      Click <strong>"Luu"</strong> (Save) va dat ten "MVT Monitoring"
+    </div>
+  </div>
+</div>
+
+<!-- ===== NEXT STEPS ===== -->
+<h2>8. Viec Can Lam Tiep</h2>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr;">
+  <div class="card" style="border-color: #f87171">
+    <h3 style="color:#f87171; margin-top:0">KHAN CAP</h3>
+    <ul class="checklist">
+      <li>Nap tien Google Ads (tai khoan so du thap)</li>
+      <li>Chay GTM Preview → verify all tags fire</li>
+      <li>Test form submit 1 lan de verify conversion tracking</li>
+    </ul>
+  </div>
+  <div class="card" style="border-color: #fbbf24">
+    <h3 style="color:#fbbf24; margin-top:0">TUAN NAY</h3>
+    <ul class="checklist">
+      <li>Tao Campaign 2: Destination (PROMPT-D-FIXED.md)</li>
+      <li>Them Audiences + Bid Adjustments (Prompt F)</li>
+      <li>Don dep Structured Snippets trung/sai</li>
+      <li>Setup GA4 Goals (form_submit event)</li>
+    </ul>
+  </div>
+  <div class="card" style="border-color: #60a5fa">
+    <h3 style="color:#60a5fa; margin-top:0">TUAN SAU</h3>
+    <ul class="checklist">
+      <li>Review Search Terms → them negative keywords</li>
+      <li>Danh gia CTR, CPC, Quality Score</li>
+      <li>A/B test ad copy (pin 1-2 headlines moi)</li>
+      <li>Kiem tra Impression Share va dieu chinh budget</li>
+    </ul>
+  </div>
+  <div class="card" style="border-color: #34d399">
+    <h3 style="color:#34d399; margin-top:0">THANG SAU</h3>
+    <ul class="checklist">
+      <li>Chuyen bidding sang Maximize Conversions (khi co 30+ leads)</li>
+      <li>Xay dung landing pages: honeymoon, family-tour, luxury-cruise</li>
+      <li>Tao remarketing campaign cho nguoi da vao landing page</li>
+      <li>Setup Facebook Ads remarketing</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== BUDGET CALCULATION ===== -->
+<h2>9. Uoc Tinh ROI</h2>
+<div class="section">
+  <table>
+    <tr><td><strong>Budget thang</strong></td><td>800,000 VND × 30 = <strong>24,000,000 VND</strong> (~$1,500 AUD)</td></tr>
+    <tr><td><strong>CPC trung binh (du kien)</strong></td><td>~50,000 VND ($3 AUD)</td></tr>
+    <tr><td><strong>Clicks/thang (du kien)</strong></td><td>~480 clicks</td></tr>
+    <tr><td><strong>Conv. rate 3%</strong></td><td>~14 leads/thang</td></tr>
+    <tr><td><strong>CPA (du kien)</strong></td><td>~1,700,000 VND ($107 AUD)/lead</td></tr>
+    <tr><td><strong>Neu close rate 20%</strong></td><td>~3 bookings/thang</td></tr>
+    <tr><td><strong>Revenue/booking</strong></td><td>$2,099 AUD × 3 = <strong>$6,297 AUD</strong></td></tr>
+    <tr><td><strong>ROAS (du kien)</strong></td><td>$6,297 / $1,500 = <strong class="good">4.2x</strong></td></tr>
+  </table>
+  <div class="info-box" style="margin-top:16px">
+    <strong>Luu y:</strong> Day la uoc tinh. So thuc te phu thuoc vao nhieu yeu to. Can theo doi it nhat 2-4 tuan de co data chinh xac. Muc tieu ROAS > 3x la tot cho nganh travel.
+  </div>
+</div>
+
+<div class="divider"></div>
+<p style="text-align:center; color:#64748b; padding: 20px 0;">
+  MVT Campaign Monitoring Guide | Created 7/4/2026 | MyVivaTour
+</p>
+
+</div>
+</body>
+</html>
