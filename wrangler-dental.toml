@@ -1,0 +1,11 @@
+name = "vietnamdentaltravel"
+main = "worker-dental.js"
+compatibility_date = "2024-01-01"
+
+[[routes]]
+pattern = "vietnamdentaltravel.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.vietnamdentaltravel.com"
+custom_domain = true
