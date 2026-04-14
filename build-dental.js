@@ -21,7 +21,7 @@ const OUTPUT_FILE = path.join(__dirname, 'worker-dental.js');
 
 // Landing page config: folder name → route path
 const PAGES_CONFIG = {
-  'dental-implants-vietnam': { path: '/dental-implants-vietnam', isDefault: true, name: 'Dental Implants Vietnam — Save 70% vs Australia' },
+  'dental-implants-vietnam': { path: '/', isDefault: true, name: 'Dental Implants Vietnam — Save 70% vs Australia' },
 };
 
 function readPageHTML(folderName) {
@@ -201,9 +201,9 @@ Sitemap: https://implant.vietnamdentaltravel.com/sitemap.xml\`;
       });
     }
 
-    // Root redirect: / → /dental-implants-vietnam (301)
-    if (pathname === '/') {
-      return Response.redirect(\`\${baseUrl}\${DEFAULT_PATH}\`, 301);
+    // Legacy redirect: /dental-implants-vietnam → /
+    if (pathname === '/dental-implants-vietnam') {
+      return Response.redirect(baseUrl + '/', 301);
     }
 
     // Route to the correct landing page
