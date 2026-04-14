@@ -166,7 +166,7 @@ function build() {
   return \`User-agent: *
 Allow: /
 
-Sitemap: https://vietnamdentaltravel.com/sitemap.xml\`;
+Sitemap: https://implant.vietnamdentaltravel.com/sitemap.xml\`;
 }\n\n`;
 
   // Fetch handler with routing — includes 301 redirect from / to /dental-implants-vietnam
@@ -174,7 +174,7 @@ Sitemap: https://vietnamdentaltravel.com/sitemap.xml\`;
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pathname = url.pathname.replace(/\\/+$/, '') || '/';
-    const baseUrl = 'https://vietnamdentaltravel.com';
+    const baseUrl = 'https://implant.vietnamdentaltravel.com';
 
     // Favicon
     if (pathname === '/favicon.ico') {
