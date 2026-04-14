@@ -39,12 +39,29 @@ function escapeTemplateLiteral(str) {
   return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
 }
 
+function readImages(folderName) {
+  const imgDir = path.join(PAGES_DIR, folderName, 'images');
+  const images = {};
+  if (!fs.existsSync(imgDir)) return images;
+
+  const files = fs.readdirSync(imgDir).filter(f => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f));
+  for (const file of files) {
+    const filePath = path.join(imgDir, file);
+    const data = fs.readFileSync(filePath);
+    const ext = path.extname(file).toLowerCase().replace('.', '');
+    const mimeMap = { webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', svg: 'image/svg+xml' };
+    images[file] = { base64: data.toString('base64'), mime: mimeMap[ext] || 'application/octet-stream', size: data.length };
+  }
+  return images;
+}
+
 function build() {
   console.log('🦷 VietnamDentalTravel Landing Page Builder');
   console.log('============================================\n');
   console.log('Reading pages:');
 
   const pages = {};
+  const allImages = {};
   let defaultPage = null;
 
   for (const [folder, config] of Object.entries(PAGES_CONFIG)) {
@@ -52,6 +69,16 @@ function build() {
     if (html) {
       pages[folder] = { ...config, html };
       if (config.isDefault) defaultPage = folder;
+      // Read images for this page
+      const imgs = readImages(folder);
+      const imgCount = Object.keys(imgs).length;
+      if (imgCount > 0) {
+        const totalKB = Object.values(imgs).reduce((sum, i) => sum + i.size, 0) / 1024;
+        console.log(`  📸 ${imgCount} images (${totalKB.toFixed(0)} KB)`);
+        for (const [name, data] of Object.entries(imgs)) {
+          allImages[`images/${name}`] = data;
+        }
+      }
     }
   }
 
@@ -67,13 +94,19 @@ function build() {
         if (html) {
           pages[dir] = { path: `/${dir}`, name: dir, html };
           console.log(`  + Auto-discovered: ${dir} → /${dir}`);
+          const imgs = readImages(dir);
+          for (const [name, data] of Object.entries(imgs)) {
+            allImages[`images/${name}`] = data;
+          }
         }
       }
     }
   }
 
   const pageCount = Object.keys(pages).length;
-  console.log(`\n📄 ${pageCount} pages loaded\n`);
+  const imageCount = Object.keys(allImages).length;
+  console.log(`\n📄 ${pageCount} pages loaded`);
+  console.log(`📸 ${imageCount} images bundled\n`);
 
   if (pageCount === 0) {
     console.error('❌ No pages found! Make sure pages/vietnamdentaltravel/ folder has subfolders with index.html');
@@ -145,6 +178,17 @@ function build() {
 </body>
 </html>\`;\n\n`;
 
+  // Add image assets as base64-encoded data
+  if (imageCount > 0) {
+    workerCode += `// Image assets (base64-encoded, served at /images/*)\nconst IMAGES = {\n`;
+    for (const [route, img] of Object.entries(allImages)) {
+      workerCode += `  '/${route}': { data: '${img.base64}', mime: '${img.mime}' },\n`;
+    }
+    workerCode += `};\n\n`;
+  } else {
+    workerCode += `const IMAGES = {};\n\n`;
+  }
+
   // Add sitemap generator with vietnamdentaltravel.com base
   workerCode += `function generateSitemap(baseUrl) {
   const urls = Object.keys(ROUTES).map(path => {
@@ -197,6 +241,19 @@ Sitemap: https://implant.vietnamdentaltravel.com/sitemap.xml\`;
         headers: {
           'Content-Type': 'text/plain;charset=UTF-8',
           'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    // Serve images (base64 → binary)
+    const img = IMAGES[pathname];
+    if (img) {
+      const binary = Uint8Array.from(atob(img.data), c => c.charCodeAt(0));
+      return new Response(binary, {
+        headers: {
+          'Content-Type': img.mime,
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     }
