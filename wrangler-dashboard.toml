@@ -2,8 +2,8 @@ name = "mvt-dashboard"
 main = "dashboard-worker.js"
 compatibility_date = "2024-01-01"
 
-# Custom domain: googlead.myvivatour.com
+# Custom domain: googlelead.myvivatour.com
 # Cloudflare will auto-create DNS record and SSL certificate
 [[routes]]
-pattern = "googlead.myvivatour.com/*"
+pattern = "googlelead.myvivatour.com/*"
 custom_domain = true
