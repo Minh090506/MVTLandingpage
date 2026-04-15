@@ -201,7 +201,22 @@ const TIPS = {
 };
 
 // ============ STATE ============
-let dailyData=[], summaryData=[], lpData=[], activeTab='overview', charts={};
+let dailyData=[], summaryData=[], lpData=[], activeTab='overview', charts={}, statusFilter='all';
+// statusFilter: 'all' | 'active' | 'paused'
+function getFilteredSummary(){
+  if(statusFilter==='all') return summaryData;
+  return summaryData.filter(s=>{
+    const st=(s.Status||'').toLowerCase().includes('enable')?'active':'paused';
+    return st===statusFilter;
+  });
+}
+function statusFilterHTML(id){
+  return \`<div style="display:flex;gap:6px;margin-bottom:12px" id="\${id}">
+    <button class="btn \${statusFilter==='all'?'green':''}" onclick="statusFilter='all';render()">Tất cả (\${summaryData.length})</button>
+    <button class="btn \${statusFilter==='active'?'green':''}" onclick="statusFilter='active';render()">Đang chạy (\${summaryData.filter(s=>(s.Status||'').toLowerCase().includes('enable')).length})</button>
+    <button class="btn \${statusFilter==='paused'?'green':''}" onclick="statusFilter='paused';render()">Tạm dừng (\${summaryData.filter(s=>!(s.Status||'').toLowerCase().includes('enable')).length})</button>
+  </div>\`;
+}
 
 // ============ UTILITIES ============
 const fmt = n => {if(n==null||isNaN(n))return'—';if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+'M';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toString();};
@@ -387,13 +402,13 @@ function renderOverview(el){
       </div>\`).join('')}
     </div>
 
-    \${summaryData.length>0?\`<div class="card"><div class="card-title"><span class="icon">📋</span> So sánh các chiến dịch</div><div style="overflow-x:auto"><table><thead><tr>\${['Chiến dịch','Trạng thái','Ngân sách/ngày','Hiển thị','Nhấp','CTR','CPC','Điền form','Tỷ lệ','CPA','Chi phí','Điểm'].map(h=>\`<th>\${h}</th>\`).join('')}</tr></thead><tbody>\${summaryData.map(s=>{
+    \${summaryData.length>0?\`<div class="card"><div class="card-title"><span class="icon">📋</span> So sánh các chiến dịch</div>\${statusFilterHTML('filter-overview')}<div style="overflow-x:auto"><table><thead><tr>\${['Chiến dịch','Trạng thái','Ngân sách/ngày','Hiển thị','Nhấp','CTR','CPC','Điền form','Tỷ lệ','CPA','Chi phí','Điểm'].map(h=>\`<th>\${h}</th>\`).join('')}</tr></thead><tbody>\${getFilteredSummary().map(s=>{
       const imp=s.TotalImpressions||0,clk=s.TotalClicks||0,cst=s.TotalCost||0,conv=s.TotalConversions||0;
       const ctr=imp>0?(clk/imp)*100:0,cpc=clk>0?cst/clk:0,cr=clk>0?(conv/clk)*100:0,cpa=conv>0?cst/conv:0;
       const sc2=scoreCalc({ctr,cpc,convRate:cr,cpa});
       const st=(s.Status||'').toLowerCase().includes('enable')?'active':'paused';
       return\`<tr><td class="text-white">\${s.CampaignName||'—'}</td><td><span class="badge \${st}">\${st==='active'?'ĐANG CHẠY':'TẠM DỪNG'}</span></td><td>\${fmtVND(s.Budget||0)}</td><td>\${fmt(imp)}</td><td class="text-blue">\${fmt(clk)}</td><td class="\${kc(ctr,B.ctr)==='green'?'text-green':kc(ctr,B.ctr)==='yellow'?'text-yellow':'text-red'}">\${fmtPct(ctr)}</td><td class="\${kc(cpc,B.cpc)==='green'?'text-green':kc(cpc,B.cpc)==='yellow'?'text-yellow':'text-red'}">\${fmtVND(cpc)}</td><td class="text-green">\${conv>0?Math.round(conv):'—'}</td><td>\${fmtPct(cr)}</td><td>\${fmtVND(cpa)}</td><td class="text-yellow">\${fmtVND(cst)}</td><td><strong>\${sc2}</strong>/100</td></tr>\`;
-    }).join('')}</tbody></table></div></div>\`:''}
+    }).join('')}\${getFilteredSummary().length===0?'<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:20px">Không có chiến dịch nào phù hợp bộ lọc</td></tr>':''}</tbody></table></div></div>\`:''}
   \`;
   if(cd.length>1){
     charts.oc1=new Chart(document.getElementById('oc1').getContext('2d'),{type:'bar',data:{labels:cd.map(d=>d.date.slice(5)),datasets:[{label:'Lượt nhấp',data:cd.map(d=>d.clicks),backgroundColor:'#3b82f680',borderColor:'#3b82f6',borderWidth:1,borderRadius:4,yAxisID:'y'},{label:'Chi phí (₫)',data:cd.map(d=>d.cost),backgroundColor:'#f59e0b40',borderColor:'#f59e0b',borderWidth:1,borderRadius:4,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9ca3af',font:{size:11}}}},scales:{x:{ticks:{color:'#6b7280',font:{size:10}},grid:{color:'#1e293b'}},y:{position:'left',title:{display:true,text:'Lượt nhấp',color:'#6b7280',font:{size:10}},ticks:{color:'#6b7280',font:{size:10}},grid:{color:'#1e293b'}},y1:{position:'right',title:{display:true,text:'Chi phí (₫)',color:'#6b7280',font:{size:10}},ticks:{color:'#6b7280',font:{size:10},callback:v=>fmt(v)},grid:{display:false}}}}});
@@ -403,8 +418,10 @@ function renderOverview(el){
 // ===== CAMPAIGNS CHI TIẾT =====
 function renderCampaigns(el){
   if(summaryData.length===0){el.innerHTML='<div class="loading">Chưa có dữ liệu chiến dịch. Nhấn "Tải dữ liệu" ở trên.</div>';return;}
-  let html='';
-  summaryData.forEach((s,idx)=>{
+  let html=statusFilterHTML('filter-campaigns');
+  const filtered=getFilteredSummary();
+  if(filtered.length===0){el.innerHTML=html+'<div class="loading">Không có chiến dịch nào phù hợp bộ lọc.</div>';return;}
+  filtered.forEach((s,idx)=>{
     const name=s.CampaignName||'Chiến dịch '+(idx+1);
     const imp=s.TotalImpressions||0,clk=s.TotalClicks||0,cst=s.TotalCost||0,conv=s.TotalConversions||0;
     const ctr=imp>0?(clk/imp)*100:0,cpc=clk>0?cst/clk:0,cr=clk>0?(conv/clk)*100:0,cpa=conv>0?cst/conv:0;
@@ -502,7 +519,7 @@ function renderCampaigns(el){
   });
   el.innerHTML=html;
 
-  summaryData.forEach((s,idx)=>{
+  filtered.forEach((s,idx)=>{
     const daily=getCampaignDailyData(s.CampaignName||'');
     if(daily.length<2)return;
     const canvas=document.getElementById('cc'+idx);
