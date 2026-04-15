@@ -191,8 +191,9 @@ const TIPS = {
 };
 
 // ============ STATE ============
-let dailyData=[], summaryData=[], lpData=[], activeTab='overview', charts={}, statusFilter='all';
+let dailyData=[], summaryData=[], lpData=[], activeTab='overview', charts={}, statusFilter='active';
 // statusFilter: 'all' | 'active' | 'paused'
+// Mặc định chỉ hiển thị chiến dịch đang chạy — loại bỏ chiến dịch đã dừng khỏi tổng quan
 function getFilteredSummary(){
   if(statusFilter==='all') return summaryData;
   return summaryData.filter(s=>{
@@ -263,7 +264,9 @@ async function fetchData(){
     lpData=results[2].status==='fulfilled'?results[2].value:[];
     const now=new Date().toLocaleTimeString('vi-VN');
     st.textContent=`Cập nhật lúc ${now}`;
-    document.getElementById('successBox').innerHTML=`<div class="msg ok">✅ Đã tải xong: ${dailyData.length} ngày dữ liệu, ${summaryData.length} chiến dịch, ${lpData.length} trang đích</div>`;
+    const activeCount=summaryData.filter(s=>(s.Status||'').toLowerCase().includes('enable')).length;
+    const pausedCount=summaryData.length-activeCount;
+    document.getElementById('successBox').innerHTML=`<div class="msg ok">✅ Đã tải xong: ${dailyData.length} ngày dữ liệu, ${activeCount} chiến dịch đang chạy${pausedCount>0?` (${pausedCount} đã dừng — không tính vào tổng quan)`:''}, ${lpData.length} trang đích</div>`;
     render();
   }catch(e){
     document.getElementById('errorBox').innerHTML=`<div class="msg err">❌ Không tải được dữ liệu. Kiểm tra kết nối internet rồi thử lại.<br><small>${e.message}</small></div>`;
@@ -272,10 +275,18 @@ async function fetchData(){
 }
 
 // ============ COMPUTE ============
+function getActiveCampaignNames(){
+  return summaryData.filter(s=>(s.Status||'').toLowerCase().includes('enable')).map(s=>s.CampaignName);
+}
 function getTotals(){
   let imp=0,clk=0,cst=0,conv=0;
-  if(summaryData.length>0){summaryData.forEach(s=>{imp+=s.TotalImpressions||0;clk+=s.TotalClicks||0;cst+=s.TotalCost||0;conv+=s.TotalConversions||0;});}
-  else{dailyData.forEach(d=>{imp+=d.Impressions||0;clk+=d.Clicks||0;cst+=d.Cost||0;conv+=d.Conversions||0;});}
+  const activeNames=getActiveCampaignNames();
+  if(summaryData.length>0){
+    summaryData.filter(s=>(s.Status||'').toLowerCase().includes('enable')).forEach(s=>{imp+=s.TotalImpressions||0;clk+=s.TotalClicks||0;cst+=s.TotalCost||0;conv+=s.TotalConversions||0;});
+  } else {
+    // Nếu không có Summary, dùng dailyData nhưng không lọc được theo status
+    dailyData.forEach(d=>{imp+=d.Impressions||0;clk+=d.Clicks||0;cst+=d.Cost||0;conv+=d.Conversions||0;});
+  }
   return{impressions:imp,clicks:clk,cost:cst,conversions:conv,ctr:imp>0?(clk/imp)*100:0,cpc:clk>0?cst/clk:0,convRate:clk>0?(conv/clk)*100:0,cpa:conv>0?cst/conv:0};
 }
 
@@ -283,7 +294,8 @@ function getCampaignDailyData(campName){return dailyData.filter(d=>d.CampaignNam
 
 function getChartData(){
   const byDate={};
-  dailyData.forEach(r=>{const dt=r.Date;if(!dt)return;if(!byDate[dt])byDate[dt]={date:dt,impressions:0,clicks:0,cost:0,conversions:0};byDate[dt].impressions+=r.Impressions||0;byDate[dt].clicks+=r.Clicks||0;byDate[dt].cost+=r.Cost||0;byDate[dt].conversions+=r.Conversions||0;});
+  const activeNames=getActiveCampaignNames();
+  dailyData.filter(r=>activeNames.length===0||activeNames.includes(r.CampaignName)).forEach(r=>{const dt=r.Date;if(!dt)return;if(!byDate[dt])byDate[dt]={date:dt,impressions:0,clicks:0,cost:0,conversions:0};byDate[dt].impressions+=r.Impressions||0;byDate[dt].clicks+=r.Clicks||0;byDate[dt].cost+=r.Cost||0;byDate[dt].conversions+=r.Conversions||0;});
   return Object.values(byDate).sort((a,b)=>a.date.localeCompare(b.date)).map(d=>({...d,ctr:d.impressions>0?((d.clicks/d.impressions)*100):0,cpc:d.clicks>0?d.cost/d.clicks:0,convRate:d.clicks>0?((d.conversions/d.clicks)*100):0}));
 }
 
