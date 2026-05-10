@@ -1,0 +1,100 @@
+{
+  "_comment": "Auto-updated by n8n workflow weekly. Manual edits will be overwritten. Source: workflows/scrape-tripadvisor.json",
+  "lastUpdated": "2026-05-10T00:00:00Z",
+  "source": {
+    "url": "https://www.tripadvisor.com/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html",
+    "businessName": "My Viva Tour",
+    "city": "Hanoi"
+  },
+  "rating": {
+    "value": "5.0",
+    "scale": 5,
+    "count": 230,
+    "distribution": {
+      "excellent": 226,
+      "good": 3,
+      "average": 0,
+      "poor": 0,
+      "terrible": 1
+    }
+  },
+  "award": {
+    "name": "Travellers' Choice",
+    "year": 2026,
+    "issuer": "Tripadvisor"
+  },
+  "ranking": {
+    "position": 47,
+    "outOf": 852,
+    "topPercent": 6,
+    "category": "Hanoi Tour Operators"
+  },
+  "reviews": [
+    {
+      "name": "Ingie Marcho",
+      "initials": "IM",
+      "location": "Melbourne, Australia",
+      "isAustralian": true,
+      "tripType": null,
+      "visitedDate": "March 2026",
+      "rating": 5,
+      "quote": "We had the best tour/holiday from start to end in Vietnam. Despite my initial hesitation, VIVA Tours delivered a positive high-quality experience. Our travel consultant Hera went above and beyond to make our holiday memorable. Tour guides were incredibly knowledgeable, nice and friendly. Highly recommended for anyone visiting 🇻🇳 Vietnam.",
+      "profileUrl": "https://www.tripadvisor.com/Profile/Cruiser02918037415"
+    },
+    {
+      "name": "Himanshu K",
+      "initials": "HK",
+      "location": "10-day Vietnam Tour",
+      "isAustralian": false,
+      "tripType": "Friends",
+      "visitedDate": "January 2026",
+      "rating": 5,
+      "quote": "Our 10-day Vietnam tour exceeded all expectations. From start to finish, everything was well organised and thoughtfully planned. Rachel was incredible — always helpful, approachable, and genuinely cared. The itinerary was perfectly balanced — beautiful landscapes, vibrant cities, cultural experiences. Memories we'll cherish forever.",
+      "profileUrl": "https://www.tripadvisor.com/Profile/himanshuk788"
+    },
+    {
+      "name": "Tina J",
+      "initials": "TJ",
+      "location": "Family Holiday",
+      "isAustralian": false,
+      "tripType": "Family",
+      "visitedDate": "January 2026",
+      "rating": 5,
+      "quote": "Brilliant holiday organised by Tony, who was in constant contact leading up to the trip, answering all our questions and giving us advice. We loved the tour. Kevin was our contact in Vietnam, sorting everything for us each day.",
+      "profileUrl": "https://www.tripadvisor.com/Profile/53tinaj"
+    },
+    {
+      "name": "Shambhu K",
+      "initials": "SK",
+      "location": "9-day Vietnam Tour",
+      "isAustralian": false,
+      "tripType": null,
+      "visitedDate": "February 2026",
+      "rating": 5,
+      "quote": "9-day Vietnam tour from South to North with My Viva Tour was a seamless and well-coordinated experience. The itinerary was thoughtfully arranged. Mr. Kevin was exceptionally helpful — polite, responsive, always available. Absolutely worth the money.",
+      "profileUrl": "https://www.tripadvisor.com/Profile/shambhuk2024"
+    },
+    {
+      "name": "Thinley D",
+      "initials": "TD",
+      "location": "Travelled with Family",
+      "isAustralian": false,
+      "tripType": "Family",
+      "visitedDate": "April 2026",
+      "rating": 5,
+      "quote": "Wonderful experience with Ivy 😊 Everything was well organized and smooth. My husband and son were with me — everything arranged perfectly for all of us. She made us feel safe and consistently checked in. Professional and personal care are outstanding. Would definitely use her services again.",
+      "profileUrl": "https://www.tripadvisor.com/Profile/582thinleyd"
+    },
+    {
+      "name": "Donabel C",
+      "initials": "DC",
+      "location": "Travelled as a couple",
+      "isAustralian": false,
+      "tripType": "Couple",
+      "visitedDate": "March 2026",
+      "rating": 5,
+      "quote": "Lan Nguyen was an exceptional travel agent who truly made our trip unforgettable. She took the time to meet us in person, which added a very personal touch. From smooth transportation arrangements to comfortable hotels — her attention to detail and dedication made a big difference. Highly recommend.",
+      "profileUrl": "https://www.tripadvisor.com/Profile/donabelc2025"
+    }
+  ]
+}

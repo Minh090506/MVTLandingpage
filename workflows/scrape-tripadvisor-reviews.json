@@ -1,0 +1,196 @@
+{
+  "name": "Auto-Update TripAdvisor Reviews → MVT Landing Page",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule-weekly-monday",
+      "name": "Every Monday 9:00 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "url", "value": "https://www.tripadvisor.com/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html" },
+            { "name": "formats", "value": "[\"json\"]" },
+            { "name": "proxy", "value": "stealth" },
+            { "name": "waitFor", "value": "12000" },
+            { "name": "onlyMainContent", "value": "true" },
+            {
+              "name": "jsonOptions",
+              "value": "={{ JSON.stringify({prompt: 'Extract My Viva Tour TripAdvisor data: overall rating (number, e.g. 5.0), total review count (integer, e.g. 230), distribution of ratings (excellent/good/average/poor/terrible counts), award name + year if any (e.g. Travelers Choice 2026), category ranking (e.g. #47 of 852), and the top 12 most recent reviews with reviewer name, location/country, visited date, rating, and review text. Filter out reviewer locations that are vague (just initials or city only is OK).', schema: {rating: 'number', totalReviews: 'integer', ratingDistribution: {excellent: 'integer', good: 'integer', average: 'integer', poor: 'integer', terrible: 'integer'}, award: 'string', awardYear: 'integer', rankingPosition: 'integer', rankingTotal: 'integer', reviews: [{name: 'string', location: 'string', visitedDate: 'string', rating: 'integer', text: 'string', profileUrl: 'string'}]}}) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "firecrawl-scrape",
+      "name": "Firecrawl Scrape TA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FIRECRAWL_AUTH",
+          "name": "Firecrawl API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Firecrawl response and pick best 6 reviews for landing page\nconst response = $input.first().json;\nconst data = response.data?.json || response.json || {};\n\nif (!data.reviews || !Array.isArray(data.reviews)) {\n  throw new Error('Firecrawl returned no reviews. Response: ' + JSON.stringify(response).slice(0, 500));\n}\n\n// Helper: detect Australian reviewers\nconst isAustralian = (loc) => {\n  if (!loc) return false;\n  const s = loc.toLowerCase();\n  return /\\baustralia\\b|\\bsydney\\b|\\bmelbourne\\b|\\bbrisbane\\b|\\badelaide\\b|\\bperth\\b|\\bcanberra\\b|\\bdarwin\\b|\\bhobart\\b|\\bgold coast\\b|\\bnew south wales\\b|\\bvictoria\\b|\\bqueensland\\b/.test(s);\n};\n\n// Helper: get initials\nconst getInitials = (name) => {\n  return name.split(/\\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);\n};\n\n// Filter: 5-star + min 80 chars + not too long\nconst quality = data.reviews.filter(r =>\n  r.rating === 5 &&\n  r.text && r.text.length >= 80 && r.text.length <= 600 &&\n  r.name && r.name.length >= 2\n);\n\n// Trim quote to 350 chars max (sentence-end)\nconst trimQuote = (text) => {\n  if (text.length <= 350) return text.trim();\n  const cut = text.slice(0, 350);\n  const lastSentence = Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('!'), cut.lastIndexOf('?'));\n  return lastSentence > 200 ? cut.slice(0, lastSentence + 1).trim() : cut.trim() + '...';\n};\n\n// Pick: 1 Aussie first (if any), then 5 most recent\nconst aussie = quality.find(r => isAustralian(r.location));\nconst nonAussie = quality.filter(r => r !== aussie).slice(0, aussie ? 5 : 6);\nconst picked = aussie ? [aussie, ...nonAussie] : nonAussie;\n\n// Format to our schema\nconst formatted = picked.slice(0, 6).map(r => ({\n  name: r.name,\n  initials: getInitials(r.name),\n  location: r.location || 'Verified Traveller',\n  isAustralian: isAustralian(r.location),\n  tripType: null,\n  visitedDate: r.visitedDate || '',\n  rating: r.rating,\n  quote: trimQuote(r.text),\n  profileUrl: r.profileUrl || 'https://www.tripadvisor.com/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html'\n}));\n\nconst rankPos = data.rankingPosition || 47;\nconst rankTotal = data.rankingTotal || 852;\n\nconst output = {\n  _comment: 'Auto-updated by n8n workflow weekly. Manual edits will be overwritten.',\n  lastUpdated: new Date().toISOString(),\n  source: {\n    url: 'https://www.tripadvisor.com/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html',\n    businessName: 'My Viva Tour',\n    city: 'Hanoi'\n  },\n  rating: {\n    value: String(data.rating || 5.0),\n    scale: 5,\n    count: data.totalReviews || 230,\n    distribution: data.ratingDistribution || { excellent: 0, good: 0, average: 0, poor: 0, terrible: 0 }\n  },\n  award: {\n    name: data.award || \"Travellers' Choice\",\n    year: data.awardYear || new Date().getFullYear(),\n    issuer: 'Tripadvisor'\n  },\n  ranking: {\n    position: rankPos,\n    outOf: rankTotal,\n    topPercent: Math.ceil((rankPos / rankTotal) * 100),\n    category: 'Hanoi Tour Operators'\n  },\n  reviews: formatted\n};\n\nreturn [{ json: output }];"
+      },
+      "id": "format-data",
+      "name": "Pick 6 + Format JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/Minh090506/MVTLandingpage/contents/data/tripadvisor-reviews.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "github-get-sha",
+      "name": "GitHub: Get Current SHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GITHUB_AUTH",
+          "name": "GitHub PAT (repo:contents)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine new data + current SHA, encode content as base64\nconst newData = $('Pick 6 + Format JSON').first().json;\nconst currentFile = $('GitHub: Get Current SHA').first().json;\n\nconst contentStr = JSON.stringify(newData, null, 2) + '\\n';\nconst contentBase64 = Buffer.from(contentStr, 'utf-8').toString('base64');\n\n// Skip commit if content unchanged (decode current, compare)\nconst currentDecoded = Buffer.from(currentFile.content.replace(/\\n/g, ''), 'base64').toString('utf-8');\nif (currentDecoded.trim() === contentStr.trim()) {\n  return [{ json: { skipped: true, reason: 'No changes detected' } }];\n}\n\nreturn [{ json: {\n  message: `chore(reviews): auto-update TripAdvisor reviews — ${newData.rating.count} reviews, ${newData.reviews.length} cards`,\n  content: contentBase64,\n  sha: currentFile.sha,\n  branch: 'main',\n  committer: {\n    name: 'TripAdvisor Auto-Sync Bot',\n    email: 'bot@myvivatour.com'\n  }\n}}];"
+      },
+      "id": "prepare-commit",
+      "name": "Prepare Commit Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-skipped",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEqual" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-changed",
+      "name": "Skip if Unchanged",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://api.github.com/repos/Minh090506/MVTLandingpage/contents/data/tripadvisor-reviews.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "github-commit",
+      "name": "GitHub: Commit Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 240],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GITHUB_AUTH",
+          "name": "GitHub PAT (repo:contents)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Optional: log success or send notification\nconst result = $input.first().json;\nreturn [{ json: {\n  status: 'committed',\n  commit_sha: result.commit?.sha,\n  commit_url: result.commit?.html_url,\n  file_url: result.content?.html_url,\n  message: 'TripAdvisor reviews updated. GitHub Actions will auto-deploy in ~2 minutes.'\n}}];"
+      },
+      "id": "log-success",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: 'no-change', message: 'No changes detected, skipped commit.' } }];"
+      },
+      "id": "log-no-change",
+      "name": "Log No Change",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 380]
+    }
+  ],
+  "connections": {
+    "Every Monday 9:00 AM": {
+      "main": [[{ "node": "Firecrawl Scrape TA", "type": "main", "index": 0 }]]
+    },
+    "Firecrawl Scrape TA": {
+      "main": [[{ "node": "Pick 6 + Format JSON", "type": "main", "index": 0 }]]
+    },
+    "Pick 6 + Format JSON": {
+      "main": [[{ "node": "GitHub: Get Current SHA", "type": "main", "index": 0 }]]
+    },
+    "GitHub: Get Current SHA": {
+      "main": [[{ "node": "Prepare Commit Payload", "type": "main", "index": 0 }]]
+    },
+    "Prepare Commit Payload": {
+      "main": [[{ "node": "Skip if Unchanged", "type": "main", "index": 0 }]]
+    },
+    "Skip if Unchanged": {
+      "main": [
+        [{ "node": "GitHub: Commit Update", "type": "main", "index": 0 }],
+        [{ "node": "Log No Change", "type": "main", "index": 0 }]
+      ]
+    },
+    "GitHub: Commit Update": {
+      "main": [[{ "node": "Log Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "tripadvisor" }, { "name": "auto-sync" }],
+  "pinData": {},
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

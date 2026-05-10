@@ -20,7 +20,97 @@ const fs = require('fs');
 const path = require('path');
 
 const PAGES_DIR = path.join(__dirname, 'pages');
+const DATA_DIR = path.join(__dirname, 'data');
 const OUTPUT_FILE = path.join(__dirname, 'worker.js');
+
+/**
+ * Load TripAdvisor data and inject into HTML.
+ * Replaces the block between <!-- TA-REVIEWS-START --> and <!-- TA-REVIEWS-END -->
+ * with cards generated from data/tripadvisor-reviews.json.
+ * Also substitutes inline tokens: <!--TA_COUNT-->...<!--/TA_COUNT-->, etc.
+ *
+ * If JSON file is missing or malformed → returns html unchanged (graceful fallback to hardcoded).
+ */
+function injectTripAdvisorData(html) {
+  const dataPath = path.join(DATA_DIR, 'tripadvisor-reviews.json');
+  if (!fs.existsSync(dataPath)) {
+    console.log('  ℹ TripAdvisor JSON not found — using hardcoded fallback');
+    return html;
+  }
+
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+  } catch (e) {
+    console.warn(`  ⚠ TripAdvisor JSON malformed: ${e.message} — using fallback`);
+    return html;
+  }
+
+  if (!data.reviews || !Array.isArray(data.reviews) || data.reviews.length === 0) {
+    console.warn('  ⚠ TripAdvisor JSON has no reviews — using fallback');
+    return html;
+  }
+
+  const escapeHtml = (s) => String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const renderCard = (r, idx) => {
+    const featured = r.isAustralian ? ' featured' : '';
+    const subtitle = r.isAustralian
+      ? `📍 ${escapeHtml(r.location)} · Visited ${escapeHtml(r.visitedDate)}`
+      : `${escapeHtml(r.location)} · Visited ${escapeHtml(r.visitedDate)}`;
+    return `                <article class="ta-review-card${featured}">
+                    <div class="ta-review-header">
+                        <div class="ta-reviewer">
+                            <div class="ta-avatar" aria-hidden="true">${escapeHtml(r.initials)}</div>
+                            <div>
+                                <strong>${escapeHtml(r.name)}</strong>
+                                <small>${subtitle}</small>
+                            </div>
+                        </div>
+                        <span class="ta-stars" aria-label="${r.rating} out of 5 stars">★★★★★</span>
+                    </div>
+                    <blockquote class="ta-review-body">
+                        <q>${escapeHtml(r.quote)}</q>
+                    </blockquote>
+                    <a class="ta-review-source" href="${escapeHtml(r.profileUrl)}" target="_blank" rel="noopener">View on TripAdvisor →</a>
+                </article>`;
+  };
+
+  const cardsHtml = data.reviews.map(renderCard).join('\n\n');
+  const reviewsBlock = `<!-- TA-REVIEWS-START — auto-injected by build.js from data/tripadvisor-reviews.json -->
+            <div class="ta-reviews-grid">
+${cardsHtml}
+            </div>
+            <!-- TA-REVIEWS-END -->`;
+
+  let result = html.replace(
+    /<!-- TA-REVIEWS-START[\s\S]*?<!-- TA-REVIEWS-END -->/,
+    reviewsBlock
+  );
+
+  // Inline token substitution: <!--TA_COUNT-->old<!--/TA_COUNT--> → new
+  const tokens = {
+    TA_RATING: data.rating?.value ?? '5.0',
+    TA_COUNT: String(data.rating?.count ?? 230),
+    TA_AWARD_YEAR: String(data.award?.year ?? 2026),
+    TA_RANK_POS: String(data.ranking?.position ?? 47),
+    TA_RANK_TOTAL: String(data.ranking?.outOf ?? 852),
+    TA_RANK_PERCENT: String(data.ranking?.topPercent ?? 6),
+  };
+
+  for (const [token, value] of Object.entries(tokens)) {
+    const regex = new RegExp(`<!--${token}-->[\\s\\S]*?<!--/${token}-->`, 'g');
+    result = result.replace(regex, `<!--${token}-->${value}<!--/${token}-->`);
+  }
+
+  console.log(`  📊 TripAdvisor data: ${data.rating?.value}/5 · ${data.rating?.count} reviews · ${data.reviews.length} cards rendered`);
+  return result;
+}
 
 // Landing page config: folder name → route path
 // The first entry with isDefault:true is the homepage (/)
@@ -37,7 +127,13 @@ function readPageHTML(folderName) {
     console.warn(`  ⚠ Skipping "${folderName}" — no index.html found`);
     return null;
   }
-  const content = fs.readFileSync(htmlPath, 'utf-8');
+  let content = fs.readFileSync(htmlPath, 'utf-8');
+
+  // Inject TripAdvisor reviews + data only into pages that have the marker
+  if (content.includes('TA-REVIEWS-START')) {
+    content = injectTripAdvisorData(content);
+  }
+
   console.log(`  ✓ ${folderName} (${(content.length / 1024).toFixed(1)} KB)`);
   return content;
 }
