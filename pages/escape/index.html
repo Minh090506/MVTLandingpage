@@ -40,7 +40,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="All-inclusive 10-day Vietnam tour from Australia — $2,099 AUD. Explore Hanoi, Ha Long Bay, Hoi An, Ho Chi Minh City & Mekong Delta. Hotels, meals & guides included. Book your 2026 Vietnam holiday today!">
-    <meta name="keywords" content="Vietnam tour from Australia, Vietnam holiday package, Vietnam tours 2026, 10 day Vietnam tour, all inclusive Vietnam tour, Vietnam tour package Australia, Ha Long Bay tour, Hanoi tour, Ho Chi Minh City tour, Hoi An tour, Mekong Delta tour, Vietnam guided tour, small group Vietnam tour, Vietnam travel deal, cheap Vietnam tour Australia, budget Vietnam holiday, luxury Vietnam tour, Vietnam flights included, Vietnam hotel package, Vietnamese food tour, Vietnam culture tour, Southeast Asia tour from Australia, Vietnam adventure tour, Vietnam sightseeing, book Vietnam tour online, best Vietnam tour operator, affordable Vietnam holiday, Vietnam family tour, Vietnam honeymoon package, MyVivaTour, Vietnam holiday 2026, Vietnam travel package, Vietnam group tour, Ha Long Bay cruise, Cu Chi Tunnels tour, Vietnam all inclusive holiday, Australian Vietnam tour, Vietnam vacation package, Saigon tour, Vietnam beach holiday, Hue Imperial City tour, Vietnam and Cambodia tour, Vietnam tour with meals included, guided Vietnam holiday, Vietnam tour deals 2026, best time visit Vietnam, Vietnam tour operator Australia, Escape Australia">
+    <meta name="keywords" content="Vietnam tour from Australia, Vietnam holiday package, Vietnam tours 2026, 10 day Vietnam tour, all inclusive Vietnam tour, Vietnam tour package Australia, Ha Long Bay tour, Hanoi tour, Ho Chi Minh City tour, Hoi An tour, Mekong Delta tour, Vietnam guided tour, small group Vietnam tour, Vietnam travel deal, cheap Vietnam tour Australia, budget Vietnam holiday, luxury Vietnam tour, Vietnam flights included, Vietnam hotel package, Vietnamese food tour, Vietnam culture tour, Southeast Asia tour from Australia, Vietnam adventure tour, Vietnam sightseeing, book Vietnam tour online, best Vietnam tour operator, affordable Vietnam holiday, Vietnam family tour, Vietnam honeymoon package, MyVivaTour, Vietnam holiday 2026, Vietnam travel package, Vietnam group tour, Ha Long Bay cruise, Cu Chi Tunnels tour, Vietnam all inclusive holiday, Australian Vietnam tour, Saigon tour, Vietnam beach holiday, Hue Imperial City tour, Vietnam and Cambodia tour, Vietnam tour with meals included, guided Vietnam holiday, Vietnam tour deals 2026, best time visit Vietnam, Vietnam tour operator Australia, Escape Australia">
 
     <!-- Geo & Audience Targeting -->
     <meta name="geo.region" content="AU">
@@ -325,6 +325,66 @@
             max-width: 800px;
             padding: 2rem;
             animation: slideUp 0.8s ease-out;
+        }
+
+        .hero-quick-form {
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(212,175,55,0.3);
+        }
+
+        .hero-trust-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem auto 1.25rem;
+            max-width: 760px;
+        }
+
+        .hero-trust-bar .trust-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.85rem;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 999px;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .hero-trust-bar a.trust-pill:hover {
+            background: rgba(212,175,55,0.25);
+            border-color: rgba(212,175,55,0.6);
+            transform: translateY(-1px);
+        }
+
+        .hero-trust-bar .trust-stars {
+            color: #FFD700;
+            letter-spacing: 1px;
+            font-size: 0.95rem;
+        }
+
+        .hero-quick-form input:focus {
+            outline: 2px solid #D4AF37;
+            outline-offset: -1px;
+        }
+
+        .hero-quick-form button:hover {
+            background: #c4a030;
+            transform: translateY(-1px);
         }
 
         @keyframes slideUp {
@@ -617,11 +677,24 @@
             font-weight: 600;
             transition: all 0.3s ease;
             user-select: none;
+            /* Reset native button styles */
+            width: 100%;
+            border: none;
+            text-align: left;
+            font-family: inherit;
+            font-size: 1rem;
+            color: inherit;
         }
 
-        .accordion-header:hover {
+        .accordion-header:hover,
+        .accordion-header:focus-visible {
             background: rgba(212, 175, 55, 0.1);
             color: var(--primary);
+        }
+
+        .accordion-header:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: -3px;
         }
 
         .accordion-item.active .accordion-header {
@@ -931,6 +1004,87 @@
             padding: 5rem 0;
         }
 
+        .tripadvisor-badge {
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        .ta-badge-link {
+            display: block;
+            background: linear-gradient(135deg, #fff 0%, #f7f9fc 100%);
+            border: 2px solid #00aa6c;
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 20px rgba(0,170,108,0.08);
+        }
+
+        .ta-badge-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(0,170,108,0.18);
+            border-color: #009060;
+        }
+
+        .ta-badge-content {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .ta-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .ta-logo-text {
+            font-family: 'Trebuchet MS', sans-serif;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #000;
+            letter-spacing: -0.5px;
+        }
+
+        .ta-bubbles {
+            color: #00aa6c;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+        }
+
+        .ta-stats strong {
+            display: block;
+            font-size: 1.4rem;
+            color: #1F2937;
+            font-weight: 800;
+        }
+
+        .ta-stats span {
+            display: block;
+            font-size: 0.85rem;
+            color: #6B7280;
+            margin-top: 0.15rem;
+        }
+
+        .ta-cta {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #00aa6c;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+            .ta-badge-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 1rem;
+            }
+            .ta-cta { font-size: 0.85rem; }
+        }
+
         .testimonials-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1105,6 +1259,51 @@
             background: linear-gradient(135deg, var(--dark) 0%, #1f3a5f 100%);
             padding: 5rem 0;
             color: white;
+        }
+
+        .risk-reversal-strip {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin: 1rem 0 1.5rem;
+            padding: 1rem;
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+        }
+
+        .risk-reversal-strip .risk-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .risk-reversal-strip .risk-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .risk-reversal-strip strong {
+            display: block;
+            font-size: 0.85rem;
+            color: #1F2937;
+            line-height: 1.2;
+        }
+
+        .risk-reversal-strip small {
+            display: block;
+            font-size: 0.72rem;
+            color: #6B7280;
+            line-height: 1.3;
+            margin-top: 0.15rem;
+        }
+
+        @media (max-width: 640px) {
+            .risk-reversal-strip {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
         }
 
         .booking-container {
@@ -1435,6 +1634,15 @@
                 padding: 1rem;
             }
 
+            .hero-quick-form form {
+                flex-direction: column !important;
+            }
+
+            .hero-quick-form input,
+            .hero-quick-form button {
+                width: 100% !important;
+            }
+
             .highlights-grid,
             .destination-grid,
             .pricing-inclusions,
@@ -1749,10 +1957,12 @@
       },
       "aggregateRating": {
         "@type": "AggregateRating",
-        "ratingValue": "4.9",
+        "ratingValue": "4.8",
         "bestRating": "5",
-        "ratingCount": "127",
-        "reviewCount": "89"
+        "worstRating": "1",
+        "ratingCount": "200",
+        "reviewCount": "200",
+        "url": "https://www.tripadvisor.com.vn/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html"
       },
       "review": [
         {
@@ -1978,22 +2188,51 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1>Escape Australia</h1>
-            <p class="hero-subtitle">10-Day All-Inclusive Vietnam Journey</p>
+            <h1>10-Day All-Inclusive Vietnam Holiday from Australia</h1>
+            <p class="hero-subtitle">Hanoi · Ha Long Bay · Hoi An · Saigon · Mekong Delta</p>
             <div class="price-badge">
                 From <span class="price-old">$2,350</span> $2,099 AUD
             </div>
+
+            <!-- Trust Bar -->
+            <div class="hero-trust-bar">
+                <a href="https://www.tripadvisor.com.vn/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html" target="_blank" rel="noopener" class="trust-pill">
+                    <span class="trust-stars">★★★★★</span>
+                    <strong><span id="ta-rating">4.8</span>/5</strong>
+                    · <span id="ta-count">200+</span> Reviews on TripAdvisor
+                </a>
+                <span class="trust-pill">🇦🇺 500+ Australian Travellers</span>
+                <span class="trust-pill">🛡️ Operating Since 2015</span>
+            </div>
+
             <div class="hero-tags">
                 <span class="tag">✈️ All-Inclusive</span>
                 <span class="tag">🎫 Flights Included</span>
                 <span class="tag">🚀 Daily Departure</span>
             </div>
             <button class="cta-button" onclick="smoothScroll('booking')">Start Planning Your Trip</button>
+
+            <!-- Quick Inquiry Form (Above-the-fold) -->
+            <div class="hero-quick-form">
+                <p style="color:rgba(255,255,255,0.9);font-size:0.9rem;margin-bottom:0.75rem;font-weight:600;">Get a Free Quote in 30 Seconds</p>
+                <form id="heroQuickForm" onsubmit="handleHeroQuickSubmit(event)" style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;align-items:center;">
+                    <input type="hidden" name="access_key" value="cf0ca620-d064-4640-9454-afb27d588f67">
+                    <input type="hidden" name="subject" value="Quick Inquiry - Escape Australia Vietnam Tour">
+                    <input type="hidden" name="from_name" value="Hero Quick Form">
+                    <input type="checkbox" name="botcheck" style="display:none;">
+                    <input type="text" name="name" placeholder="Your Name" required maxlength="100" style="padding:0.65rem 1rem;border:none;border-radius:8px;font-size:0.95rem;width:160px;background:rgba(255,255,255,0.95);color:#1F2937;">
+                    <input type="email" name="email" placeholder="Email" required maxlength="254" style="padding:0.65rem 1rem;border:none;border-radius:8px;font-size:0.95rem;width:180px;background:rgba(255,255,255,0.95);color:#1F2937;">
+                    <input type="tel" name="phone" placeholder="Phone (optional)" style="padding:0.65rem 1rem;border:none;border-radius:8px;font-size:0.95rem;width:150px;background:rgba(255,255,255,0.95);color:#1F2937;">
+                    <button type="submit" id="heroQuickBtn" style="padding:0.65rem 1.5rem;border:none;border-radius:8px;background:#D4AF37;color:#111827;font-weight:700;font-size:0.95rem;cursor:pointer;white-space:nowrap;transition:all 0.3s;">Get Quote →</button>
+                </form>
+                <div id="heroQuickStatus" style="margin-top:0.5rem;text-align:center;font-size:0.85rem;color:white;"></div>
+                <p style="color:rgba(255,255,255,0.6);font-size:0.75rem;margin-top:0.5rem;">Trusted by 500+ Australian travellers • Reply within 2 hours</p>
+            </div>
         </div>
     </section>
 
     <!-- Highlights Section -->
-    <section class="highlights section" id="highlights" style="background:linear-gradient(rgba(17,24,39,0.82),rgba(17,24,39,0.82)),url('https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/highlights-bg-blur.jpg') center/cover no-repeat;color:white;">
+    <section class="highlights section" id="highlights" style="background:linear-gradient(rgba(17,24,39,0.88),rgba(17,24,39,0.88)),url('https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg') center/cover no-repeat;color:white;">
         <div class="container">
             <h2 class="text-center" style="color:white;">Why Choose This Tour?</h2>
             <p class="text-center opacity-75 mb-5">Everything you need for an unforgettable Vietnam experience</p>
@@ -2039,37 +2278,37 @@
             <p class="text-center opacity-75 mb-5">Discover the heart and soul of Vietnam</p>
             <div class="destination-grid">
                 <div class="destination-card">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-hanoi.jpg" alt="Hanoi">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-hanoi.jpg" alt="Hanoi">
                     <div class="destination-overlay">
                         <div class="destination-name">Hanoi</div>
                     </div>
                 </div>
                 <div class="destination-card">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-halong.jpg" alt="Ha Long Bay">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-halong.jpg" alt="Ha Long Bay">
                     <div class="destination-overlay">
                         <div class="destination-name">Ha Long Bay</div>
                     </div>
                 </div>
                 <div class="destination-card">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-hoian.jpg" alt="Hoi An">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-hoian.jpg" alt="Hoi An">
                     <div class="destination-overlay">
                         <div class="destination-name">Hoi An</div>
                     </div>
                 </div>
                 <div class="destination-card">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-hcmc.jpg" alt="Ho Chi Minh City">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-hcmc.jpg" alt="Ho Chi Minh City">
                     <div class="destination-overlay">
                         <div class="destination-name">Ho Chi Minh City</div>
                     </div>
                 </div>
                 <div class="destination-card">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hcmc-temple.jpg" alt="Cu Chi Tunnels">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hcmc-temple.jpg" alt="Cu Chi Tunnels">
                     <div class="destination-overlay">
                         <div class="destination-name">Cu Chi Tunnels</div>
                     </div>
                 </div>
                 <div class="destination-card">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-mekong.jpg" alt="Mekong Delta">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/dest-mekong.jpg" alt="Mekong Delta">
                     <div class="destination-overlay">
                         <div class="destination-name">Mekong Delta</div>
                     </div>
@@ -2084,15 +2323,15 @@
             <h2 class="text-center">10-Day Detailed Itinerary</h2>
             <p class="text-center opacity-75 mb-5">A carefully crafted journey through Vietnam's greatest experiences</p>
             <div style="text-align:center;margin-bottom:2rem;">
-                <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/tour-map-auv10.jpg" alt="AUV10 Tour Map - Vietnam 10 Days" style="max-width:500px;width:100%;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+                <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/tour-map-auv10.jpg" alt="AUV10 Tour Map - Vietnam 10 Days" style="max-width:500px;width:100%;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.1);">
             </div>
             <div class="itinerary-container">
                 <div class="accordion">
                     <div class="accordion-item active">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 1: Australia → Hanoi - Arrival</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">Embark on Your Vietnamese Adventure</div>
@@ -2112,10 +2351,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 2: Hanoi → Ha Long Bay / Lan Ha Bay Cruise</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">UNESCO World Heritage Overnight Cruise</div>
@@ -2135,10 +2374,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 3: Ha Long/Lan Ha Bay → Hanoi</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">Island Villages & Return to Hanoi</div>
@@ -2158,10 +2397,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 4: Hanoi City Tour → Hoi An</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">Ancient Hanoi & Flight to Central Vietnam</div>
@@ -2181,10 +2420,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 5: Hoi An → My Son Sanctuary</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">UNESCO Cultural Heritage & Local Experiences</div>
@@ -2204,10 +2443,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 6: Hoi An - Leisure Day</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">Free Day to Explore Ancient Town</div>
@@ -2227,10 +2466,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 7: Hoi An → Ho Chi Minh City</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">Journey to the Vibrant South</div>
@@ -2250,10 +2489,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 8: Ho Chi Minh City Tour & Cu Chi Tunnels</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">War History & Underground Marvels</div>
@@ -2273,10 +2512,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 9: Ho Chi Minh City → Mekong Delta</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">Floating Villages & River Life</div>
@@ -2296,10 +2535,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Day 10: Ho Chi Minh City → Australia</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <div class="day-header">Homeward Bound with Memories</div>
@@ -2340,55 +2579,55 @@
             <p class="text-center opacity-75 mb-5">A visual journey through Vietnam's beauty</p>
             <div class="gallery-grid">
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-mekong-lotus.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-mekong-lotus.jpg" alt="Mekong Delta">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-mekong-lotus.jpg" alt="Mekong Delta">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-sunset.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-sunset.jpg" alt="Hoi An">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-sunset.jpg" alt="Hoi An">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-street.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-street.jpg" alt="Hanoi">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-street.jpg" alt="Hanoi">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-coconut-boat.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-coconut-boat.jpg" alt="Coconut Boat">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-coconut-boat.jpg" alt="Coconut Boat">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-cyclo.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-cyclo.jpg" alt="Cyclo">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-cyclo.jpg" alt="Cyclo">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-street.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-street.jpg" alt="Hoi An Old Town">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-street.jpg" alt="Hoi An Old Town">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-bay.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-bay.jpg" alt="Halong Bay">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-bay.jpg" alt="Halong Bay">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-cruise.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-cruise.jpg" alt="Ha Long Cruise">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-cruise.jpg" alt="Ha Long Cruise">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
                 </div>
                 <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hcmc-temple.jpg">
-                    <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hcmc-temple.jpg" alt="Ho Chi Minh City">
+                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hcmc-temple.jpg" alt="Ho Chi Minh City">
                     <div class="gallery-overlay">
                         <div class="gallery-icon">🔍</div>
                     </div>
@@ -2557,7 +2796,7 @@
             <h2 class="text-center">Why Choose MyVivaTour</h2>
             <p class="text-center opacity-75 mb-5">Expert-crafted itineraries with personalized service and trusted local guides</p>
             <div style="text-align:center;margin-bottom:3rem;">
-                <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/why-trust-banner.jpg" alt="Why MyVivaTour - Trust & Excellence" style="max-width:700px;width:100%;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.15);">
+                <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/why-trust-banner.jpg" alt="Why MyVivaTour - Trust & Excellence" style="max-width:700px;width:100%;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.15);">
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:2rem;max-width:900px;margin:0 auto;">
                 <div style="padding:2rem;background:white;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
@@ -2598,7 +2837,40 @@
     <section class="testimonials section">
         <div class="container">
             <h2 class="text-center">What Our Guests Say</h2>
-            <p class="text-center opacity-75 mb-5">Real reviews from real travelers on Facebook</p>
+            <p class="text-center opacity-75 mb-5">Real reviews from real travellers on TripAdvisor & Facebook</p>
+
+            <!-- TripAdvisor Trust Badge -->
+            <div class="tripadvisor-badge">
+                <a href="https://www.tripadvisor.com.vn/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html" target="_blank" rel="noopener" class="ta-badge-link">
+                    <div class="ta-badge-content">
+                        <div class="ta-logo">
+                            <span class="ta-logo-text">Tripadvisor</span>
+                            <span class="ta-bubbles" aria-hidden="true">●●●●●</span>
+                        </div>
+                        <div class="ta-stats">
+                            <strong><span id="ta-rating-2">4.8</span> / 5</strong>
+                            <span>Based on <span id="ta-count-2">200+</span> reviews</span>
+                        </div>
+                        <span class="ta-cta">Read all reviews on TripAdvisor →</span>
+                    </div>
+                </a>
+
+                <!-- TODO: Replace this comment block with the official TripAdvisor widget embed code -->
+                <!-- Get embed code from: https://www.tripadvisor.com/Widgets (Reviews widget) -->
+                <!-- Example placement:
+                <div id="TA_selfserveprop123" class="TA_selfserveprop">
+                    <ul id="..." class="TA_links ...">
+                        <li id="..." class="...">
+                            <a target="_blank" href="https://www.tripadvisor.com/...">
+                                <img src="https://www.tripadvisor.com/img/cdsi/img2/..." alt="TripAdvisor"/>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <script async src="https://www.jscache.com/wejs?wtype=selfserveprop&..."></script>
+                -->
+            </div>
+
             <div class="testimonials-grid">
                 <a href="https://www.facebook.com/myvivatour/reviews/?id=61566612697838&sk=reviews" target="_blank" rel="noopener" class="testimonial-card" style="text-decoration:none;">
                     <img src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/review-mohit-jain.jpg" alt="Mohit Jain's 5-star Facebook review of MyVivaTour - 11 people tour to Hanoi, Sapa, Halong Bay" loading="lazy">
@@ -2623,7 +2895,7 @@
     <section class="blog-section section">
         <div class="container">
             <h2 class="text-center">Stories from the Road</h2>
-            <p class="text-center opacity-75 mb-5">Real journeys, real emotions — straight from our travelers</p>
+            <p class="text-center opacity-75 mb-5">Real journeys, real emotions — straight from our travellers</p>
             <div class="blog-card">
                 <div class="blog-card-image" style="background-image:url('https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-sunset.jpg')"></div>
                 <div class="blog-card-content">
@@ -2649,10 +2921,10 @@
             <div class="faq-container">
                 <div class="accordion">
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>What airports can I fly from?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>We offer return flights from all major Australian airports: Sydney (SYD), Melbourne (MEL), Brisbane (BNE), Adelaide (ADL), and Perth (PER). You can choose your preferred departure city at booking.</p>
@@ -2661,10 +2933,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>What's included in the $2,099 price?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>The price includes: return flights from your Australian city, 9 nights accommodation (3-4 star hotels + overnight cruise), most meals (27 meals total), professional English-speaking guides, all airport and city transfers, entrance fees to all attractions, and 7kg hand + 20kg checked baggage per person.</p>
@@ -2673,10 +2945,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Can I upgrade my hotel accommodation?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>Yes! You can upgrade to Super 4-Star hotels for an additional $290 AUD, or to Luxury 5-Star hotels and cruise for an additional $680 AUD. These upgrades offer premium amenities and exceptional service throughout your journey.</p>
@@ -2685,10 +2957,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Is this a group tour or can it be private?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>The base package is a group tour. However, you can upgrade to a Small Group Tour (+$135 AUD) for a more intimate experience, or to a completely Private Tour (+$270 AUD) with a dedicated guide exclusively for your group.</p>
@@ -2697,10 +2969,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Do I need a visa for Vietnam?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>Yes, Australian citizens typically need a visa to enter Vietnam. The visa cost is not included in the tour price, but MyVivaTour can assist you with the visa application process. We recommend applying 4-6 weeks before your departure date.</p>
@@ -2709,10 +2981,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>What's the best time to visit Vietnam?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>Vietnam can be visited year-round, but the ideal times are October through April when weather is cooler and drier. During May-September, there's more rainfall, but fewer tourists and lower prices. Daily departures available throughout the year.</p>
@@ -2721,10 +2993,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Can I customize the itinerary?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>Absolutely! While we offer a carefully curated 10-day itinerary, we can customize it to your preferences. Contact us directly at info@myvivatour.com or WhatsApp +84 974 036 614 to discuss your specific requirements.</p>
@@ -2733,10 +3005,10 @@
                     </div>
 
                     <div class="accordion-item">
-                        <div class="accordion-header">
+                        <button class="accordion-header" type="button" aria-expanded="false">
                             <span>Is travel insurance recommended?</span>
-                            <span class="accordion-toggle">⌄</span>
-                        </div>
+                            <span class="accordion-toggle" aria-hidden="true">⌄</span>
+                        </button>
                         <div class="accordion-content">
                             <div class="accordion-body">
                                 <p>Yes, comprehensive travel insurance is highly recommended for all international trips. It's not included in the tour price but provides important coverage for medical expenses, trip cancellation, and emergency evacuations. We can provide recommendations for reputable insurers.</p>
@@ -2763,7 +3035,32 @@
                             <span style="background:#3498db;">SK</span>
                             <span style="background:#2ecc71;">RP</span>
                         </div>
-                        <span class="social-proof-text">⭐⭐⭐⭐⭐ Trusted by 500+ Australian travelers</span>
+                        <span class="social-proof-text">⭐⭐⭐⭐⭐ Trusted by 500+ Australian travellers</span>
+                    </div>
+
+                    <!-- Risk Reversal Strip -->
+                    <div class="risk-reversal-strip">
+                        <div class="risk-item">
+                            <span class="risk-icon" aria-hidden="true">🔒</span>
+                            <div>
+                                <strong>Secure Booking</strong>
+                                <small>SSL-encrypted, no upfront payment</small>
+                            </div>
+                        </div>
+                        <div class="risk-item">
+                            <span class="risk-icon" aria-hidden="true">↩️</span>
+                            <div>
+                                <strong>Full Refund 60+ Days</strong>
+                                <small>Cancel anytime before 60 days, full deposit back</small>
+                            </div>
+                        </div>
+                        <div class="risk-item">
+                            <span class="risk-icon" aria-hidden="true">💬</span>
+                            <div>
+                                <strong>No Commitment</strong>
+                                <small>Get a personal quote first — zero pressure</small>
+                            </div>
+                        </div>
                     </div>
                     <form id="bookingForm" onsubmit="handleSubmit(event)">
                         <input type="hidden" name="access_key" value="cf0ca620-d064-4640-9454-afb27d588f67">
@@ -3091,16 +3388,25 @@
             accordionItems.forEach((item, index) => {
                 item.style.setProperty('--index', index);
                 const header = item.querySelector('.accordion-header');
+                if (!header) return;
+
+                // Set initial aria-expanded based on .active class
+                header.setAttribute('aria-expanded', item.classList.contains('active') ? 'true' : 'false');
 
                 header.addEventListener('click', () => {
                     const isActive = item.classList.contains('active');
 
-                    // Close all other items
-                    accordionItems.forEach(i => i.classList.remove('active'));
+                    // Close all items + reset aria
+                    accordionItems.forEach(i => {
+                        i.classList.remove('active');
+                        const h = i.querySelector('.accordion-header');
+                        if (h) h.setAttribute('aria-expanded', 'false');
+                    });
 
                     // Toggle current item
                     if (!isActive) {
                         item.classList.add('active');
+                        header.setAttribute('aria-expanded', 'true');
                     }
                 });
             });
@@ -3361,6 +3667,15 @@
                     status.textContent = '✓ Check your email for the guide!';
                     window.dataLayer = window.dataLayer || [];
                     window.dataLayer.push({ event: 'popup_submit', popup_type: 'exit_intent' });
+                    // Also push form_success so GTM tags fire for popup too
+                    window.dataLayer.push({ event: 'form_success', form_id: 'exitForm' });
+                    // Google Ads conversion tracking
+                    if (typeof gtag === 'function') {
+                        gtag('event', 'conversion', {
+                            send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
+                            event_callback: function() {}
+                        });
+                    }
                     if (typeof fbq === 'function') fbq('track', 'Lead');
                     form.reset();
                     setTimeout(closeExitPopup, 2500);
@@ -3373,6 +3688,52 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Get My Free Guide';
+            }
+        }
+
+        // Hero Quick Form Handler
+        async function handleHeroQuickSubmit(event) {
+            event.preventDefault();
+            var form = event.target;
+            var btn = document.getElementById('heroQuickBtn');
+            var status = document.getElementById('heroQuickStatus');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            status.textContent = '';
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event: 'form_submit', form_id: 'heroQuickForm' });
+            try {
+                var data = Object.fromEntries(new FormData(form));
+                var res = await fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                var result = await res.json();
+                if (result.success) {
+                    status.style.color = '#10B981';
+                    status.textContent = '✓ We\'ll contact you within 2 hours!';
+                    window.dataLayer.push({ event: 'form_success', form_id: 'heroQuickForm' });
+                    // Google Ads conversion
+                    if (typeof gtag === 'function') {
+                        gtag('event', 'conversion', {
+                            send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
+                            event_callback: function() {}
+                        });
+                    }
+                    // Facebook Lead
+                    if (typeof fbq === 'function') fbq('track', 'Lead');
+                    form.reset();
+                } else {
+                    throw new Error(result.message || 'Failed');
+                }
+            } catch (err) {
+                status.style.color = '#EF4444';
+                status.textContent = 'Something went wrong. Please try again.';
+                window.dataLayer.push({ event: 'form_error', form_id: 'heroQuickForm', error_message: String(err.message || '').slice(0, 200) });
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Get Quote →';
             }
         }
     </script>
