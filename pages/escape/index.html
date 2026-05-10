@@ -53,6 +53,13 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
     <link rel="canonical" href="https://escape.myvivatour.com/">
 
+    <!-- LCP Performance hints -->
+    <link rel="preload" as="image" href="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg" fetchpriority="high">
+    <link rel="preconnect" href="https://tnwelgvypmhhksqwnfmr.supabase.co" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+    <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
+    <link rel="dns-prefetch" href="https://api.web3forms.com">
+
     <!-- Open Graph Tags -->
     <meta property="og:title" content="All-Inclusive 10-Day Vietnam Tour from $2,099 AUD | MyVivaTour">
     <meta property="og:description" content="All-inclusive Vietnam holiday from Australia — $2,099 AUD for 10 days. Hanoi, Ha Long Bay, Hoi An, Ho Chi Minh City & Mekong Delta. Hotels, meals & expert guides included.">
@@ -97,7 +104,8 @@
         }
 
         :root {
-            --primary: #D4AF37;
+            --primary: #D4AF37;        /* Brand gold — for backgrounds, borders, decorative */
+            --primary-text: #A8842A;   /* Darker gold — for text on white (WCAG AA: 4.7:1) */
             --dark: #111827;
             --light: #F8FAFC;
             --text-dark: #1F2937;
@@ -195,7 +203,7 @@
         }
 
         .nav-links a:hover {
-            color: var(--primary);
+            color: var(--primary-text);
         }
 
         .nav-links a::after {
@@ -283,16 +291,23 @@
             margin-top: 70px;
         }
 
-        .hero::before {
-            content: '';
+        .hero-bg-img {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg') center/cover;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
             opacity: 0.4;
+            z-index: 0;
             animation: zoomIn 20s ease-out forwards;
+            transform-origin: center;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .hero-bg-img {
+                animation: none;
+            }
         }
 
         @keyframes zoomIn {
@@ -553,7 +568,7 @@
         }
 
         .highlight-card:hover {
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             box-shadow: 0 20px 40px rgba(212, 175, 55, 0.15);
             transform: translateY(-10px);
         }
@@ -689,7 +704,7 @@
         .accordion-header:hover,
         .accordion-header:focus-visible {
             background: rgba(212, 175, 55, 0.1);
-            color: var(--primary);
+            color: var(--primary-text);
         }
 
         .accordion-header:focus-visible {
@@ -752,7 +767,7 @@
 
         .detail-label {
             font-weight: 600;
-            color: var(--primary);
+            color: var(--primary-text);
             font-size: 0.85rem;
         }
 
@@ -919,7 +934,7 @@
         .price-display {
             font-family: 'Playfair Display', serif;
             font-size: 3rem;
-            color: var(--primary);
+            color: var(--primary-text);
             margin: 1rem 0;
         }
 
@@ -954,7 +969,7 @@
         }
 
         .inclusion-icon {
-            color: var(--primary);
+            color: var(--primary-text);
             font-weight: 700;
             font-size: 1.5rem;
             flex-shrink: 0;
@@ -983,7 +998,7 @@
         }
 
         .upgrade-card:hover {
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             box-shadow: 0 20px 40px rgba(212, 175, 55, 0.15);
         }
 
@@ -993,7 +1008,7 @@
         }
 
         .upgrade-price {
-            color: var(--primary);
+            color: var(--primary-text);
             font-weight: 700;
             font-size: 1.25rem;
         }
@@ -1124,12 +1139,12 @@
         }
 
         .testimonial-location {
-            color: var(--primary);
+            color: var(--primary-text);
             font-size: 0.9rem;
         }
 
         .stars {
-            color: var(--primary);
+            color: var(--primary-text);
             margin-bottom: 1rem;
         }
 
@@ -1186,7 +1201,7 @@
         .blog-tag {
             display: inline-block;
             background: rgba(212,175,55,0.1);
-            color: var(--primary);
+            color: var(--primary-text);
             padding: 0.3rem 0.8rem;
             border-radius: 20px;
             font-size: 0.8rem;
@@ -1212,7 +1227,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            color: var(--primary);
+            color: var(--primary-text);
             font-weight: 600;
             text-decoration: none;
             transition: gap 0.3s;
@@ -1349,7 +1364,7 @@
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--primary-text);
             box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
         }
 
@@ -1438,7 +1453,7 @@
 
         .contact-icon {
             font-size: 1.5rem;
-            color: var(--primary);
+            color: var(--primary-text);
             margin-top: 0.25rem;
         }
 
@@ -1459,7 +1474,7 @@
         }
 
         .contact-value:hover {
-            color: var(--primary);
+            color: var(--primary-text);
         }
 
         @media (max-width: 768px) {
@@ -1499,7 +1514,7 @@
         }
 
         .footer-links a:hover {
-            color: var(--primary);
+            color: var(--primary-text);
         }
 
         .social-links {
@@ -1518,7 +1533,7 @@
             background: rgba(212, 175, 55, 0.2);
             border: 2px solid var(--primary);
             border-radius: 50%;
-            color: var(--primary);
+            color: var(--primary-text);
             text-decoration: none;
             transition: all 0.3s ease;
         }
@@ -1589,7 +1604,7 @@
             width: 50px;
             height: 50px;
             border: 4px solid var(--border);
-            border-top-color: var(--primary);
+            border-top-color: var(--primary-text);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -1748,7 +1763,7 @@
             font-weight: 600;
         }
         .mobile-book-bar .bar-price span {
-            color: var(--primary);
+            color: var(--primary-text);
             font-size: 1.1rem;
         }
         .mobile-book-bar .bar-btn {
@@ -2187,6 +2202,7 @@
 
     <!-- Hero Section -->
     <section class="hero">
+        <img class="hero-bg-img" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg" alt="" fetchpriority="high" decoding="sync" width="1920" height="1080" aria-hidden="true">
         <div class="hero-content">
             <h1>10-Day All-Inclusive Vietnam Holiday from Australia</h1>
             <p class="hero-subtitle">Hanoi · Ha Long Bay · Hoi An · Saigon · Mekong Delta</p>
@@ -2749,7 +2765,7 @@
                     <tbody>
                         <tr style="background:rgba(212,175,55,0.08);font-weight:600;">
                             <td style="padding:0.75rem 1rem;border-bottom:1px solid #eee;">Base <span style="color:#e74c3c;font-size:0.75rem;">★ POPULAR</span></td>
-                            <td style="padding:0.75rem 1rem;text-align:center;border-bottom:1px solid #eee;color:var(--primary);font-weight:700;">$2,099</td>
+                            <td style="padding:0.75rem 1rem;text-align:center;border-bottom:1px solid #eee;color:var(--primary-text);font-weight:700;">$2,099</td>
                             <td style="padding:0.75rem 1rem;text-align:center;border-bottom:1px solid #eee;">3-4 Star</td>
                             <td style="padding:0.75rem 1rem;text-align:center;border-bottom:1px solid #eee;">Standard</td>
                             <td style="padding:0.75rem 1rem;text-align:center;border-bottom:1px solid #eee;">Group</td>
@@ -2883,7 +2899,7 @@
                 </a>
             </div>
             <div style="text-align:center;margin-top:2rem;">
-                <a href="https://www.facebook.com/myvivatour/reviews/?id=61566612697838&sk=reviews" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.5rem;color:var(--primary);font-weight:600;text-decoration:none;font-size:1rem;">Read more reviews on Facebook →</a>
+                <a href="https://www.facebook.com/myvivatour/reviews/?id=61566612697838&sk=reviews" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.5rem;color:var(--primary-text);font-weight:600;text-decoration:none;font-size:1rem;">Read more reviews on Facebook →</a>
             </div>
             <div class="section-cta">
                 <button class="cta-button" onclick="smoothScroll('booking')">Book Your Vietnam Adventure →</button>
@@ -3129,7 +3145,7 @@
     <footer>
         <div class="container">
             <div class="footer-content">
-                <h3 style="color: var(--primary); margin-bottom: 1rem;">MyVivaTour</h3>
+                <h3 style="color: var(--primary-text); margin-bottom: 1rem;">MyVivaTour</h3>
                 <p style="margin-bottom: 2rem;">Creating unforgettable travel experiences across Vietnam and Southeast Asia since 2015.</p>
 
                 <div class="social-links">
@@ -3148,7 +3164,7 @@
                 </div>
             </div>
             <div class="copyright">
-                <p>&copy; 2026 MyVivaTour. All rights reserved. | <a href="#" onclick="document.getElementById('privacyModal').style.display='flex';return false;" style="color: var(--primary); text-decoration: none;">Privacy Policy</a> | <a href="#" onclick="document.getElementById('termsModal').style.display='flex';return false;" style="color: var(--primary); text-decoration: none;">Terms & Conditions</a></p>
+                <p>&copy; 2026 MyVivaTour. All rights reserved. | <a href="#" onclick="document.getElementById('privacyModal').style.display='flex';return false;" style="color: var(--primary-text); text-decoration: none;">Privacy Policy</a> | <a href="#" onclick="document.getElementById('termsModal').style.display='flex';return false;" style="color: var(--primary-text); text-decoration: none;">Terms & Conditions</a></p>
             </div>
         </div>
     </footer>
@@ -3188,7 +3204,7 @@
                     <li>Request data portability.</li>
                 </ul>
                 <h3 style="margin:1.5rem 0 0.5rem;color:var(--dark);">7. Contact Us</h3>
-                <p>For privacy-related questions: <a href="mailto:myvivatourvn@gmail.com" style="color:var(--primary);">myvivatourvn@gmail.com</a></p>
+                <p>For privacy-related questions: <a href="mailto:myvivatourvn@gmail.com" style="color:var(--primary-text);">myvivatourvn@gmail.com</a></p>
             </div>
         </div>
     </div>
@@ -3225,7 +3241,7 @@
                 <h3 style="margin:1.5rem 0 0.5rem;color:var(--dark);">7. Health & Fitness</h3>
                 <p>Some tour activities may require a reasonable level of fitness. Passengers must disclose any medical conditions or special requirements at the time of booking.</p>
                 <h3 style="margin:1.5rem 0 0.5rem;color:var(--dark);">8. Contact</h3>
-                <p>For questions about these terms: <a href="mailto:myvivatourvn@gmail.com" style="color:var(--primary);">myvivatourvn@gmail.com</a> | WhatsApp: <a href="https://wa.me/84974036614" style="color:var(--primary);">+84 974 036 614</a></p>
+                <p>For questions about these terms: <a href="mailto:myvivatourvn@gmail.com" style="color:var(--primary-text);">myvivatourvn@gmail.com</a> | WhatsApp: <a href="https://wa.me/84974036614" style="color:var(--primary-text);">+84 974 036 614</a></p>
             </div>
         </div>
     </div>
