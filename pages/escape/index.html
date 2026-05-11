@@ -1487,29 +1487,27 @@
         }
 
         .risk-reversal-strip {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
+            align-items: flex-start;
             gap: 0.75rem;
             margin: 1rem 0 1.5rem;
             padding: 1rem;
             background: rgba(212, 175, 55, 0.08);
             border: 1px solid rgba(212, 175, 55, 0.3);
             border-radius: 12px;
-            align-items: stretch;
         }
 
         .risk-reversal-strip .risk-item {
+            flex: 1 1 0;
             display: flex;
             align-items: flex-start;
             gap: 0.5rem;
-            min-height: 100%;
         }
 
         .risk-reversal-strip .risk-icon {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             flex-shrink: 0;
-            line-height: 1;
-            margin-top: 0;
+            line-height: 1.2;
         }
 
         .risk-reversal-strip strong {
@@ -1521,7 +1519,7 @@
 
         .risk-reversal-strip small {
             display: block;
-            font-size: 0.72rem;
+            font-size: 12px;
             color: #6B7280;
             line-height: 1.35;
             margin-top: 0.2rem;
@@ -1529,7 +1527,7 @@
 
         @media (max-width: 640px) {
             .risk-reversal-strip {
-                grid-template-columns: 1fr;
+                flex-direction: column;
                 gap: 0.5rem;
             }
         }
@@ -1755,7 +1753,7 @@
             color: #D4AF37;
         }
 
-        /* Mini testimonial in right panel */
+        /* Mini testimonial in right panel — flat div structure to avoid UA quirks */
         .info-testimonial {
             margin: 1.5rem 0 1rem;
             padding: 1rem 1.25rem;
@@ -1764,15 +1762,20 @@
             border-radius: 0 8px 8px 0;
         }
 
-        .info-testimonial p {
+        .info-testimonial-quote {
             margin: 0 0 0.5rem;
+            padding: 0;
+            background: transparent;
             font-size: 0.85rem;
             line-height: 1.5;
             color: rgba(255,255,255,0.9);
             font-style: italic;
         }
 
-        .info-testimonial footer {
+        .info-testimonial-attr {
+            margin: 0;
+            padding: 0;
+            background: transparent;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -1783,12 +1786,13 @@
             color: #D4AF37;
             font-size: 0.8rem;
             letter-spacing: 1px;
+            line-height: 1;
         }
 
-        .info-testimonial cite {
-            font-style: normal;
+        .info-testimonial-author {
             font-size: 0.75rem;
             color: rgba(255,255,255,0.6);
+            line-height: 1;
         }
 
         .info-fineprint {
@@ -3501,7 +3505,7 @@
                             <span class="risk-icon" aria-hidden="true">↩️</span>
                             <div>
                                 <strong>Full Refund 60+ Days</strong>
-                                <small>Cancel 60 days before — full deposit back</small>
+                                <small>Full refund if cancelled 60+ days prior</small>
                             </div>
                         </div>
                         <div class="risk-item">
@@ -3575,13 +3579,13 @@
                     </div>
 
                     <!-- Mini testimonial fills empty space without noise -->
-                    <blockquote class="info-testimonial">
-                        <p>"VIVA tours delivered a positive high-quality experience. Highly recommended for anyone visiting Vietnam."</p>
-                        <footer>
+                    <div class="info-testimonial">
+                        <p class="info-testimonial-quote">"VIVA tours delivered a positive high-quality experience. Highly recommended for anyone visiting Vietnam."</p>
+                        <p class="info-testimonial-attr">
                             <span class="info-testimonial-stars">★★★★★</span>
-                            <cite>— Ingie M., Melbourne 🇦🇺 · TripAdvisor</cite>
-                        </footer>
-                    </blockquote>
+                            <span class="info-testimonial-author">— Ingie M., Melbourne 🇦🇺 · TripAdvisor</span>
+                        </p>
+                    </div>
 
                     <div class="info-fineprint">
                         <p>Available to discuss payment plans, group discounts, and customised itineraries.</p>
