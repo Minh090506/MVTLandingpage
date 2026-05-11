@@ -55,6 +55,7 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 5. **Create `index.html`** — a single-file HTML with inline CSS and JS. Use the design system below and include all sections in order. Refer to:
    - `references/design-system.md` for CSS variables, component styles, and section templates
    - `references/tripadvisor-integration.md` for the TripAdvisor reviews integration (scraping, schema, build pipeline, n8n auto-rotation)
+   - `references/mobile-emulation-testing-with-playwright.md` for mobile/responsive testing — **DO NOT use Chrome `--screenshot --window-size` for mobile verification** (sets window only, viewport stays desktop). Always use Playwright with `viewport + isMobile: true + deviceScaleFactor: 2` context
 
 ### Phase 3: Host Images on Supabase
 
@@ -220,6 +221,9 @@ Save this as `gen_worker.py` in the workspace and run it after every HTML change
 | GA4 sessions counted 2× | Both gtag.js direct + GTM container fire GA4 | Pick one path (recommend GTM only) |
 | Phone field hurts CVR | Required field on hero quick form | Remove `required` attr (+20-35% form CVR) |
 | H1 doesn't match Google Ads | Brand-y H1 like "Escape Australia" | Rewrite with primary keyword: "10-Day All-Inclusive Vietnam Holiday from Australia" |
+| H1 overflows mobile right edge | `clamp()` min too large for narrow viewports | Mobile media query: `clamp(1.85rem, 7.5vw, 2.5rem)` for `.hero h1` + `overflow-wrap: break-word` |
+| Mobile fix appears not working | Used Chrome headless `--screenshot --window-size=375,667` | That sets window only, layout viewport stays ~800px. Use Playwright with `viewport + isMobile: true` instead — see `references/mobile-emulation-testing-with-playwright.md` |
+| Hero too tall on mobile | Fixed `height: 100vh` clips form | Mobile override: `min-height: auto; height: auto` so hero grows to fit content |
 | wrangler install blocked | Sandbox npm restrictions | Generate worker.js manually with Python script |
 | Sandbox can't reach Supabase | Network egress blocked | Use Edge Function + browser-based upload |
 
