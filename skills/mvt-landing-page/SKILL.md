@@ -116,7 +116,9 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 - **Body**: Plus Jakarta Sans (Google Fonts) — clean modern sans-serif
 - Responsive sizing: `clamp(2.5rem, 8vw, 4.5rem)` for H1, `clamp(2rem, 5vw, 3.5rem)` for H2
 
-### Page Sections (in order)
+### Page Sections (in order — TRUST BEFORE PRICE)
+
+> **CRO rule (shipped 2026-05-11):** Trust signals must appear BEFORE price reveal. Audience AU 35-65 at $2,099+ AUD = significant decision. Old order put Pricing right after Gallery → sticker shock killed 50+ demo conversion. New order builds trust via Why Us + Testimonials, then reveals price at peak trust.
 
 1. **Hero** — Full-viewport `<img class="hero-bg-img" fetchpriority="high">` (NOT CSS bg — see "Performance" below), trust bar with TripAdvisor link, headline, price badge, CTA, hero quick form (3 fields)
 2. **Highlights** — 4 feature cards (flights, guides, meals, all-inclusive) with gold accent icons
@@ -124,9 +126,9 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 4. **Itinerary** — `<button class="accordion-header" aria-expanded>` pattern (NOT `<div>` — keyboard a11y) with day headers, content, meals/accommodation details
 5. **Video** — YouTube embed with proper attributes (`allow`, `referrerpolicy`, `frameborder`, `allowfullscreen`)
 6. **Gallery** — 8-image grid with lightbox modal (arrow key navigation, ESC close)
-7. **Pricing** — Main price card (was/now) + 4 upgrade option cards
-8. **Why MyVivaTour** — Trust section with 6 feature cards on gradient background
-9. **Testimonials** — TripAdvisor badge (rating + Travellers' Choice + ranking) + 6 native review cards (see TripAdvisor Integration section). Featured card pinned for any Aussie reviewer (`isAustralian: true` in JSON) with green border + 🇦🇺 corner badge
+7. **Why MyVivaTour** — Trust section with 6 feature cards on gradient background (MOVED above Pricing)
+8. **Testimonials** — TripAdvisor badge (rating + Travellers' Choice + ranking) + 6 native review cards (see TripAdvisor Integration section). Featured card pinned for any Aussie reviewer (`isAustralian: true` in JSON) with green border + 🇦🇺 corner badge
+9. **Pricing** — Main price card (was/now) + 4 upgrade option cards (REVEAL HERE, after trust)
 10. **FAQ** — Button-based accordion with common questions
 11. **Booking Form** — Web3Forms integration. 2-column layout: left = form card (elevated), right = "Get in Touch" panel (matching elevated style with SVG icons + mini testimonial). **Risk reversal strip placed BELOW submit button** as post-CTA reassurance (3 vertical rows with top border separator)
 12. **Footer** — Company info, quick links, contact details
@@ -135,10 +137,32 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 
 - **Accordion**: Single-open pattern (closing previous when new opens)
 - **Gallery Lightbox**: Click to open, arrow keys to navigate, ESC to close
-- **Scroll Animations**: Intersection Observer (threshold 0.1) adding `.visible` class
-- **Sticky Nav**: Adds shadow on scroll, mobile hamburger menu
+- **Scroll Animations** (5 effects, shipped 2026-05-11) — see `references/scroll-animations-and-premium-polish-patterns.md`:
+  - Section header fade+slide-up (`.section-reveal`)
+  - Card grid stagger (80ms delay per child via `data-stagger-group`)
+  - Stat count-up for TripAdvisor numbers (1.2s easeOutCubic, `tabular-nums` → CLS=0)
+  - Hero bg subtle parallax (`.hero-parallax-layer`, 0.3x scroll, desktop-only)
+  - Active nav-link indicator (no new DOM — extends existing `nav#navbar`)
+  - **All effects respect `prefers-reduced-motion: reduce`**
+- **Sticky Nav**: `position: fixed` + backdrop-filter blur. `nav.scrolled` switches to solid white bg + box-shadow after first scroll
 - **Form**: Web3Forms API → email delivery, with WhatsApp prompt on success
 - **Back to Top**: Shows after 300px scroll
+
+### Brand Asset Preparation (CRITICAL — read before placing any logo)
+
+See `references/brand-asset-preparation-transparent-logos-and-images.md`.
+
+**TL;DR:** Logo on a semi-transparent navbar MUST be true-alpha PNG (or SVG). JPGs with baked-in white bg cause visible halo on tinted navbar backdrops (lesson learned 2026-05-12, escape page). Workflow:
+
+```bash
+# Convert JPG → transparent PNG → inline base64 (single-step prep)
+magick logo.jpg -trim +repage -bordercolor white -border 10 \
+  -fuzz 8% -transparent white -resize x200 -strip \
+  -define png:compression-level=9 -colors 16 logo.png
+base64 -i logo.png | tr -d '\n'   # paste output as data:image/png;base64,...
+```
+
+Inline if ≤10 KB base64 (saves an HTTP request, improves LCP). Apply to nav logo, badges, payment provider icons — anywhere an asset overlaps a non-opaque background.
 
 ## Integration Details
 
@@ -223,6 +247,11 @@ Save this as `gen_worker.py` in the workspace and run it after every HTML change
 | H1 doesn't match Google Ads | Brand-y H1 like "Escape Australia" | Rewrite with primary keyword: "10-Day All-Inclusive Vietnam Holiday from Australia" |
 | H1 overflows mobile right edge | `clamp()` min too large for narrow viewports | Mobile media query: `clamp(1.85rem, 7.5vw, 2.5rem)` for `.hero h1` + `overflow-wrap: break-word` |
 | Mobile fix appears not working | Used Chrome headless `--screenshot --window-size=375,667` | That sets window only, layout viewport stays ~800px. Use Playwright with `viewport + isMobile: true` instead — see `references/mobile-emulation-testing-with-playwright.md` |
+| Logo halo / rectangle visible around logo on navbar | JPG logo with baked-in white bg over semi-transparent navbar | Convert JPG → transparent PNG, inline as base64 — see `references/brand-asset-preparation-transparent-logos-and-images.md` |
+| Pricing seen too early → bounce on 50+ AU demo | Old section order: Pricing right after Gallery (sticker shock) | Reorder: Why Us + Testimonials BEFORE Pricing — trust before price |
+| Scroll animations feel cheap/gimmicky | Used bouncy/scale-from-zero effects, no reduced-motion guard | Subtle only: fade+20px slide, 80ms stagger cap, respect `prefers-reduced-motion` — see `references/scroll-animations-and-premium-polish-patterns.md` |
+| Count-up shifts layout (CLS spike) | Variable-width digits | Add `font-variant-numeric: tabular-nums` on `.count-up` |
+| Parallax causes motion sickness on mobile | Hero parallax enabled on mobile | Disable parallax for `window.innerWidth < 768` — desktop-only |
 | Hero too tall on mobile | Fixed `height: 100vh` clips form | Mobile override: `min-height: auto; height: auto` so hero grows to fit content |
 | wrangler install blocked | Sandbox npm restrictions | Generate worker.js manually with Python script |
 | Sandbox can't reach Supabase | Network egress blocked | Use Edge Function + browser-based upload |
@@ -375,6 +404,15 @@ NEVER use `color: var(--primary)` for text on white. Always `var(--primary-text)
 ## Conversion Optimization Patterns (validated on escape page)
 
 Apply these to every LP. Order matters.
+
+### Section Order: Trust Before Price (mandatory)
+
+```
+Hero → Highlights → Destinations → Itinerary → Video → Gallery
+→ Why MyVivaTour → Testimonials → PRICING → FAQ → Booking
+```
+
+Pricing must NEVER appear before Why Us + Testimonials. Reason: AU 35-65 demo at $2,099+ AUD = significant decision; sticker shock before trust kills conversion. Validated on escape page (commit `716d235`).
 
 ### Hero must include
 
