@@ -125,7 +125,7 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 1. **Hero** — Full-viewport `<img class="hero-bg-img" fetchpriority="high">` (NOT CSS bg), trust bar with TripAdvisor link, headline, price badge, **SINGLE pulsing CTA** scrolling to `#booking` + reassurance line. **NO inline hero form** (see "Single-CTA Hero" pattern in Conversion section)
 2. **Destinations** — 6-card grid with overlay text, hover zoom effect
 3. **Itinerary** — `<button class="accordion-header" aria-expanded>` pattern (NOT `<div>` — keyboard a11y) with day headers, content, meals/accommodation details
-4. **Video** — YouTube embed with proper attributes (`allow`, `referrerpolicy`, `frameborder`, `allowfullscreen`)
+4. **Video** — **YouTube facade pattern, NOT bare `<iframe loading="lazy">`**. Render a poster `<div>` with `i.ytimg.com/vi/{ID}/maxresdefault.jpg` as background + orange play button. Click handler swaps the div for the real iframe with `autoplay=1`. Eliminates the ~600px blank box that bare lazy iframes create during scroll, saves ~500KB initial weight, fires `video_play` dataLayer event on activation. Full pattern in `references/js-gated-reveal-youtube-facade-and-brand-orange-cta-hierarchy.md`
 5. **Gallery** — 8-image grid with lightbox modal (arrow key navigation, ESC close)
 6. **Why MyVivaTour** — Trust section with 6 feature cards on gradient background (MOVED above Pricing)
 7. **Testimonials** — TripAdvisor badge (rating + Travellers' Choice + ranking) + 6 native review cards (see TripAdvisor Integration section). Featured card pinned for any Aussie reviewer (`isAustralian: true` in JSON) with green border + 🇦🇺 corner badge
@@ -139,13 +139,15 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 
 - **Accordion**: Single-open pattern (closing previous when new opens)
 - **Gallery Lightbox**: Click to open, arrow keys to navigate, ESC to close
-- **Scroll Animations** (5 effects, shipped 2026-05-11) — see `references/scroll-animations-and-premium-polish-patterns.md`:
+- **Scroll Animations** (5 effects, shipped 2026-05-11; render-resilience added 2026-05-16) — see `references/scroll-animations-and-premium-polish-patterns.md` + `references/js-gated-reveal-youtube-facade-and-brand-orange-cta-hierarchy.md`:
   - Section header fade+slide-up (`.section-reveal`)
   - Card grid stagger (80ms delay per child via `data-stagger-group`)
   - Stat count-up for TripAdvisor numbers (1.2s easeOutCubic, `tabular-nums` → CLS=0)
   - Hero bg subtle parallax (`.hero-parallax-layer`, 0.3x scroll, desktop-only)
   - Active nav-link indicator (no new DOM — extends existing `nav#navbar`)
   - **All effects respect `prefers-reduced-motion: reduce`**
+  - **CRITICAL (2026-05-16):** all `opacity: 0` baseline states MUST be gated behind `html.js` class set via inline `<script>` in `<head>` BEFORE any CSS renders. Otherwise slow CPUs, JS failures, or static snapshot tools (Lighthouse, Playwright fullPage, crawlers) see blank sections.
+- **YouTube facade** (shipped 2026-05-16) — `.video-facade` div with poster bg + orange play button. Click handler swaps to real iframe with autoplay. See render-resilience reference.
 - **Sticky Nav**: `position: fixed` + backdrop-filter blur. `nav.scrolled` switches to solid white bg + box-shadow after first scroll
 - **Form**: Web3Forms API → email delivery, with WhatsApp prompt on success
 - **Back to Top**: Shows after 300px scroll
@@ -261,6 +263,11 @@ Save this as `gen_worker.py` in the workspace and run it after every HTML change
 | GA4 reports show `[object Object]` for custom params | Pushed JS array directly into dataLayer | Convert array → comma-string before push: `interests: chips.join(', ')`. Arrays serialize badly in GA4 |
 | Sales email cluttered with `interest_x: on` lines | Per-chip name attributes sent individually via Web3Forms | Strip `name=` from chip inputs, aggregate checked values into ONE hidden `interests_summary` field at submit time. Email shows clean comma-list |
 | Chips tap area too small on mobile | Default chip padding ~32px tall | Set `min-height: 44px` + `box-sizing: border-box` on chip labels (WCAG 2.1 AA + Apple HIG) |
+| Section appears empty in screenshots / on slow CPUs | `opacity: 0` baseline + IntersectionObserver — observer doesn't fire in time | Gate hidden state with `html.js` class set via inline `<script>` in `<head>`. CSS: `html.js .card:not(.visible) { opacity: 0; ... }`. See render-resilience reference |
+| Huge blank rectangle where video should be | `<iframe loading="lazy">` — `loading="lazy"` only delays fetch, doesn't show a placeholder | YouTube facade pattern: `<div>` with `i.ytimg.com/vi/{ID}/maxresdefault.jpg` background + orange play button + click handler to load real iframe. Saves ~500KB, fires `video_play` event |
+| Hero CTA + price disappear on tinted hero photo | Gold (`#D4AF37`) is ~3.2:1 contrast — weak against most photo backdrops | Use brand orange-red sampled from logo for ALL primary actions (`--accent-grad`). Gold demoted to decorative only (stars, dividers, hover) |
+| Nav "Book Now" competes with hero CTA | Both solid gold = neither wins; eye doesn't know where to look | Nav uses outlined-orange variant (`cta-button-nav`) at top, fills in to orange gradient only when `nav.scrolled` |
+| Generic ✓ icons in feature cards look cheap | Default checkmark + no visual differentiation | Use branded emoji icons inside circular tinted bg (🎯 🗣️ 💰 ⏰ 🏨 🌏) — each card gets its own meaning, hover lifts the card |
 | wrangler install blocked | Sandbox npm restrictions | Generate worker.js manually with Python script |
 | Sandbox can't reach Supabase | Network egress blocked | Use Edge Function + browser-based upload |
 
@@ -390,12 +397,18 @@ Every new LP must pass these baselines (audit results inform Phase 2 build):
 | Touch targets | Min 44px × 44px on mobile (hamburger, sticky bar, floating buttons) |
 | Form fields | `<label for="">` linked to every input. Required fields marked with `*` |
 
-### Color tokens (split for contrast)
+### Color tokens (split for contrast + CTA hierarchy)
+
+> **Rule (shipped 2026-05-16):** Primary CTAs must use the **brand orange-red sampled from the logo**, NOT gold. Gold on a tinted-photo hero is ~3.2:1 contrast and disappears; orange-red commands attention and ties back to logo identity. Gold is demoted to decorative-only (stars, dividers, hover). Full rationale in `references/js-gated-reveal-youtube-facade-and-brand-orange-cta-hierarchy.md`.
 
 ```css
 :root {
-    --primary: #D4AF37;        /* Gold for backgrounds, borders, decorative */
-    --primary-text: #A8842A;   /* Darker gold for text on white (WCAG AA pass) */
+    --primary: #D4AF37;        /* Brand gold — DECORATIVE ONLY (stars, dividers, accent borders, hover) */
+    --primary-text: #A8842A;   /* Darker gold for body text on white (WCAG AA pass) */
+    --accent: #E8622A;         /* Brand orange-red (sampled from logo) — used for ALL primary CTAs + price */
+    --accent-dark: #C84F1D;    /* Hover */
+    --accent-grad: linear-gradient(135deg, #FF6B35 0%, #E8622A 100%); /* CTA gradient */
+    --accent-glow: rgba(232, 98, 42, 0.45);
     --dark: #111827;
     --light: #F8FAFC;
     --text-dark: #1F2937;
@@ -406,6 +419,12 @@ Every new LP must pass these baselines (audit results inform Phase 2 build):
 ```
 
 NEVER use `color: var(--primary)` for text on white. Always `var(--primary-text)`.
+NEVER use `var(--primary)` for primary action buttons or price badge. Always `var(--accent-grad)`.
+
+**What gets which color:**
+- `--accent-grad` → hero CTA, price badge, sticky mobile bar, booking form submit, bridge CTAs, video play button
+- `--primary` → TripAdvisor stars, accordion focus outline, testimonial card border-left, decorative hover tints
+- Nav "Book Now" pill → outlined orange (top of page), fills to orange gradient when `nav.scrolled`
 
 ---
 
@@ -430,7 +449,7 @@ Two non-negotiable rules:
 
 - **Message-match H1**: contains primary keyword from Google Ads (`"10-Day All-Inclusive Vietnam Holiday from Australia"` not brand-y `"Escape Australia"`). Critical for Quality Score + bounce rate.
 - **Trust bar dưới H1**: 3 pills horizontal — TripAdvisor link + traveller count + tenure
-- **Single pulsing CTA** (NOT inline form): `<button class="cta-button cta-button-hero" onclick="smoothScroll('booking')">Get My Free Vietnam Quote →</button>` + reassurance line directly under (`🇦🇺 Free, no obligation · Reply within 2 hours · Trusted by 500+ Australian travellers`). Hick's law: 1 clear action beats 3 input fields. The full booking form below captures higher-quality data via chips + departure city anyway.
+- **Single pulsing CTA** (NOT inline form): `<button class="cta-button cta-button-hero" onclick="smoothScroll('booking')">Get My Free Vietnam Quote →</button>` + reassurance line directly under (`🇦🇺 Free, no obligation · Reply within 2 hours · Trusted by 500+ Australian travellers`). Hick's law: 1 clear action beats 3 input fields. The full booking form below captures higher-quality data via chips + departure city anyway. **Color: orange-red gradient (`--accent-grad`) — pulses with orange glow** (`--accent-glow`). Gold pulse on tinted hero = invisible; orange pulse = unmissable.
 - **Daily Departure tag** for urgency without being spammy
 
 ### Form section structure
