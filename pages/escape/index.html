@@ -39,6 +39,9 @@
     <!-- End Facebook Pixel -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Mark JS as loaded synchronously so CSS scroll-reveal rules can safely hide content until observer fires.
+         Without this, the .section-reveal / card opacity:0 baseline would persist if JS failed or was slow. -->
+    <script>document.documentElement.classList.add('js');</script>
     <meta name="description" content="All-inclusive 10-day Vietnam tour from Australia — $2,099 AUD. Explore Hanoi, Ha Long Bay, Hoi An, Ho Chi Minh City & Mekong Delta. Hotels, meals & guides included. Book your 2026 Vietnam holiday today!">
     <meta name="keywords" content="Vietnam tour from Australia, Vietnam holiday package, Vietnam tours 2026, 10 day Vietnam tour, all inclusive Vietnam tour, Vietnam tour package Australia, Ha Long Bay tour, Hanoi tour, Ho Chi Minh City tour, Hoi An tour, Mekong Delta tour, Vietnam guided tour, small group Vietnam tour, Vietnam travel deal, cheap Vietnam tour Australia, budget Vietnam holiday, luxury Vietnam tour, Vietnam flights included, Vietnam hotel package, Vietnamese food tour, Vietnam culture tour, Southeast Asia tour from Australia, Vietnam adventure tour, Vietnam sightseeing, book Vietnam tour online, best Vietnam tour operator, affordable Vietnam holiday, Vietnam family tour, Vietnam honeymoon package, MyVivaTour, Vietnam holiday 2026, Vietnam travel package, Vietnam group tour, Ha Long Bay cruise, Cu Chi Tunnels tour, Vietnam all inclusive holiday, Australian Vietnam tour, Saigon tour, Vietnam beach holiday, Hue Imperial City tour, Vietnam and Cambodia tour, Vietnam tour with meals included, guided Vietnam holiday, Vietnam tour deals 2026, best time visit Vietnam, Vietnam tour operator Australia, Escape Australia">
 
@@ -104,8 +107,12 @@
         }
 
         :root {
-            --primary: #D4AF37;        /* Brand gold — for backgrounds, borders, decorative */
+            --primary: #D4AF37;        /* Brand gold — kept for decorative accents (TripAdvisor stars, hover, dividers) */
             --primary-text: #A8842A;   /* Darker gold — for text on white (WCAG AA: 4.7:1) */
+            --accent: #E8622A;         /* Brand orange-red (matches logo) — used for ALL primary CTAs + price */
+            --accent-dark: #C84F1D;    /* Hover state for orange CTAs */
+            --accent-grad: linear-gradient(135deg, #FF6B35 0%, #E8622A 100%); /* CTA gradient */
+            --accent-glow: rgba(232, 98, 42, 0.45);
             --dark: #111827;
             --light: #F8FAFC;
             --text-dark: #1F2937;
@@ -297,26 +304,47 @@
             padding: 2rem 0;
         }
 
-        /* Mobile: let hero grow to fit content (form has 4 fields + button) */
+        /* Mobile: compact hero so CTA lands above the fold on iPhone 13 (~774px viewport).
+           Tightens H1, subtitle, price badge spacing. Hides decorative tags + tertiary trust pill. */
         @media (max-width: 768px) {
             .hero {
                 min-height: auto;
                 height: auto;
-                padding: 3rem 0 3rem;
+                padding: 1.5rem 0 2rem;
             }
             .hero-content {
-                padding: 1rem 1rem;
+                padding: 0.5rem 1rem;
             }
             .hero h1 {
-                font-size: clamp(1.85rem, 7.5vw, 2.5rem);
+                font-size: clamp(1.6rem, 6.5vw, 2.2rem);
+                line-height: 1.15;
+                margin-bottom: 0.5rem;
                 overflow-wrap: break-word;
                 word-break: break-word;
                 hyphens: auto;
             }
             .hero-subtitle {
-                font-size: 0.95rem;
+                font-size: 0.9rem;
+                margin-bottom: 0.75rem;
                 padding: 0 0.5rem;
             }
+            .price-badge {
+                font-size: 1.05rem;
+                padding: 0.7rem 1.4rem;
+                margin-bottom: 0.85rem;
+                animation: none; /* free up vertical space — bounce pushes CTA below fold */
+            }
+            .hero-trust-bar {
+                gap: 0.35rem;
+                margin: 0.5rem auto 0.85rem;
+            }
+            .hero-trust-bar .trust-pill {
+                font-size: 0.72rem;
+                padding: 0.3rem 0.65rem;
+            }
+            /* Hide tertiary signals on small screens so CTA reaches above-the-fold */
+            .hero-trust-bar .trust-pill:nth-child(3) { display: none; }
+            .hero-tags { display: none; }
         }
 
         .hero-bg-img {
@@ -375,12 +403,12 @@
             font-size: 1.15rem;
             padding: 1rem 2.25rem;
             margin-top: 0.5rem;
-            box-shadow: 0 10px 28px rgba(212, 175, 55, 0.4);
+            box-shadow: 0 12px 32px var(--accent-glow);
             animation: ctaPulse 2.4s ease-in-out infinite;
         }
         @keyframes ctaPulse {
-            0%, 100% { box-shadow: 0 10px 28px rgba(212, 175, 55, 0.4); }
-            50%      { box-shadow: 0 14px 36px rgba(212, 175, 55, 0.65); }
+            0%, 100% { box-shadow: 0 12px 32px var(--accent-glow); }
+            50%      { box-shadow: 0 18px 48px rgba(232, 98, 42, 0.75); }
         }
         .hero-cta-reassurance {
             color: rgba(255, 255, 255, 0.85);
@@ -457,16 +485,17 @@
 
         .price-badge {
             display: inline-block;
-            background: var(--primary);
-            color: var(--dark);
+            background: var(--accent-grad);
+            color: #fff;
             padding: 1rem 2rem;
             border-radius: 50px;
             font-weight: 700;
             font-size: 1.25rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+            box-shadow: 0 12px 32px var(--accent-glow);
             animation: bounce 2s infinite;
         }
+        .price-badge .price-old { color: rgba(255,255,255,0.7); }
 
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
@@ -499,8 +528,8 @@
 
         .cta-button {
             display: inline-block;
-            background: var(--primary);
-            color: var(--dark);
+            background: var(--accent-grad);
+            color: #fff;
             padding: 1rem 2.5rem;
             border-radius: 50px;
             text-decoration: none;
@@ -509,24 +538,94 @@
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+            box-shadow: 0 10px 30px var(--accent-glow);
         }
 
         .cta-button:hover {
             transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.4);
-            background: #E5C158;
+            box-shadow: 0 16px 42px var(--accent-glow);
+            filter: brightness(1.05);
+        }
+
+        /* Nav "Book Now" — outlined variant so hero CTA stays the visual hero */
+        .cta-button-nav {
+            background: transparent !important;
+            color: var(--accent) !important;
+            border: 2px solid var(--accent) !important;
+            padding: 0.55rem 1.4rem !important;
+            font-size: 0.92rem !important;
+            box-shadow: none !important;
+        }
+        .cta-button-nav:hover {
+            background: var(--accent) !important;
+            color: #fff !important;
+            transform: translateY(-1px) !important;
+            filter: none !important;
+        }
+        nav.scrolled .cta-button-nav {
+            background: var(--accent-grad) !important;
+            color: #fff !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 14px var(--accent-glow) !important;
+        }
+
+        /* Why MyVivaTour cards — branded icons replace generic checkmarks */
+        .why-mvt-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .why-mvt-card {
+            padding: 2rem 1.5rem;
+            background: #fff;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(232, 98, 42, 0.08);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .why-mvt-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 36px rgba(232, 98, 42, 0.12);
+            border-color: rgba(232, 98, 42, 0.25);
+        }
+        .why-mvt-icon {
+            font-size: 2.6rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            display: inline-block;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.12), rgba(232, 98, 42, 0.18));
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .why-mvt-card h3 {
+            color: var(--accent-dark);
+            margin-bottom: 0.75rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+        .why-mvt-card p {
+            color: var(--text-light);
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.55;
         }
 
         .cta-secondary {
             background: transparent;
             color: white;
-            border: 2px solid var(--primary);
+            border: 2px solid var(--accent);
         }
 
         .cta-secondary:hover {
-            background: var(--primary);
-            color: var(--dark);
+            background: var(--accent);
+            color: #fff;
         }
 
         /* Highlights Section */
@@ -549,12 +648,15 @@
             text-align: center;
             border: 1px solid rgba(212,175,55,0.2);
             transition: all 0.3s ease;
-            opacity: 0;
-            transform: translateY(20px);
             box-shadow: 0 8px 32px rgba(0,0,0,0.12);
             position: relative;
             overflow: hidden;
             z-index: 1;
+        }
+        /* Hidden initial state only when JS is loaded — guards against animation block */
+        html.js .highlight-card:not(.visible) {
+            opacity: 0;
+            transform: translateY(20px);
         }
 
         .highlight-card::before {
@@ -629,11 +731,11 @@
             border-radius: 12px;
             overflow: hidden;
             cursor: pointer;
-            group: 'dest';
+        }
+        html.js .destination-card:not(.visible) {
             opacity: 0;
             transform: translateY(20px);
         }
-
         .destination-card.visible {
             opacity: 1;
             transform: translateY(0);
@@ -818,12 +920,66 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            position: relative;
         }
-
         .video-container iframe {
             width: 100%;
             height: 100%;
             border: none;
+        }
+        /* YouTube facade: shows poster image + play button instantly (no iframe weight on initial load).
+           Click loads the real iframe — fixes the "huge blank box" between sections. */
+        .video-facade {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-facade::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 100%);
+        }
+        .video-facade-play {
+            position: relative;
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: var(--accent-grad);
+            box-shadow: 0 12px 36px var(--accent-glow), 0 0 0 8px rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .video-facade:hover .video-facade-play {
+            transform: scale(1.08);
+            box-shadow: 0 16px 48px var(--accent-glow), 0 0 0 12px rgba(255,255,255,0.2);
+        }
+        .video-facade-play::after {
+            content: '';
+            width: 0; height: 0;
+            border-left: 22px solid #fff;
+            border-top: 14px solid transparent;
+            border-bottom: 14px solid transparent;
+            margin-left: 6px;
+        }
+        .video-facade-label {
+            position: absolute;
+            bottom: 1.25rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            white-space: nowrap;
         }
 
         /* Gallery Section */
@@ -844,6 +1000,8 @@
             border-radius: 12px;
             overflow: hidden;
             cursor: pointer;
+        }
+        html.js .gallery-item:not(.visible) {
             opacity: 0;
             transform: scale(0.95);
         }
@@ -1017,10 +1175,11 @@
             border-radius: 12px;
             border: 2px solid var(--border);
             transition: all 0.3s ease;
+        }
+        html.js .upgrade-card:not(.visible) {
             opacity: 0;
             transform: translateY(20px);
         }
-
         .upgrade-card.visible {
             opacity: 1;
             transform: translateY(0);
@@ -1350,10 +1509,12 @@
             border-radius: 12px;
             overflow: hidden;
             border-left: 4px solid var(--primary);
-            opacity: 0;
-            transform: translateY(20px);
             transition: transform 0.3s, box-shadow 0.3s;
             cursor: pointer;
+        }
+        html.js .testimonial-card:not(.visible) {
+            opacity: 0;
+            transform: translateY(20px);
         }
 
         .testimonial-card:hover {
@@ -1402,6 +1563,8 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+        html.js .blog-card:not(.visible) {
             opacity: 0;
             transform: translateY(20px);
         }
@@ -2193,19 +2356,21 @@
             font-weight: 600;
         }
         .mobile-book-bar .bar-price span {
-            color: var(--primary-text);
-            font-size: 1.1rem;
+            color: #FF8A5C;
+            font-size: 1.15rem;
+            font-weight: 800;
         }
         .mobile-book-bar .bar-btn {
-            background: var(--primary);
-            color: var(--dark);
+            background: var(--accent-grad);
+            color: #fff;
             border: none;
-            padding: 0.6rem 1.25rem;
-            border-radius: 6px;
+            padding: 0.7rem 1.4rem;
+            border-radius: 999px;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             cursor: pointer;
             text-decoration: none;
+            box-shadow: 0 6px 18px var(--accent-glow);
         }
 
         /* ===== Exit-Intent Popup ===== */
@@ -2325,11 +2490,17 @@
            All GPU-accelerated (opacity + transform only).
            Reduced-motion override at end of block.
            ============================================ */
+        /* Scroll-reveal: content is visible BY DEFAULT (no JS dependency).
+           Only when html.js class is present (set synchronously in <head>) do we apply
+           the pre-reveal hidden state. This guards against IntersectionObserver lag,
+           failed JS, or static snapshot tools where content would otherwise be invisible. */
         .section-reveal {
-            opacity: 0;
-            transform: translateY(20px);
             transition: opacity 0.6s cubic-bezier(0.22,0.61,0.36,1),
                         transform 0.6s cubic-bezier(0.22,0.61,0.36,1);
+        }
+        html.js .section-reveal:not(.visible) {
+            opacity: 0;
+            transform: translateY(20px);
         }
         .section-reveal.visible {
             opacity: 1;
@@ -2679,11 +2850,11 @@
                 </svg>
             </a>
             <ul class="nav-links" id="navLinks">
-                <li><a href="#highlights">Why This Tour</a></li>
+                <li><a href="#why-myvivatour">Why Us</a></li>
                 <li><a href="#destinations">Destinations</a></li>
                 <li><a href="#itinerary">Itinerary</a></li>
                 <li><a href="#pricing">Pricing</a></li>
-                <li><a href="#booking" class="cta-button">Book Now</a></li>
+                <li><a href="#booking" class="cta-button cta-button-nav">Book Now</a></li>
             </ul>
             <div class="hamburger" id="hamburger">
                 <span></span>
@@ -3022,7 +3193,15 @@
             <h2 class="text-center section-reveal">Experience Vietnam in Motion</h2>
             <p class="text-center opacity-75 mb-5 section-reveal">See what awaits you on this incredible journey</p>
             <div class="video-container">
-                <iframe src="https://www.youtube.com/embed/3ASbxKprZSc?rel=0&modestbranding=1" title="Escape Australia - Vietnam Discovery 10 Days" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
+                <div class="video-facade"
+                     role="button"
+                     tabindex="0"
+                     aria-label="Play Vietnam Discovery 10 Days video"
+                     data-youtube-id="3ASbxKprZSc"
+                     style="background-image:url('https://i.ytimg.com/vi/3ASbxKprZSc/maxresdefault.jpg');">
+                    <div class="video-facade-play" aria-hidden="true"></div>
+                    <div class="video-facade-label">▶ Watch the 10-day journey · 2 min</div>
+                </div>
             </div>
         </div>
     </section>
@@ -3110,36 +3289,36 @@
             <div style="text-align:center;margin-bottom:3rem;">
                 <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/why-trust-banner.jpg" alt="Why MyVivaTour - Trust & Excellence" style="max-width:700px;width:100%;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.15);">
             </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:2rem;max-width:900px;margin:0 auto;">
-                <div style="padding:2rem;background:white;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                    <div style="font-size:3rem;margin-bottom:1rem;">✓</div>
-                    <h3 style="color:#D4AF37;margin-bottom:1rem;font-size:1.2rem;">Personalized Itineraries</h3>
-                    <p style="color:#666;margin:0;">Every tour is tailored to your interests, preferences, and travel style for an unforgettable experience.</p>
+            <div class="why-mvt-grid">
+                <div class="why-mvt-card">
+                    <div class="why-mvt-icon" aria-hidden="true">🎯</div>
+                    <h3>Personalised Itineraries</h3>
+                    <p>Every tour is tailored to your interests, preferences, and travel style for an unforgettable experience.</p>
                 </div>
-                <div style="padding:2rem;background:white;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                    <div style="font-size:3rem;margin-bottom:1rem;">✓</div>
-                    <h3 style="color:#D4AF37;margin-bottom:1rem;font-size:1.2rem;">Expert Local Guides</h3>
-                    <p style="color:#666;margin:0;">Knowledgeable, professional guides who know Vietnam inside-out and share authentic stories.</p>
+                <div class="why-mvt-card">
+                    <div class="why-mvt-icon" aria-hidden="true">🗣️</div>
+                    <h3>Expert Local Guides</h3>
+                    <p>Knowledgeable, professional guides who know Vietnam inside-out and share authentic stories.</p>
                 </div>
-                <div style="padding:2rem;background:white;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                    <div style="font-size:3rem;margin-bottom:1rem;">✓</div>
-                    <h3 style="color:#D4AF37;margin-bottom:1rem;font-size:1.2rem;">All-Inclusive Pricing</h3>
-                    <p style="color:#666;margin:0;">No hidden fees. Flights, hotels, meals, activities, and guides are all included in your package.</p>
+                <div class="why-mvt-card">
+                    <div class="why-mvt-icon" aria-hidden="true">💰</div>
+                    <h3>All-Inclusive Pricing</h3>
+                    <p>No hidden fees. Flights, hotels, meals, activities, and guides are all included in your package.</p>
                 </div>
-                <div style="padding:2rem;background:white;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                    <div style="font-size:3rem;margin-bottom:1rem;">✓</div>
-                    <h3 style="color:#D4AF37;margin-bottom:1rem;font-size:1.2rem;">24/7 Support</h3>
-                    <p style="color:#666;margin:0;">Dedicated support team available round-the-clock to assist you before, during, and after your tour.</p>
+                <div class="why-mvt-card">
+                    <div class="why-mvt-icon" aria-hidden="true">⏰</div>
+                    <h3>24/7 Support</h3>
+                    <p>Dedicated support team available round-the-clock to assist you before, during, and after your tour.</p>
                 </div>
-                <div style="padding:2rem;background:white;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                    <div style="font-size:3rem;margin-bottom:1rem;">✓</div>
-                    <h3 style="color:#D4AF37;margin-bottom:1rem;font-size:1.2rem;">Premium Accommodations</h3>
-                    <p style="color:#666;margin:0;">Carefully selected 4-5 star hotels in prime locations throughout your Vietnam journey.</p>
+                <div class="why-mvt-card">
+                    <div class="why-mvt-icon" aria-hidden="true">🏨</div>
+                    <h3>Premium Accommodations</h3>
+                    <p>Carefully selected 4-5 star hotels in prime locations throughout your Vietnam journey.</p>
                 </div>
-                <div style="padding:2rem;background:white;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                    <div style="font-size:3rem;margin-bottom:1rem;">✓</div>
-                    <h3 style="color:#D4AF37;margin-bottom:1rem;font-size:1.2rem;">Authentic Experiences</h3>
-                    <p style="color:#666;margin:0;">Go beyond the typical tourist trail and experience the true heart and soul of Vietnam.</p>
+                <div class="why-mvt-card">
+                    <div class="why-mvt-icon" aria-hidden="true">🌏</div>
+                    <h3>Authentic Experiences</h3>
+                    <p>Go beyond the typical tourist trail and experience the true heart and soul of Vietnam.</p>
                 </div>
             </div>
         </div>
@@ -4386,6 +4565,31 @@
             if (document.getElementById('exitOverlay').classList.contains('active') && e.key === 'Escape') {
                 closeExitPopup();
             }
+        });
+
+        // ===== Video facade: click → load real YouTube iframe with autoplay =====
+        // Saves ~500KB initial weight + prevents the "empty white box" perception while iframe loads.
+        document.querySelectorAll('.video-facade').forEach(function(facade) {
+            const load = function() {
+                const id = facade.getAttribute('data-youtube-id');
+                if (!id) return;
+                const iframe = document.createElement('iframe');
+                iframe.src = 'https://www.youtube.com/embed/' + id + '?autoplay=1&rel=0&modestbranding=1';
+                iframe.title = 'Vietnam Discovery 10 Days';
+                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+                iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                iframe.setAttribute('allowfullscreen', '');
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                facade.replaceWith(iframe);
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({ event: 'video_play', video_id: id });
+            };
+            facade.addEventListener('click', load);
+            facade.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); load(); }
+            });
         });
 
         // ===== Mobile Sticky Book Now Bar =====
