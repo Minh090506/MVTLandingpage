@@ -1651,6 +1651,66 @@
             margin-top: 1rem;
         }
 
+        /* Chip-style multi-select for "What matters most" — keeps friction low, gives sales team structured intent data */
+        .form-group .field-hint {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin: -0.35rem 0 0.6rem;
+            font-weight: 400;
+        }
+        .interest-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .interest-chips input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            pointer-events: none;
+        }
+        .interest-chips label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.65rem 1rem;
+            min-height: 44px;
+            box-sizing: border-box;
+            border: 2px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--dark);
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.2s ease;
+            user-select: none;
+            margin-bottom: 0;
+            line-height: 1.2;
+        }
+        .form-group-legend {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+        .interest-chips label:hover {
+            border-color: var(--primary);
+            background: rgba(212, 175, 55, 0.08);
+        }
+        .interest-chips input[type="checkbox"]:checked + label {
+            border-color: var(--primary-text);
+            background: var(--primary);
+            color: var(--dark);
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(212, 175, 55, 0.25);
+        }
+        .interest-chips input[type="checkbox"]:focus-visible + label {
+            outline: 2px solid var(--primary-text);
+            outline-offset: 2px;
+        }
+
         /* ===== Form ===== */
 
         /* ===== Social Proof Strip ===== */
@@ -3605,19 +3665,58 @@
 
                         <div class="form-group">
                             <label for="name">Full Name *</label>
-                            <input type="text" id="name" name="name" required>
+                            <input type="text" id="name" name="name" required maxlength="100" autocomplete="name">
                         </div>
                         <div class="form-group">
                             <label for="email">Email Address *</label>
-                            <input type="email" id="email" name="email" required>
+                            <input type="email" id="email" name="email" required maxlength="254" autocomplete="email">
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone Number *</label>
-                            <input type="tel" id="phone" name="phone" required>
+                            <input type="tel" id="phone" name="phone" required maxlength="20" autocomplete="tel">
                         </div>
                         <div class="form-group">
-                            <label for="message">Your Message</label>
-                            <textarea id="message" name="message" rows="3" placeholder="Tell us about your dream Vietnam holiday..."></textarea>
+                            <label for="departure_city">Departure City</label>
+                            <select id="departure_city" name="departure_city">
+                                <option value="">Select your departure airport (optional)</option>
+                                <option value="Sydney (SYD)">Sydney (SYD)</option>
+                                <option value="Melbourne (MEL)">Melbourne (MEL)</option>
+                                <option value="Brisbane (BNE)">Brisbane (BNE)</option>
+                                <option value="Perth (PER)">Perth (PER)</option>
+                                <option value="Adelaide (ADL)">Adelaide (ADL)</option>
+                                <option value="Gold Coast (OOL)">Gold Coast (OOL)</option>
+                                <option value="Cairns (CNS)">Cairns (CNS)</option>
+                                <option value="Other / Not sure yet">Other / Not sure yet</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <span class="form-group-legend">What matters most to you?</span>
+                            <p class="field-hint">Tick all that apply — helps us tailor your quote</p>
+                            <div class="interest-chips" role="group" aria-label="Trip preferences">
+                                <input type="checkbox" id="i_price" value="Best price">
+                                <label for="i_price">💰 Best price</label>
+                                <input type="checkbox" id="i_luxury" value="Luxury upgrade">
+                                <label for="i_luxury">✨ Luxury upgrade</label>
+                                <input type="checkbox" id="i_family" value="Family-friendly">
+                                <label for="i_family">👨‍👩‍👧 Family-friendly</label>
+                                <input type="checkbox" id="i_honeymoon" value="Honeymoon">
+                                <label for="i_honeymoon">💕 Honeymoon</label>
+                                <input type="checkbox" id="i_solo" value="Solo traveller">
+                                <label for="i_solo">🎒 Solo traveller</label>
+                                <input type="checkbox" id="i_dietary" value="Dietary needs">
+                                <label for="i_dietary">🥗 Dietary needs</label>
+                                <input type="checkbox" id="i_flights" value="Flights included">
+                                <label for="i_flights">✈️ Flights included</label>
+                                <input type="checkbox" id="i_flexible" value="Flexible dates">
+                                <label for="i_flexible">📅 Flexible dates</label>
+                            </div>
+                            <input type="hidden" id="interests_summary" name="interests_summary" value="">
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Anything else we should know?</label>
+                            <textarea id="message" name="message" rows="5" maxlength="1000" placeholder="Example: We're 2 adults travelling in March 2026 from Sydney. We'd love vegetarian meals, a quieter pace, and we're celebrating our anniversary. Any tips for upgrading to the cruise suite?
+
+→ Or just tell us: travel month, number of travellers & ages, and anything special we should know."></textarea>
                         </div>
                         <button type="submit" class="cta-button" id="submitBtn">Get Free Quote →</button>
                         <div id="formStatus" style="margin-top:1rem;text-align:center;display:none;"></div>
@@ -4186,9 +4285,21 @@
             const submitBtn = document.getElementById('submitBtn');
             const formStatus = document.getElementById('formStatus');
 
-            // dataLayer: form_submit event
+            // Aggregate interest chips into one readable line for the sales team
+            const checkedChips = Array.from(form.querySelectorAll('.interest-chips input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            document.getElementById('interests_summary').value = checkedChips.length ? checkedChips.join(', ') : '—';
+
+            // dataLayer: form_submit event (include preferences for segmentation in GA4)
+            // GA4 custom params require strings/numbers — arrays render as "[object Object]" in reports
             window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ event: 'form_submit', form_id: 'bookingForm' });
+            window.dataLayer.push({
+                event: 'form_submit',
+                form_id: 'bookingForm',
+                departure_city: document.getElementById('departure_city').value || '(not set)',
+                interests: checkedChips.join(', ') || '(none)',
+                interest_count: checkedChips.length
+            });
 
             // Show loading state
             submitBtn.disabled = true;
