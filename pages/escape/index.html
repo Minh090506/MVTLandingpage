@@ -370,14 +370,25 @@
             animation: slideUp 0.8s ease-out;
         }
 
-        .hero-quick-form {
-            margin-top: 1.5rem;
-            padding: 1.25rem;
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(212,175,55,0.3);
+        /* Hero single-CTA replaces the 3-field quick form — fewer choices, stronger commitment to scroll into the full booking form */
+        .cta-button-hero {
+            font-size: 1.15rem;
+            padding: 1rem 2.25rem;
+            margin-top: 0.5rem;
+            box-shadow: 0 10px 28px rgba(212, 175, 55, 0.4);
+            animation: ctaPulse 2.4s ease-in-out infinite;
+        }
+        @keyframes ctaPulse {
+            0%, 100% { box-shadow: 0 10px 28px rgba(212, 175, 55, 0.4); }
+            50%      { box-shadow: 0 14px 36px rgba(212, 175, 55, 0.65); }
+        }
+        .hero-cta-reassurance {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 0.9rem;
+            margin-bottom: 0;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
         }
 
         .hero-trust-bar {
@@ -418,16 +429,6 @@
             color: #FFD700;
             letter-spacing: 1px;
             font-size: 0.95rem;
-        }
-
-        .hero-quick-form input:focus {
-            outline: 2px solid #D4AF37;
-            outline-offset: -1px;
-        }
-
-        .hero-quick-form button:hover {
-            background: #c4a030;
-            transform: translateY(-1px);
         }
 
         @keyframes slideUp {
@@ -2080,13 +2081,11 @@
                 padding: 1rem;
             }
 
-            .hero-quick-form form {
-                flex-direction: column !important;
-            }
-
-            .hero-quick-form input,
-            .hero-quick-form button {
-                width: 100% !important;
+            .cta-button-hero {
+                font-size: 1rem;
+                padding: 0.85rem 1.75rem;
+                width: 100%;
+                max-width: 320px;
             }
 
             .highlights-grid,
@@ -2722,64 +2721,8 @@
                 <span class="tag">🎫 Flights Included</span>
                 <span class="tag">🚀 Daily Departure</span>
             </div>
-            <button class="cta-button" onclick="smoothScroll('booking')">Start Planning Your Trip</button>
-
-            <!-- Quick Inquiry Form (Above-the-fold) -->
-            <div class="hero-quick-form">
-                <p style="color:rgba(255,255,255,0.9);font-size:0.9rem;margin-bottom:0.75rem;font-weight:600;">Get a Free Quote in 30 Seconds</p>
-                <form id="heroQuickForm" onsubmit="handleHeroQuickSubmit(event)" style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;align-items:center;">
-                    <input type="hidden" name="access_key" value="cf0ca620-d064-4640-9454-afb27d588f67">
-                    <input type="hidden" name="subject" value="Quick Inquiry - Escape Australia Vietnam Tour">
-                    <input type="hidden" name="from_name" value="Hero Quick Form">
-                    <input type="checkbox" name="botcheck" style="display:none;">
-                    <input type="text" name="name" placeholder="Your Name" required maxlength="100" style="padding:0.65rem 1rem;border:none;border-radius:8px;font-size:0.95rem;width:160px;background:rgba(255,255,255,0.95);color:#1F2937;">
-                    <input type="email" name="email" placeholder="Email" required maxlength="254" style="padding:0.65rem 1rem;border:none;border-radius:8px;font-size:0.95rem;width:180px;background:rgba(255,255,255,0.95);color:#1F2937;">
-                    <input type="tel" name="phone" placeholder="Phone (optional)" style="padding:0.65rem 1rem;border:none;border-radius:8px;font-size:0.95rem;width:150px;background:rgba(255,255,255,0.95);color:#1F2937;">
-                    <button type="submit" id="heroQuickBtn" style="padding:0.65rem 1.5rem;border:none;border-radius:8px;background:#D4AF37;color:#111827;font-weight:700;font-size:0.95rem;cursor:pointer;white-space:nowrap;transition:all 0.3s;">Get Quote →</button>
-                </form>
-                <div id="heroQuickStatus" style="margin-top:0.5rem;text-align:center;font-size:0.85rem;color:white;"></div>
-                <p style="color:rgba(255,255,255,0.6);font-size:0.75rem;margin-top:0.5rem;">Trusted by 500+ Australian travellers • Reply within 2 hours</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Highlights Section -->
-    <section class="highlights section" id="highlights" style="background:linear-gradient(rgba(17,24,39,0.88),rgba(17,24,39,0.88)),url('https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg') center/cover no-repeat;color:white;">
-        <div class="container">
-            <h2 class="text-center section-reveal" style="color:white;">Why Choose This Tour?</h2>
-            <p class="text-center opacity-75 mb-5 section-reveal">Everything you need for an unforgettable Vietnam experience</p>
-            <div class="highlights-grid" data-stagger-group>
-                <div class="highlight-card" data-bg="flights">
-                    <div class="highlight-icon">✈️</div>
-                    <h3>Return Flights Included</h3>
-                    <p>From Sydney, Melbourne, Brisbane, Adelaide, or Perth. No hidden costs.</p>
-                </div>
-                <div class="highlight-card" data-bg="hotel">
-                    <div class="highlight-icon">🏨</div>
-                    <h3>Premium Accommodations</h3>
-                    <p>3-4 Star Hotels & Overnight Luxury Cruise. Upgrade to 5-Star (+<span class="price-upgrade5star">$680</span>)</p>
-                </div>
-                <div class="highlight-card" data-bg="meals">
-                    <div class="highlight-icon">🍽️</div>
-                    <h3>Most Meals Included</h3>
-                    <p>Breakfast, lunch & dinner daily. Experience authentic Vietnamese cuisine.</p>
-                </div>
-                <div class="highlight-card" data-bg="guides">
-                    <div class="highlight-icon">🗣️</div>
-                    <h3>Expert English Guides</h3>
-                    <p>Professional guides ensure you get the most from every destination.</p>
-                </div>
-                <div class="highlight-card" data-bg="transfers">
-                    <div class="highlight-icon">🚐</div>
-                    <h3>All Transfers Included</h3>
-                    <p>Airport pickups, inter-city transfers, and all entrance fees covered.</p>
-                </div>
-                <div class="highlight-card" data-bg="upgrades">
-                    <div class="highlight-icon">🌟</div>
-                    <h3>Flexible Upgrades</h3>
-                    <p>Upgrade to small group or private tour. Options available for every preference.</p>
-                </div>
-            </div>
+            <button class="cta-button cta-button-hero" onclick="smoothScroll('booking')">Get My Free Vietnam Quote →</button>
+            <p class="hero-cta-reassurance">🇦🇺 Free, no obligation · Reply within 2 hours · Trusted by 500+ Australian travellers</p>
         </div>
     </section>
 
@@ -3638,6 +3581,51 @@
         </div>
     </section>
 
+    <!-- Highlights Section — placed right before booking form so trust/value lands at the commitment moment -->
+    <section class="highlights section" id="highlights" style="background:linear-gradient(rgba(17,24,39,0.88),rgba(17,24,39,0.88)),url('https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg') center/cover no-repeat;color:white;">
+        <div class="container">
+            <h2 class="text-center section-reveal" style="color:white;">Why Choose This Tour?</h2>
+            <p class="text-center opacity-75 mb-5 section-reveal">Everything you need for an unforgettable Vietnam experience</p>
+            <div class="highlights-grid" data-stagger-group>
+                <div class="highlight-card" data-bg="flights">
+                    <div class="highlight-icon">✈️</div>
+                    <h3>Return Flights Included</h3>
+                    <p>From Sydney, Melbourne, Brisbane, Adelaide, or Perth. No hidden costs.</p>
+                </div>
+                <div class="highlight-card" data-bg="hotel">
+                    <div class="highlight-icon">🏨</div>
+                    <h3>Premium Accommodations</h3>
+                    <p>3-4 Star Hotels & Overnight Luxury Cruise. Upgrade to 5-Star (+<span class="price-upgrade5star">$680</span>)</p>
+                </div>
+                <div class="highlight-card" data-bg="meals">
+                    <div class="highlight-icon">🍽️</div>
+                    <h3>Most Meals Included</h3>
+                    <p>Breakfast, lunch & dinner daily. Experience authentic Vietnamese cuisine.</p>
+                </div>
+                <div class="highlight-card" data-bg="guides">
+                    <div class="highlight-icon">🗣️</div>
+                    <h3>Expert English Guides</h3>
+                    <p>Professional guides ensure you get the most from every destination.</p>
+                </div>
+                <div class="highlight-card" data-bg="transfers">
+                    <div class="highlight-icon">🚐</div>
+                    <h3>All Transfers Included</h3>
+                    <p>Airport pickups, inter-city transfers, and all entrance fees covered.</p>
+                </div>
+                <div class="highlight-card" data-bg="upgrades">
+                    <div class="highlight-icon">🌟</div>
+                    <h3>Flexible Upgrades</h3>
+                    <p>Upgrade to small group or private tour. Options available for every preference.</p>
+                </div>
+            </div>
+            <!-- Bridge CTA: takes the momentum from the value list straight into the form below -->
+            <div style="text-align:center;margin-top:2.5rem;">
+                <button class="cta-button" onclick="smoothScroll('booking')" style="padding:1rem 2.25rem;font-size:1.1rem;">Get My Free Quote ↓</button>
+                <p style="color:rgba(255,255,255,0.75);font-size:0.85rem;margin-top:0.75rem;">Takes 60 seconds · No payment needed · Reply within 2 hours</p>
+            </div>
+        </div>
+    </section>
+
     <!-- Booking Section -->
     <section class="booking section" id="booking">
         <div class="container">
@@ -4487,51 +4475,6 @@
             }
         }
 
-        // Hero Quick Form Handler
-        async function handleHeroQuickSubmit(event) {
-            event.preventDefault();
-            var form = event.target;
-            var btn = document.getElementById('heroQuickBtn');
-            var status = document.getElementById('heroQuickStatus');
-            btn.disabled = true;
-            btn.textContent = 'Sending...';
-            status.textContent = '';
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ event: 'form_submit', form_id: 'heroQuickForm' });
-            try {
-                var data = Object.fromEntries(new FormData(form));
-                var res = await fetch('https://api.web3forms.com/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                var result = await res.json();
-                if (result.success) {
-                    status.style.color = '#10B981';
-                    status.textContent = '✓ We\'ll contact you within 2 hours!';
-                    window.dataLayer.push({ event: 'form_success', form_id: 'heroQuickForm' });
-                    // Google Ads conversion
-                    if (typeof gtag === 'function') {
-                        gtag('event', 'conversion', {
-                            send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
-                            event_callback: function() {}
-                        });
-                    }
-                    // Facebook Lead
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
-                    form.reset();
-                } else {
-                    throw new Error(result.message || 'Failed');
-                }
-            } catch (err) {
-                status.style.color = '#EF4444';
-                status.textContent = 'Something went wrong. Please try again.';
-                window.dataLayer.push({ event: 'form_error', form_id: 'heroQuickForm', error_message: String(err.message || '').slice(0, 200) });
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Get Quote →';
-            }
-        }
     </script>
 </body>
 </html>
