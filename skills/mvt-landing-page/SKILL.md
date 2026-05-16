@@ -116,21 +116,23 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 - **Body**: Plus Jakarta Sans (Google Fonts) — clean modern sans-serif
 - Responsive sizing: `clamp(2.5rem, 8vw, 4.5rem)` for H1, `clamp(2rem, 5vw, 3.5rem)` for H2
 
-### Page Sections (in order — TRUST BEFORE PRICE)
+### Page Sections (in order — TRUST BEFORE PRICE, VALUE-STACK BEFORE FORM)
 
-> **CRO rule (shipped 2026-05-11):** Trust signals must appear BEFORE price reveal. Audience AU 35-65 at $2,099+ AUD = significant decision. Old order put Pricing right after Gallery → sticker shock killed 50+ demo conversion. New order builds trust via Why Us + Testimonials, then reveals price at peak trust.
+> **CRO rule v1 (shipped 2026-05-11):** Trust signals must appear BEFORE price reveal. Old order put Pricing right after Gallery → sticker shock killed 50+ demo conversion. Build trust via Why Us + Testimonials, then reveal price.
+>
+> **CRO rule v2 (shipped 2026-05-16):** "Why Choose This Tour?" (highlights/value-stack) must sit **directly before booking form**, NOT right after hero. Reason: value-stack adjacent to commit moment > value-stack as background info. The hero must be a single CTA (no inline form) — splitting intent between hero form + main form leaks ~15-25% conversions.
 
-1. **Hero** — Full-viewport `<img class="hero-bg-img" fetchpriority="high">` (NOT CSS bg — see "Performance" below), trust bar with TripAdvisor link, headline, price badge, CTA, hero quick form (3 fields)
-2. **Highlights** — 4 feature cards (flights, guides, meals, all-inclusive) with gold accent icons
-3. **Destinations** — 6-card grid with overlay text, hover zoom effect
-4. **Itinerary** — `<button class="accordion-header" aria-expanded>` pattern (NOT `<div>` — keyboard a11y) with day headers, content, meals/accommodation details
-5. **Video** — YouTube embed with proper attributes (`allow`, `referrerpolicy`, `frameborder`, `allowfullscreen`)
-6. **Gallery** — 8-image grid with lightbox modal (arrow key navigation, ESC close)
-7. **Why MyVivaTour** — Trust section with 6 feature cards on gradient background (MOVED above Pricing)
-8. **Testimonials** — TripAdvisor badge (rating + Travellers' Choice + ranking) + 6 native review cards (see TripAdvisor Integration section). Featured card pinned for any Aussie reviewer (`isAustralian: true` in JSON) with green border + 🇦🇺 corner badge
-9. **Pricing** — Main price card (was/now) + 4 upgrade option cards (REVEAL HERE, after trust)
-10. **FAQ** — Button-based accordion with common questions
-11. **Booking Form** — Web3Forms integration. 2-column layout: left = form card (elevated), right = "Get in Touch" panel (matching elevated style with SVG icons + mini testimonial). **Risk reversal strip placed BELOW submit button** as post-CTA reassurance (3 vertical rows with top border separator)
+1. **Hero** — Full-viewport `<img class="hero-bg-img" fetchpriority="high">` (NOT CSS bg), trust bar with TripAdvisor link, headline, price badge, **SINGLE pulsing CTA** scrolling to `#booking` + reassurance line. **NO inline hero form** (see "Single-CTA Hero" pattern in Conversion section)
+2. **Destinations** — 6-card grid with overlay text, hover zoom effect
+3. **Itinerary** — `<button class="accordion-header" aria-expanded>` pattern (NOT `<div>` — keyboard a11y) with day headers, content, meals/accommodation details
+4. **Video** — YouTube embed with proper attributes (`allow`, `referrerpolicy`, `frameborder`, `allowfullscreen`)
+5. **Gallery** — 8-image grid with lightbox modal (arrow key navigation, ESC close)
+6. **Why MyVivaTour** — Trust section with 6 feature cards on gradient background (MOVED above Pricing)
+7. **Testimonials** — TripAdvisor badge (rating + Travellers' Choice + ranking) + 6 native review cards (see TripAdvisor Integration section). Featured card pinned for any Aussie reviewer (`isAustralian: true` in JSON) with green border + 🇦🇺 corner badge
+8. **Pricing** — Main price card (was/now) + 4 upgrade option cards (REVEAL HERE, after trust)
+9. **FAQ** — Button-based accordion with common questions
+10. **Highlights ("Why Choose This Tour?")** — 6 feature cards (flights, hotel, meals, guides, transfers, upgrades) on dark photo overlay. Placed RIGHT BEFORE booking form for trust-at-commit moment. **Includes bridge CTA** "Get My Free Quote ↓" + reassurance line at bottom — chains momentum straight into the form below
+11. **Booking Form** — Web3Forms integration. 2-column layout: left = form card (elevated, with chips + departure city + smart placeholder — see `references/smart-booking-form-chips-and-bridge-cta.md`), right = "Get in Touch" panel (matching elevated style with SVG icons + mini testimonial). **Risk reversal strip placed BELOW submit button** as post-CTA reassurance (3 vertical rows with top border separator)
 12. **Footer** — Company info, quick links, contact details
 
 ### Key JavaScript Features
@@ -253,6 +255,12 @@ Save this as `gen_worker.py` in the workspace and run it after every HTML change
 | Count-up shifts layout (CLS spike) | Variable-width digits | Add `font-variant-numeric: tabular-nums` on `.count-up` |
 | Parallax causes motion sickness on mobile | Hero parallax enabled on mobile | Disable parallax for `window.innerWidth < 768` — desktop-only |
 | Hero too tall on mobile | Fixed `height: 100vh` clips form | Mobile override: `min-height: auto; height: auto` so hero grows to fit content |
+| Hero form + main form leaks attention | Visitors fill 3-field hero form then disengage from main form (split intent) | Remove inline hero form entirely. Keep ONE pulsing CTA scrolling to `#booking`. The full booking form below captures higher-quality leads via chips |
+| Highlights ("Why Choose This Tour?") wasted as background info | Section placed right after hero (visitor still warming up) | Move highlights to sit directly before booking form + add bridge CTA. Value-stack at commit moment > value-stack early |
+| Generic textarea placeholder leaves field blank | `"Tell us about your dream Vietnam holiday..."` is too open | Use structured `Example: ...` placeholder showing exactly what info is useful (travel month, headcount, departure city, special requests) — see smart-form reference |
+| GA4 reports show `[object Object]` for custom params | Pushed JS array directly into dataLayer | Convert array → comma-string before push: `interests: chips.join(', ')`. Arrays serialize badly in GA4 |
+| Sales email cluttered with `interest_x: on` lines | Per-chip name attributes sent individually via Web3Forms | Strip `name=` from chip inputs, aggregate checked values into ONE hidden `interests_summary` field at submit time. Email shows clean comma-list |
+| Chips tap area too small on mobile | Default chip padding ~32px tall | Set `min-height: 44px` + `box-sizing: border-box` on chip labels (WCAG 2.1 AA + Apple HIG) |
 | wrangler install blocked | Sandbox npm restrictions | Generate worker.js manually with Python script |
 | Sandbox can't reach Supabase | Network egress blocked | Use Edge Function + browser-based upload |
 
@@ -405,30 +413,37 @@ NEVER use `color: var(--primary)` for text on white. Always `var(--primary-text)
 
 Apply these to every LP. Order matters.
 
-### Section Order: Trust Before Price (mandatory)
+### Section Order: Trust Before Price + Value-Stack Before Form (mandatory)
 
 ```
-Hero → Highlights → Destinations → Itinerary → Video → Gallery
-→ Why MyVivaTour → Testimonials → PRICING → FAQ → Booking
+Hero (single CTA) → Destinations → Itinerary → Video → Gallery
+→ Why MyVivaTour → Testimonials → PRICING → FAQ
+→ Highlights ("Why Choose This Tour?" + bridge CTA) → BOOKING FORM
 ```
 
-Pricing must NEVER appear before Why Us + Testimonials. Reason: AU 35-65 demo at $2,099+ AUD = significant decision; sticker shock before trust kills conversion. Validated on escape page (commit `716d235`).
+Two non-negotiable rules:
+
+1. **Pricing must NEVER appear before Why Us + Testimonials.** AU 35-65 demo at $2,099+ AUD = significant decision; sticker shock before trust kills conversion. Validated on escape page (commit `716d235`, 2026-05-11).
+2. **Highlights ("Why Choose This Tour?") must sit directly before booking form** — not right after hero. Value-stack adjacent to commit moment outperforms value-stack as background info. Bridge CTA at end of highlights chains momentum into the form. Validated on escape page (commit `82c8e05`, 2026-05-16).
 
 ### Hero must include
 
 - **Message-match H1**: contains primary keyword from Google Ads (`"10-Day All-Inclusive Vietnam Holiday from Australia"` not brand-y `"Escape Australia"`). Critical for Quality Score + bounce rate.
 - **Trust bar dưới H1**: 3 pills horizontal — TripAdvisor link + traveller count + tenure
-- **Hero quick form** (3 fields, phone OPTIONAL): Name, Email, Phone (no `required`). Lift +20-35% form CVR vs required phone.
+- **Single pulsing CTA** (NOT inline form): `<button class="cta-button cta-button-hero" onclick="smoothScroll('booking')">Get My Free Vietnam Quote →</button>` + reassurance line directly under (`🇦🇺 Free, no obligation · Reply within 2 hours · Trusted by 500+ Australian travellers`). Hick's law: 1 clear action beats 3 input fields. The full booking form below captures higher-quality data via chips + departure city anyway.
 - **Daily Departure tag** for urgency without being spammy
 
 ### Form section structure
 
-Layout: 2 columns 1fr/1fr inside max-width 900px container.
+Layout: 2 columns 1fr/1fr inside max-width 900px container. Full pattern + code recipes in `references/smart-booking-form-chips-and-bridge-cta.md`.
 
-**Left panel (form):**
-- Header row: `<h3>` + social proof avatars on same line (flex space-between)
-- Subtle `<hr>` divider between header and form fields
-- Form fields (Name, Email, Phone, Message)
+**Left panel (form) — fields in order:**
+- Name * (required, `maxlength="100"`, `autocomplete="name"`)
+- Email * (required, `maxlength="254"`, `autocomplete="email"`)
+- Phone * (required — keeps it; high-ticket travel needs phone follow-up. `maxlength="20"`, `autocomplete="tel"`)
+- **Departure City** (optional `<select>`) — 8 AU airports + "Other/Not sure". Enables accurate quote + future audience segmentation
+- **"What matters most to you?" chip group** — 8 visually-hidden checkboxes styled as gold-pill chips (44px min touch target). Optional, low-friction. Aggregated into one hidden `interests_summary` field at submit → sales email shows clean comma-list like `"Best price, Honeymoon, Flights included"`
+- **Message textarea** with structured `placeholder` (Example: prefix + fallback prompt) — see reference for exact copy. `rows="5"`, `maxlength="1000"`
 - CTA button
 - **Risk reversal strip BELOW button** (NOT above) — 3 vertical rows with top border separator. Format: `[icon] [bold title] — [short description]` on one line. Acts as post-CTA reassurance.
 
@@ -456,6 +471,7 @@ Keep all 3 descriptions ~40-50 chars to maintain visual balance.
 - Google Ads conversion: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB`
 - Facebook Pixel: `579298288600609`
 - Required dataLayer events: `page_view`, `form_start`, `form_submit`, `form_success`, `cta_click`, `whatsapp_click`
+- **Form submit must include lead-segmentation params** (added 2026-05-16): `departure_city` (string), `interests` (comma-string, NOT array — GA4 renders arrays as `"[object Object]"`), `interest_count` (number). Enables building GA4 audiences like "Honeymoon interested" → import to Google Ads for retargeting.
 
 Watch for **GA4 double-fire**: if both direct `gtag.js` script AND GTM container have GA4 tag → sessions counted 2×. Verify in GTM Preview mode.
 
