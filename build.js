@@ -273,11 +273,23 @@ Sitemap: \${baseUrl}/sitemap.xml\`;
 }\n\n`;
 
   // Fetch handler with routing
-  workerCode += `export default {
+  workerCode += `// Host-based default page mapping — when a custom subdomain hits "/", serve its dedicated LP
+// Avoids needing separate workers per subdomain
+const HOST_DEFAULTS = {
+  'happytours.myvivatour.com': '/happytours',
+  // Add new hosts here as more subdomains are added
+};
+
+export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const pathname = url.pathname.replace(/\\/+$/, '') || '/';
+    let pathname = url.pathname.replace(/\\/+$/, '') || '/';
     const baseUrl = \`\${url.protocol}//\${url.hostname}\`;
+
+    // If root path on a host-specific subdomain, rewrite to the subdomain's default page
+    if (pathname === '/' && HOST_DEFAULTS[url.hostname]) {
+      pathname = HOST_DEFAULTS[url.hostname];
+    }
 
     // Favicon
     if (pathname === '/favicon.ico') {
