@@ -39,9 +39,11 @@ Hero (single CTA, hero image montages all 3 destinations)
   → Footer
 ```
 
-**No per-tour Pricing section** — the selector card price + the Compare Table cover it. A 3rd price reveal = redundant scroll cost.
+**No per-tour Pricing section** — the selector card price + the Compare Table cover it. A 3rd price reveal = redundant scroll cost. BUT keep a **single compact price line** above each CTA (`<span class="tour-cta-price">From <strong>$X AUD</strong> all-inclusive <span class="was">$Y</span></span>`) — visitor needs a price anchor at the commit moment, just not a full price-card block. Pattern shipped 2026-05-17 after first pass removed price entirely and lost the commit-moment anchor.
 
-**No per-tour Gallery / Highlights / Itinerary accordions** — multi-tour LP is already long. Each tour section gets only: hero image + 3-5 day itinerary list + "what's included" pill row + CTA. Don't try to be every tour's full LP.
+**No per-tour Gallery / Highlights / Itinerary accordions** — multi-tour LP is already long. Each tour section gets only: hero image + **itinerary banner** + day-by-day accordion + meta-row chips + "where you'll go" summary + price line + CTA. Don't try to be every tour's full LP.
+
+**Add an itinerary banner image below the hero of each tour section.** Two images per tour section — the hero (e.g. Phu Quoc paradise) primes desire, the itinerary banner (e.g. Halong cruise on Day 2) reinforces the journey shape. Banner CSS uses `aspect-ratio: 1400 / 700` (slightly tighter than hero's 1920/743 so it reads as supporting, not duplicate hero). Pair with a 1-line italic caption like `<span class="tour-itinerary-img-caption">Day 2 — overnight cruise on Lan Ha Bay before flying to Phu Quoc</span>` that ties the image to a specific itinerary day. Source images from the original tour pages on the parent site (e.g. myvivatour.com tour permalinks → grab `og:image` or scan `wp-content/uploads` paths).
 
 > Trim ruthlessly. happytours v1 shipped with full gallery + per-tour highlights = 14,772px scroll. Trimming both saved ~2,200px. Bounce risk drops materially once total page height stays under ~12,000px on mobile.
 
@@ -346,6 +348,86 @@ Hero images stored as 1920×743 carry `height="743"` HTML attribute (for CLS pre
 ```
 
 Burned 30 minutes on happytours debugging "why is my image rendering as a tall vertical crop" — answer was always the unset CSS height letting the HTML attr through.
+
+---
+
+## Mobile bloat patterns to fix (validated 2026-05-17)
+
+After deploying happytours, mobile scroll was 19,433px (60% over 12k target). Five patterns drove it. Apply these PROACTIVELY on every multi-tour LP build — don't wait for the audit:
+
+### 1. Why MyVivaTour cards stack single-column on mobile
+
+`.why-mvt-grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) }` collapses to 1 col on 375px viewport. 6 cards × ~600px = 4,000px section. Force 2-col with denser cards:
+
+```css
+@media (max-width: 768px) {
+  .why-mvt-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+  .why-mvt-card { padding: 1rem 0.6rem; }
+  .why-mvt-card h3 { font-size: 0.92rem; margin-bottom: 0.4rem; }
+  .why-mvt-card p  { font-size: 0.8rem; line-height: 1.4; }
+  .why-mvt-icon    { width: 48px; height: 48px; font-size: 1.5rem; margin-bottom: 0.6rem; }
+}
+```
+
+Same fix for `.highlights-grid` (the "Why Choose This Tour?" feature cards before booking). Saves ~3,000px combined.
+
+### 2. Testimonials / TripAdvisor reviews stack vertically on mobile
+
+6 review cards × ~580px tall = ~3,500px. Switch to **horizontal scroll-snap carousel** — visitor swipes through cards:
+
+```css
+@media (max-width: 768px) {
+  .testimonials-grid,
+  .ta-reviews-grid {
+    display: flex;
+    grid-template-columns: none;
+    gap: 0.85rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
+    scrollbar-width: thin;
+  }
+  .testimonials-grid > *,
+  .ta-reviews-grid > * {
+    flex: 0 0 85%;            /* 85% width + 15% peek = clear "more cards" affordance */
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+}
+```
+
+Featured (Aussie) card stays at index 0 so it's the first thing visible — swipe reveals the rest. Saves ~3,000px. No JS needed.
+
+### 3. Hero price-badge wrapping 2 lines on mobile
+
+`Packages from $1,699 AUD · All-Inclusive` wraps after "AUD" on 375px. Two fixes — pick one:
+
+- **Shorten copy**: `From $1,699 AUD →` (single line, lets `→` invite scroll-to-selector)
+- **Or smaller font + nowrap**: `font-size: 0.95rem; padding: 0.65rem 1.2rem; white-space: nowrap`
+
+If using nowrap, do NOT add `max-width + text-overflow: ellipsis` — that'll silently cut off the price on narrow viewports. Choose copy that always fits at the chosen font size.
+
+Bonus: make the pill an `<a>` linking to `#tour-selector` (or `#booking`). It already looks tappable.
+
+### 4. Hide secondary floating buttons on mobile
+
+Multi-tour LP has the smart sticky bar at the bottom — the floating back-to-top button + WhatsApp + chat widgets stack vertically on the right and compete for the right-thumb zone. Hide back-to-top on mobile:
+
+```css
+@media (max-width: 768px) {
+  .back-to-top { display: none !important; }
+}
+```
+
+Keep WhatsApp (single floating element is fine). Sticky bar already provides clear next-step navigation.
+
+### 5. Per-tour CTA labels too long
+
+Buttons like `Get My Vietnam Honeymoon Beach Escape Quote →` wrap to 2 lines on mobile and look cluttered. Shorten to one verb + tour name + arrow: `Get My Honeymoon Quote →`. The tour identity is already established by the section header above the button — no need to repeat full tour name.
 
 ---
 
