@@ -325,6 +325,104 @@ Form submission must also push `tour_code` to dataLayer alongside `tour_interest
 
 ---
 
+## Visible auto-fill confirmation (banner + textarea prefill)
+
+Pre-selecting a radio + populating a hidden field is invisible to the visitor. They click "Get My Honeymoon Quote →", land on the form, and have no idea their selection carried through — they may anxiously re-pick the tour. Add a **visible confirmation banner at the top of the form** that appears when `selectTourAndScroll()` fires:
+
+```html
+<div id="tourPrefillBanner" class="tour-prefill-banner" role="status" aria-live="polite">
+  <span class="prefill-check" aria-hidden="true">✓</span>
+  <span class="prefill-label">Pre-filled from your selection:</span>
+  <span class="prefill-tour-name" id="prefillTourName">—</span>
+  <span class="tour-code-badge" id="prefillTourCode">—</span>
+  <a href="#tour-selector" class="prefill-change"
+     onclick="event.preventDefault();smoothScroll('tour-selector');"
+     >change tour ↑</a>
+</div>
+```
+
+```css
+.tour-prefill-banner {
+    display: none;       /* JS toggles is-visible when populated */
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.85rem;
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(232,98,42,0.12));
+    border: 1px solid rgba(232,98,42,0.35);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    animation: prefillPulse 0.6s ease-out;
+}
+.tour-prefill-banner.is-visible { display: flex; }
+@media (prefers-reduced-motion: reduce) {
+    .tour-prefill-banner { animation: none; }
+}
+@keyframes prefillPulse {
+    0%   { transform: scale(0.98); opacity: 0; }
+    60%  { transform: scale(1.01); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+}
+```
+
+**Pair the banner with a starter sentence pre-filled into the message textarea** — visitor only has to add dates + headcount, not retype the tour name:
+
+```js
+// Single source of truth for what to populate (read from radio's data-attrs)
+function syncTourPrefillUI(radio) {
+    const codeField  = document.getElementById('tour_code_hidden');
+    const nameField  = document.getElementById('tour_name_hidden');
+    const banner     = document.getElementById('tourPrefillBanner');
+    const bannerName = document.getElementById('prefillTourName');
+    const bannerCode = document.getElementById('prefillTourCode');
+    const messageEl  = document.getElementById('message');
+    if (!radio) return { code: '', name: '' };
+    const tourCode = radio.getAttribute('data-tour-code') || '';
+    const tourName = radio.getAttribute('data-tour-name') || '';
+    if (codeField) codeField.value = tourCode;
+    if (nameField) nameField.value = tourName;
+    if (banner && bannerName && bannerCode) {
+        if (tourCode) {
+            bannerName.textContent = tourName;
+            bannerCode.textContent = tourCode;
+            banner.classList.add('is-visible');
+        } else {
+            banner.classList.remove('is-visible');  // "Not sure" radio: no specific tour
+        }
+    }
+    // Only pre-fill textarea if it's still empty — never overwrite visitor's text
+    if (messageEl && !messageEl.value.trim() && tourCode) {
+        messageEl.value = "I'm interested in the " + tourName + " (" + tourCode + ") package. ";
+    }
+    return { code: tourCode, name: tourName };
+}
+// Wire to BOTH selectTourAndScroll (CTA click) AND manual radio change — DRY
+function selectTourAndScroll(tourKey) {
+    const radio = document.getElementById('tour_' + tourKey);
+    if (radio) radio.checked = true;
+    const { code, name } = syncTourPrefillUI(radio);
+    window.dataLayer.push({ event: 'tour_cta_click', tour_interest: tourKey, tour_code: code, tour_name: name });
+    smoothScroll('booking');
+}
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'tour_interest') syncTourPrefillUI(e.target);
+});
+```
+
+**Single source of truth = the radio's `data-` attributes.** Add `data-tour-name="..."` alongside `data-tour-code="..."` on each radio. All other surfaces (banner, hidden fields, textarea starter, dataLayer events) read from there — no duplicated maps in JS.
+
+**Rules to follow:**
+- `role="status" aria-live="polite"` on banner so screen readers announce the auto-fill
+- Only pre-fill textarea when empty (`!messageEl.value.trim()`) — never clobber typed text
+- Hide banner for "Not sure — help me choose" radio (no specific tour to confirm)
+- Banner has "change tour ↑" link scrolling back to selector for switching
+- Form submit handler must also include `tour_name` in dataLayer + hidden field sync as safety net
+
+Verified pattern (2026-05-17, happytours.myvivatour.com). Programmatic test on each tour CTA: banner shown + textarea has starter + hidden fields populated, all 3/3 pass.
+
+---
+
 ## Backlink to canonical tour page
 
 LP visitor who needs deeper detail (full inclusions list, hotel options, cancellation policy) should be one click away from the source tour page on the parent site. Don't try to mirror every detail on the LP — that ruins the trim-aggressive principle.
