@@ -255,6 +255,138 @@ Mobile reality: 3 columns won't fit on 375px. Use **horizontal scroll with swipe
 
 ---
 
+## Tour code as cross-system ID (sales workflow + GA4 segmentation)
+
+Every multi-tour LP must carry the **source tour code** (e.g. `VHM10`, `V7`, `VLU10`) for each tour. The code is the sales team's primary key when matching enquiry → tour on the parent site (myvivatour.com). Without it, sales has to re-derive intent from the human-readable label.
+
+**Where to surface the code:**
+
+1. **Section header eyebrow** — small chip right of "For Couples · 2 People":
+   ```html
+   <span class="tour-section-eyebrow">For Couples · 2 People <span class="tour-code-badge">VHM10</span></span>
+   ```
+2. **Selector card meta** — chip after the "10 days · Halong + Phu Quoc" line
+3. **Compare table headers** — under each tour name (`<br><span class="tour-code-badge">VHM10</span>`)
+4. **Form radio values** — prefix label with code: `"VHM10 - Honeymoon (10 days · $1,899 AUD)"` (sales email shows clean machine-readable string)
+5. **Form radio labels** — visible chip in the option so visitor sees what they'll be quoted on
+6. **Hidden field `tour_code`** — auto-populated by `selectTourAndScroll()` and form change listener
+
+**Badge CSS** (orange-tinted, monospace, tiny):
+```css
+.tour-code-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.18rem 0.55rem;
+    background: rgba(232, 98, 42, 0.1);
+    color: var(--accent-dark);
+    border: 1px solid rgba(232, 98, 42, 0.25);
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-family: monospace, monospace;
+    vertical-align: middle;
+}
+```
+
+**Single source of truth: `data-tour-code` on the radio.** All other surfaces read from there, no duplication of the string in JS:
+
+```html
+<input type="radio" id="tour_honeymoon" name="tour_interest"
+       value="VHM10 - Honeymoon (10 days · $1,899 AUD)"
+       data-tour-code="VHM10">
+<input type="hidden" id="tour_code_hidden" name="tour_code" value="">
+```
+
+```js
+function selectTourAndScroll(tourKey) {
+    const radio = document.getElementById('tour_' + tourKey);
+    const codeField = document.getElementById('tour_code_hidden');
+    let tourCode = '';
+    if (radio) {
+        radio.checked = true;
+        tourCode = radio.getAttribute('data-tour-code') || '';
+        if (codeField) codeField.value = tourCode;
+    }
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event: 'tour_cta_click', tour_interest: tourKey, tour_code: tourCode });
+    smoothScroll('booking');
+}
+// Sync hidden field if visitor manually changes the radio
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'tour_interest') {
+        const codeField = document.getElementById('tour_code_hidden');
+        if (codeField) codeField.value = e.target.getAttribute('data-tour-code') || '';
+    }
+});
+```
+
+Form submission must also push `tour_code` to dataLayer alongside `tour_interest` — enables GA4 audiences like "Visitors who enquired about VHM10" for Google Ads retargeting.
+
+---
+
+## Backlink to canonical tour page
+
+LP visitor who needs deeper detail (full inclusions list, hotel options, cancellation policy) should be one click away from the source tour page on the parent site. Don't try to mirror every detail on the LP — that ruins the trim-aggressive principle.
+
+Place a dashed-underline secondary link below the "See full day-by-day itinerary" button in each tour CTA row:
+
+```html
+<a class="tour-source-link"
+   href="https://myvivatour.com/tour/vietnam-honeymoon-trip-10-days/"
+   target="_blank" rel="noopener"
+   onclick="if(window.dataLayer){dataLayer.push({event:'tour_source_click', tour_code:'VHM10'});}"
+   >View full tour details on myvivatour.com →</a>
+```
+
+```css
+.tour-source-link {
+    display: inline-block;
+    margin-top: 0.45rem;
+    font-size: 0.85rem;
+    color: var(--text-light);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--text-light);
+    align-self: center;
+}
+.tour-source-link:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+```
+
+The dashed underline says "secondary action, not the primary CTA". Color stays muted (`--text-light`) so it doesn't compete with the orange "Get My Quote" button — the LP's job is to capture the enquiry, the canonical link is just an out for the cautious researcher.
+
+`tour_source_click` event in dataLayer lets you measure how often visitors leave the LP for canonical detail — high rate = LP isn't answering their questions, add more content (or specific FAQ rows about the gap).
+
+---
+
+## When source tour changes — refresh everything from the new source
+
+When the user swaps the source tour (e.g. happytours honeymoon source changed from VBR12 12-day → VHM10 10-day), **don't selectively cherry-pick** — scrape the new source fresh and replace ALL of:
+
+1. Cover image (the hero photo for both selector card AND tour section hero — they should be the same single image, sourced from the new tour page's featured image / og:image / first content image)
+2. Tour title + duration in:
+   - Selector card title + meta
+   - Tour section h2 + subtitle
+   - Compare table duration row
+   - Sticky bar label (`TOUR_PRICES[id].label`)
+   - Form radio label + value (with new tour code)
+3. Day-by-day itinerary cards (full rewrite from source)
+4. "Where you'll go" summary line
+5. Meta-row chips (flights count, hotel grade, group size)
+6. Compare table content for that tour's column — including any rows that highlight unique offers (e.g. removing "Sapa mountain experience" row if no tour has Sapa anymore, OR replacing with "Cu Chi Tunnels" if the new family tour has CuChi)
+7. Schema.org JSON-LD `itineraryElement` if you mirror itinerary in structured data
+8. Tour code badge in eyebrow + selector + compare + form + backlink
+9. Backlink `href` to new tour permalink
+10. Memory file (`plans/{date-slug}/tour-data-summary-for-*.md`) updated with new scrape
+
+Use Firecrawl with `formats: ['json']` + JSON schema prompt asking for `{tourCode, coverImageUrl, duration, price, itinerary: [{day, title, description}], inclusions, destinations}` — this returns clean structured data that maps 1:1 to LP sections. Verified pattern (2026-05-17).
+
+Source tour pages often store the cover as `wp-content/uploads/YYYY/MM/{timestamp}.avif` — fetch the `.avif`, convert to WebP with `magick {in}.avif -quality 80 -strip {out}.webp` (typical 60–120KB at 1920×743), upload to Supabase `landing-images/{tour-folder}/` with descriptive name like `honeymoon-vhm10-cover.webp` (the tour code in filename makes orphan cleanup easy when the source swaps again).
+
+---
+
 ## Shared booking form with `tour_interest` radio
 
 One form, three tours. Add a radio group as the FIRST field — visitor knows immediately the form serves all 3:
