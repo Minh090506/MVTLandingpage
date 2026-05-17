@@ -116,6 +116,7 @@ ${cardsHtml}
 // The first entry with isDefault:true is the homepage (/)
 const PAGES_CONFIG = {
   'escape':        { path: '/', isDefault: true,  name: 'Escape Australia 10-Day Tour' },
+  'happytours':    { path: '/happytours',          name: 'Vietnam Holiday Packages - Multi-Tour' },
   'honeymoon':     { path: '/honeymoon',           name: 'Vietnam Honeymoon Package' },
   'family-tour':   { path: '/family-tour',          name: 'Vietnam Family Tour' },
   'luxury-cruise': { path: '/luxury-cruise',        name: 'Luxury Vietnam Cruise Tour' },
