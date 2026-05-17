@@ -3096,6 +3096,59 @@
             font-weight: 600;
         }
 
+        /* Auto-fill confirmation banner — shown when visitor lands on form via a tour CTA
+           (selectTourAndScroll fires). Makes the cross-section pre-fill VISIBLE so visitor
+           doesn't wonder whether their click was carried through. */
+        .tour-prefill-banner {
+            display: none;             /* JS toggles to flex when populated */
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem 0.85rem;
+            padding: 0.85rem 1.1rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(232,98,42,0.12));
+            border: 1px solid rgba(232,98,42,0.35);
+            border-left: 4px solid var(--accent);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            color: var(--dark);
+            animation: prefillPulse 0.6s ease-out;
+        }
+        .tour-prefill-banner.is-visible { display: flex; }
+        .tour-prefill-banner .prefill-check {
+            color: var(--success);
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        .tour-prefill-banner .prefill-label {
+            font-weight: 700;
+            color: var(--accent-dark);
+            margin-right: 0.15rem;
+        }
+        .tour-prefill-banner .prefill-tour-name {
+            font-weight: 700;
+            color: var(--dark);
+        }
+        .tour-prefill-banner .tour-code-badge {
+            margin-left: 0;     /* override default margin-left from .tour-code-badge to match flex gap */
+        }
+        .tour-prefill-banner .prefill-change {
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--text-light);
+        }
+        .tour-prefill-banner .prefill-change:hover { color: var(--accent); border-bottom-color: var(--accent); }
+        @media (prefers-reduced-motion: reduce) {
+            .tour-prefill-banner { animation: none; }
+        }
+        @keyframes prefillPulse {
+            0%   { transform: scale(0.98); opacity: 0; }
+            60%  { transform: scale(1.01); opacity: 1; }
+            100% { transform: scale(1);    opacity: 1; }
+        }
+
         /* Tour radio in booking form — visually-distinct selector at top */
         .booking-tour-selector {
             display: grid;
@@ -4308,19 +4361,32 @@
                         <!-- Tour code auto-filled by selectTourAndScroll() based on which tour CTA visitor clicked.
                              Sales gets a clean machine-readable code (VHM10, V7, VLU10) for fast lookup on myvivatour.com. -->
                         <input type="hidden" id="tour_code_hidden" name="tour_code" value="">
+                        <input type="hidden" id="tour_name_hidden" name="tour_name" value="">
+
+                        <!-- Visible auto-fill banner — appears when selectTourAndScroll() pre-fills the form
+                             from a tour-section CTA. Confirms to the visitor that their selection carried through. -->
+                        <div id="tourPrefillBanner" class="tour-prefill-banner" role="status" aria-live="polite">
+                            <span class="prefill-check" aria-hidden="true">✓</span>
+                            <span class="prefill-label">Pre-filled from your selection:</span>
+                            <span class="prefill-tour-name" id="prefillTourName">—</span>
+                            <span class="tour-code-badge" id="prefillTourCode">—</span>
+                            <a href="#tour-selector" class="prefill-change"
+                               onclick="event.preventDefault();smoothScroll('tour-selector');"
+                               >change tour ↑</a>
+                        </div>
 
                         <!-- Tour interest selector — first thing in the form so sales team sees intent immediately -->
                         <div class="form-group">
                             <span class="form-group-legend">Which Vietnam holiday are you interested in?</span>
                             <p class="field-hint">Tap your preferred package — we'll tailor the quote</p>
                             <div class="booking-tour-selector" role="radiogroup" aria-label="Tour interest">
-                                <input type="radio" id="tour_honeymoon" name="tour_interest" value="VHM10 - Honeymoon (10 days · $1,899 AUD)" data-tour-code="VHM10">
+                                <input type="radio" id="tour_honeymoon" name="tour_interest" value="VHM10 - Honeymoon (10 days · $1,899 AUD)" data-tour-code="VHM10" data-tour-name="Vietnam Honeymoon Trip — 10 Days">
                                 <label for="tour_honeymoon"><span class="tour-radio-icon" aria-hidden="true">💕</span> Honeymoon · 10d · $1,899 <span class="tour-code-badge">VHM10</span></label>
-                                <input type="radio" id="tour_family" name="tour_interest" value="V7 - Overlook Vietnam Family (7 days · $1,699 AUD)" data-tour-code="V7">
+                                <input type="radio" id="tour_family" name="tour_interest" value="V7 - Overlook Vietnam Family (7 days · $1,699 AUD)" data-tour-code="V7" data-tour-name="Overlook Vietnam Family Tour — 7 Days">
                                 <label for="tour_family"><span class="tour-radio-icon" aria-hidden="true">👨‍👩‍👧</span> Family · 7d · $1,699 <span class="tour-code-badge">V7</span></label>
-                                <input type="radio" id="tour_luxury" name="tour_interest" value="VLU10 - Luxury & Unique Vietnam (10 days · $2,999 AUD)" data-tour-code="VLU10">
+                                <input type="radio" id="tour_luxury" name="tour_interest" value="VLU10 - Luxury & Unique Vietnam (10 days · $2,999 AUD)" data-tour-code="VLU10" data-tour-name="Luxury &amp; Unique Vietnam — 10 Days">
                                 <label for="tour_luxury"><span class="tour-radio-icon" aria-hidden="true">✨</span> Luxury Cruise · 10d · $2,999 <span class="tour-code-badge">VLU10</span></label>
-                                <input type="radio" id="tour_notsure" name="tour_interest" value="Not sure - help me choose" data-tour-code="">
+                                <input type="radio" id="tour_notsure" name="tour_interest" value="Not sure - help me choose" data-tour-code="" data-tour-name="Not sure — help me choose">
                                 <label for="tour_notsure"><span class="tour-radio-icon" aria-hidden="true">🤔</span> Not sure — help me choose</label>
                             </div>
                         </div>
@@ -4947,13 +5013,16 @@
                 .map(cb => cb.value);
             document.getElementById('interests_summary').value = checkedChips.length ? checkedChips.join(', ') : '—';
 
-            // Capture tour interest (radio) + tour code for sales segmentation
+            // Capture tour interest (radio) + tour code + tour name for sales segmentation
             const tourRadio = form.querySelector('input[name="tour_interest"]:checked');
             const tourInterest = tourRadio ? tourRadio.value : '(not selected)';
             const tourCode = tourRadio ? (tourRadio.getAttribute('data-tour-code') || '(none)') : '(not selected)';
-            // Keep hidden field in sync at submit time as a safety net (covers any radio change after selectTourAndScroll)
+            const tourName = tourRadio ? (tourRadio.getAttribute('data-tour-name') || '(none)') : '(not selected)';
+            // Keep hidden fields in sync at submit time as a safety net (covers any radio change after selectTourAndScroll)
             const codeField = document.getElementById('tour_code_hidden');
+            const nameField = document.getElementById('tour_name_hidden');
             if (codeField && tourRadio) codeField.value = tourRadio.getAttribute('data-tour-code') || '';
+            if (nameField && tourRadio) nameField.value = tourRadio.getAttribute('data-tour-name') || '';
 
             // dataLayer: form_submit event (include preferences for segmentation in GA4)
             // GA4 custom params require strings/numbers — arrays render as "[object Object]" in reports
@@ -4963,6 +5032,7 @@
                 form_id: 'bookingForm',
                 tour_interest: tourInterest,
                 tour_code: tourCode,
+                tour_name: tourName,
                 departure_city: document.getElementById('departure_city').value || '(not set)',
                 interests: checkedChips.join(', ') || '(none)',
                 interest_count: checkedChips.length
@@ -5069,26 +5139,50 @@
 
         // ===== Multi-tour LP helpers =====
         // selectTourAndScroll: from a per-tour CTA, auto-pick the matching radio in booking form
-        // + populate hidden tour_code field (so sales email shows clean code: VHM10 / V7 / VLU10)
-        // + scroll to form. Tour code comes from the radio's data-tour-code attribute (single source of truth).
+        // + populate hidden tour_code + tour_name fields
+        // + show visible "Pre-filled from your selection" banner with tour name + code
+        // + pre-fill the message textarea with a starter sentence (visitor only adds dates/headcount)
+        // + scroll to form. Source of truth = the radio's data-tour-code + data-tour-name attributes.
+        function syncTourPrefillUI(radio) {
+            const codeField   = document.getElementById('tour_code_hidden');
+            const nameField   = document.getElementById('tour_name_hidden');
+            const banner      = document.getElementById('tourPrefillBanner');
+            const bannerName  = document.getElementById('prefillTourName');
+            const bannerCode  = document.getElementById('prefillTourCode');
+            const messageEl   = document.getElementById('message');
+            if (!radio) return { code: '', name: '' };
+            const tourCode = radio.getAttribute('data-tour-code') || '';
+            const tourName = radio.getAttribute('data-tour-name') || '';
+            if (codeField) codeField.value = tourCode;
+            if (nameField) nameField.value = tourName;
+            if (banner && bannerName && bannerCode) {
+                if (tourCode) {
+                    bannerName.textContent = tourName;
+                    bannerCode.textContent = tourCode;
+                    banner.classList.add('is-visible');
+                } else {
+                    // "Not sure" radio — keep banner hidden (no specific tour yet)
+                    banner.classList.remove('is-visible');
+                }
+            }
+            // Pre-fill message textarea ONLY if it's still empty (don't overwrite visitor's own text)
+            if (messageEl && !messageEl.value.trim() && tourCode) {
+                messageEl.value = "I'm interested in the " + tourName + " (" + tourCode + ") package. ";
+            }
+            return { code: tourCode, name: tourName };
+        }
         function selectTourAndScroll(tourKey) {
             const radio = document.getElementById('tour_' + tourKey);
-            const codeField = document.getElementById('tour_code_hidden');
-            let tourCode = '';
-            if (radio) {
-                radio.checked = true;
-                tourCode = radio.getAttribute('data-tour-code') || '';
-                if (codeField) codeField.value = tourCode;
-            }
+            if (radio) radio.checked = true;
+            const { code, name } = syncTourPrefillUI(radio);
             window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ event: 'tour_cta_click', tour_interest: tourKey, tour_code: tourCode });
+            window.dataLayer.push({ event: 'tour_cta_click', tour_interest: tourKey, tour_code: code, tour_name: name });
             smoothScroll('booking');
         }
-        // Listen for visitor manually picking a radio → sync the hidden tour_code so submission stays consistent
+        // Listen for visitor manually picking a radio → sync banner + hidden fields + textarea starter
         document.addEventListener('change', function(e) {
             if (e.target && e.target.name === 'tour_interest') {
-                const codeField = document.getElementById('tour_code_hidden');
-                if (codeField) codeField.value = e.target.getAttribute('data-tour-code') || '';
+                syncTourPrefillUI(e.target);
             }
         });
 
