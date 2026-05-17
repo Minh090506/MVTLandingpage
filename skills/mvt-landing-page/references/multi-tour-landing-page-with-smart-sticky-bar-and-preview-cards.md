@@ -423,6 +423,67 @@ Verified pattern (2026-05-17, happytours.myvivatour.com). Programmatic test on e
 
 ---
 
+## "Not sure" helper panel — by-companion decision aid
+
+The `"Not sure - help me choose"` radio is essential (captures browsers who refuse to commit), but an EMPTY "Not sure" state is a wasted opportunity. When picked it should display a **helper panel with 3 by-companion suggestions** — each pointing to one of the tours with a one-sentence "why":
+
+```html
+<div id="tourHelperPanel" class="tour-helper-panel"
+     role="region" aria-label="Help me choose a tour">
+  <p class="helper-intro">
+    <strong>Not sure yet?</strong> Here's a quick guide based on who you're
+    travelling with — tap any card to pick that tour:
+  </p>
+  <div class="helper-grid">
+    <button type="button" class="helper-card" data-helper-tour="honeymoon">
+      <span class="helper-card-emoji">💕</span>
+      <strong class="helper-card-title">With your partner or spouse</strong>
+      <p class="helper-card-why">Wake up on the UNESCO-listed Halong Bay cruise,
+        then 3 quiet nights on Phu Quoc Island. Built for two.</p>
+      <span class="helper-card-pick">Pick Honeymoon · VHM10 →</span>
+    </button>
+    <button type="button" class="helper-card" data-helper-tour="family">…</button>
+    <button type="button" class="helper-card" data-helper-tour="luxury">…</button>
+  </div>
+  <p class="helper-closing">
+    <strong>Still unsure?</strong> Just leave your details below — our travel
+    experts will design a custom itinerary that fits your group, dates and
+    budget. We'll handle the puzzle for you. 💬
+  </p>
+</div>
+```
+
+**Pattern rules** (validated 2026-05-17):
+
+1. **One card per tour**, framed by **travel companion** ("with your partner", "with your family", "with friends/milestone"), NOT by tour features. Visitors who couldn't decide on features can usually decide on who they're going with.
+2. **Each card has 3 parts**: emoji + title (who), one-paragraph "why this tour for that group", action label with tour code.
+3. **Closing message redirects undecided visitors to leave details for sales** — "our travel experts will design a custom itinerary". Critical: don't dead-end indecisive visitors.
+4. **Visibility wired through the same `syncTourPrefillUI` helper** as the prefill banner — `helperPanel.classList.toggle('is-visible', radio.id === 'tour_notsure')`. Helper hides automatically when visitor picks any specific tour (via card OR direct radio).
+5. **Helper card click MUST switch the radio + trigger syncTourPrefillUI**:
+
+   ```js
+   document.addEventListener('click', function(e) {
+       const card = e.target.closest('.helper-card[data-helper-tour]');
+       if (!card) return;
+       e.preventDefault();
+       const tourKey = card.getAttribute('data-helper-tour');
+       const radio = document.getElementById('tour_' + tourKey);
+       if (!radio) return;
+       radio.checked = true;
+       const { code, name } = syncTourPrefillUI(radio);
+       window.dataLayer.push({ event: 'tour_helper_card_click', tour_interest: tourKey, tour_code: code, tour_name: name });
+       const banner = document.getElementById('tourPrefillBanner');
+       if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+   });
+   ```
+
+6. **Visitor stays on the form** after picking — don't scroll up to the chosen tour section. Banner scrollIntoView centres the confirmation so they see "Vietnam Honeymoon Trip — 10 Days (VHM10)" auto-fill and can keep filling the form below.
+7. **Track `tour_helper_card_click` event** with `tour_code` — measures which recommendation converts undecided visitors. High click-through rate on one card = strong intent signal; flat distribution = the by-companion framing isn't matching how visitors actually think about their trip.
+
+CSS keeps the panel visually subtle (dashed border, faint orange tint background) — it's an aid, not the primary call-to-action. The radio cards above it remain the form's headline interaction.
+
+---
+
 ## Backlink to canonical tour page
 
 LP visitor who needs deeper detail (full inclusions list, hotel options, cancellation policy) should be one click away from the source tour page on the parent site. Don't try to mirror every detail on the LP — that ruins the trim-aggressive principle.
