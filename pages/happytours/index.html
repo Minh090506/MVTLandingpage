@@ -124,6 +124,8 @@
         html {
             scroll-behavior: smooth;
         }
+        /* Prevent sticky nav (70px) from covering section headings when anchor-jumped */
+        section[id] { scroll-margin-top: 80px; }
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -2583,7 +2585,7 @@
         .tour-selector-card {
             background: white;
             border-radius: 16px;
-            padding: 2rem 1.5rem;
+            overflow: hidden;
             text-align: center;
             cursor: pointer;
             text-decoration: none;
@@ -2593,18 +2595,48 @@
             transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            min-height: 280px;
         }
         .tour-selector-card:hover {
             transform: translateY(-6px);
             box-shadow: 0 16px 40px rgba(232,98,42,0.18);
             border-color: var(--accent);
         }
-        .tour-selector-icon {
-            font-size: 3rem;
-            margin-bottom: 0.75rem;
+        .tour-selector-card:hover .tour-selector-img-wrap img {
+            transform: scale(1.06);
+        }
+        /* Preview image at top of card — aspirational visual context (the destination feel) */
+        .tour-selector-img-wrap {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            position: relative;
+        }
+        .tour-selector-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+        .tour-selector-img-wrap .tour-selector-icon {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            font-size: 1.75rem;
+            background: rgba(255,255,255,0.92);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             line-height: 1;
+            backdrop-filter: blur(8px);
+        }
+        .tour-selector-body {
+            padding: 1.25rem 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
         }
         .tour-selector-card h3 {
             font-size: 1.35rem;
@@ -2966,6 +2998,11 @@
             font-size: 0.85rem;
             margin-top: 0.75rem;
             font-style: italic;
+        }
+        .compare-scroll-hint-top {
+            margin: 0 0 0.75rem;
+            color: rgba(255,255,255,0.7);
+            font-weight: 600;
         }
 
         /* Tour radio in booking form — visually-distinct selector at top */
@@ -3382,37 +3419,40 @@
             </div>
             <div class="tour-selector-grid" data-stagger-group>
                 <a href="#tour-honeymoon" onclick="event.preventDefault();smoothScroll('tour-honeymoon');trackTourCardClick('honeymoon');" class="tour-selector-card">
-                    <div>
+                    <div class="tour-selector-img-wrap">
+                        <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/honeymoon-phuquoc-paradise.webp" alt="Phu Quoc tropical island for honeymoon" width="1920" height="743">
                         <div class="tour-selector-icon" aria-hidden="true">💕</div>
+                    </div>
+                    <div class="tour-selector-body">
                         <span class="tour-tag">For Couples</span>
                         <h3>Vietnam Honeymoon</h3>
                         <p class="tour-selector-meta">12 days · Halong cruise + Phu Quoc 3 nights</p>
-                    </div>
-                    <div>
                         <div class="tour-selector-price"><span class="was">$2,199</span>$1,899 AUD</div>
                         <span class="tour-selector-cta">See itinerary →</span>
                     </div>
                 </a>
                 <a href="#tour-family" onclick="event.preventDefault();smoothScroll('tour-family');trackTourCardClick('family');" class="tour-selector-card">
-                    <div>
+                    <div class="tour-selector-img-wrap">
+                        <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/family-sapa-fansipan.webp" alt="Sapa Fansipan summit for family tour" width="1920" height="743">
                         <div class="tour-selector-icon" aria-hidden="true">👨‍👩‍👧</div>
+                    </div>
+                    <div class="tour-selector-body">
                         <span class="tour-tag">For Families</span>
                         <h3>Vietnam Family Discovery</h3>
                         <p class="tour-selector-meta">7 days · Halong + Sapa Fansipan</p>
-                    </div>
-                    <div>
                         <div class="tour-selector-price"><span class="was">$1,999</span>$1,699 AUD</div>
                         <span class="tour-selector-cta">See itinerary →</span>
                     </div>
                 </a>
                 <a href="#tour-luxury" onclick="event.preventDefault();smoothScroll('tour-luxury');trackTourCardClick('luxury');" class="tour-selector-card">
-                    <div>
+                    <div class="tour-selector-img-wrap">
+                        <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/luxury-halong-cruise-deck.webp" alt="Premium Halong Bay cruise deck for luxury tour" width="1920" height="743">
                         <div class="tour-selector-icon" aria-hidden="true">✨</div>
+                    </div>
+                    <div class="tour-selector-body">
                         <span class="tour-tag">Lowest Price Ever</span>
                         <h3>Luxury Vietnam Cruise</h3>
                         <p class="tour-selector-meta">10 days · Halong cruise + Hoi An 3 nights</p>
-                    </div>
-                    <div>
                         <div class="tour-selector-price"><span class="was">$3,499</span>$2,999 AUD</div>
                         <span class="tour-selector-cta">See itinerary →</span>
                     </div>
@@ -3741,6 +3781,7 @@
                 <p class="tour-subtitle">Pick the right tour at a glance · prices include flights, hotels, meals, and English-speaking guides</p>
             </div>
 
+            <p class="compare-scroll-hint compare-scroll-hint-top">← swipe table sideways to see all 3 tours →</p>
             <div class="compare-wrapper section-reveal">
                 <table class="compare-table">
                     <thead>
@@ -3845,70 +3886,6 @@
                      style="background-image:url('https://i.ytimg.com/vi/3ASbxKprZSc/maxresdefault.jpg');">
                     <div class="video-facade-play" aria-hidden="true"></div>
                     <div class="video-facade-label">▶ Watch the 10-day journey · 2 min</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Gallery Section -->
-    <section class="gallery section" id="gallery">
-        <div class="container">
-            <h2 class="text-center section-reveal">Gallery Highlights</h2>
-            <p class="text-center opacity-75 mb-5 section-reveal">A visual journey through Vietnam's beauty</p>
-            <div class="gallery-grid" data-stagger-group>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-mekong-lotus.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-mekong-lotus.jpg" alt="Mekong Delta">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-sunset.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-sunset.jpg" alt="Hoi An">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-street.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-street.jpg" alt="Hanoi">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-coconut-boat.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-coconut-boat.jpg" alt="Coconut Boat">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-cyclo.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hanoi-cyclo.jpg" alt="Cyclo">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-street.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hoian-street.jpg" alt="Hoi An Old Town">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-bay.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-bay.jpg" alt="Halong Bay">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-cruise.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-halong-cruise.jpg" alt="Ha Long Cruise">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
-                </div>
-                <div class="gallery-item" data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hcmc-temple.jpg">
-                    <img loading="lazy" decoding="async" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/gallery-hcmc-temple.jpg" alt="Ho Chi Minh City">
-                    <div class="gallery-overlay">
-                        <div class="gallery-icon">🔍</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -4235,51 +4212,6 @@
             </div>
             <div class="section-cta">
                 <button class="cta-button" onclick="smoothScroll('booking')">Ready to Go? Get Your Free Quote →</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Highlights Section — placed right before booking form so trust/value lands at the commitment moment -->
-    <section class="highlights section" id="highlights" style="background:linear-gradient(rgba(17,24,39,0.88),rgba(17,24,39,0.88)),url('https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg') center/cover no-repeat;color:white;">
-        <div class="container">
-            <h2 class="text-center section-reveal" style="color:white;">What's Included in Every Package</h2>
-            <p class="text-center opacity-75 mb-5 section-reveal">Honeymoon, Family, or Luxury Cruise — every MyVivaTour holiday includes these essentials</p>
-            <div class="highlights-grid" data-stagger-group>
-                <div class="highlight-card" data-bg="flights">
-                    <div class="highlight-icon">✈️</div>
-                    <h3>Return Flights Included</h3>
-                    <p>From Sydney, Melbourne, Brisbane, Adelaide, or Perth. No hidden costs.</p>
-                </div>
-                <div class="highlight-card" data-bg="hotel">
-                    <div class="highlight-icon">🏨</div>
-                    <h3>Premium Accommodations</h3>
-                    <p>3-4 Star Hotels & Overnight Luxury Cruise. Upgrade to 5-Star (+<span class="price-upgrade5star">$680</span>)</p>
-                </div>
-                <div class="highlight-card" data-bg="meals">
-                    <div class="highlight-icon">🍽️</div>
-                    <h3>Most Meals Included</h3>
-                    <p>Breakfast, lunch & dinner daily. Experience authentic Vietnamese cuisine.</p>
-                </div>
-                <div class="highlight-card" data-bg="guides">
-                    <div class="highlight-icon">🗣️</div>
-                    <h3>Expert English Guides</h3>
-                    <p>Professional guides ensure you get the most from every destination.</p>
-                </div>
-                <div class="highlight-card" data-bg="transfers">
-                    <div class="highlight-icon">🚐</div>
-                    <h3>All Transfers Included</h3>
-                    <p>Airport pickups, inter-city transfers, and all entrance fees covered.</p>
-                </div>
-                <div class="highlight-card" data-bg="upgrades">
-                    <div class="highlight-icon">🌟</div>
-                    <h3>Flexible Upgrades</h3>
-                    <p>Upgrade to small group or private tour. Options available for every preference.</p>
-                </div>
-            </div>
-            <!-- Bridge CTA: takes the momentum from the value list straight into the form below -->
-            <div style="text-align:center;margin-top:2.5rem;">
-                <button class="cta-button" onclick="smoothScroll('booking')" style="padding:1rem 2.25rem;font-size:1.1rem;">Get My Free Quote ↓</button>
-                <p style="color:rgba(255,255,255,0.75);font-size:0.85rem;margin-top:0.75rem;">Takes 60 seconds · No payment needed · Reply within 2 hours</p>
             </div>
         </div>
     </section>
@@ -5116,12 +5048,51 @@
             });
         });
 
-        // ===== Mobile Sticky Book Now Bar =====
+        // ===== Mobile Sticky Book Now Bar (+ smart price-sync with current tour in view) =====
         (function() {
             const bar = document.getElementById('mobileBookBar');
+            const priceEl = document.getElementById('mobileBarPrice');
+            const btnEl = bar ? bar.querySelector('.bar-btn') : null;
             if (!bar) return;
             const heroEl = document.querySelector('.hero');
             const bookingEl = document.getElementById('booking');
+
+            // Map tour section id -> { price, tourKey }
+            const TOUR_PRICES = {
+                'tour-honeymoon': { price: '$1,899 AUD', key: 'honeymoon', label: 'Book Honeymoon' },
+                'tour-family':    { price: '$1,699 AUD', key: 'family',    label: 'Book Family Tour' },
+                'tour-luxury':    { price: '$2,999 AUD', key: 'luxury',    label: 'Book Luxury Cruise' },
+            };
+            const DEFAULT_PRICE = '$1,699 AUD';
+            const DEFAULT_LABEL = 'Book Now →';
+
+            // IntersectionObserver tracks which tour section is mostly in view
+            let activeTour = null;
+            const sections = Object.keys(TOUR_PRICES).map(id => document.getElementById(id)).filter(Boolean);
+            if (sections.length && 'IntersectionObserver' in window) {
+                const io = new IntersectionObserver(entries => {
+                    // Pick the entry with highest intersection ratio that is currently intersecting
+                    let best = null;
+                    entries.forEach(e => {
+                        if (e.isIntersecting && (!best || e.intersectionRatio > best.intersectionRatio)) {
+                            best = e;
+                        }
+                    });
+                    if (best) {
+                        const id = best.target.id;
+                        const cfg = TOUR_PRICES[id];
+                        if (cfg && activeTour !== id) {
+                            activeTour = id;
+                            if (priceEl) priceEl.textContent = cfg.price;
+                            if (btnEl) {
+                                btnEl.textContent = cfg.label + ' →';
+                                btnEl.onclick = function(ev) { ev.preventDefault(); selectTourAndScroll(cfg.key); };
+                            }
+                        }
+                    }
+                }, { threshold: [0.35, 0.6] });
+                sections.forEach(s => io.observe(s));
+            }
 
             window.addEventListener('scroll', function() {
                 if (window.innerWidth > 768) { bar.classList.remove('visible'); return; }
@@ -5129,6 +5100,21 @@
                 const bookingTop = bookingEl ? bookingEl.getBoundingClientRect().top : Infinity;
                 const show = heroBottom < 0 && bookingTop > window.innerHeight * 0.5;
                 bar.classList.toggle('visible', show);
+                // Reset to default when scrolled past all 3 tour sections (e.g. into compare/why-mvt area)
+                if (activeTour) {
+                    const stillInTour = sections.some(s => {
+                        const r = s.getBoundingClientRect();
+                        return r.top < window.innerHeight * 0.5 && r.bottom > window.innerHeight * 0.2;
+                    });
+                    if (!stillInTour) {
+                        activeTour = null;
+                        if (priceEl) priceEl.textContent = DEFAULT_PRICE;
+                        if (btnEl) {
+                            btnEl.textContent = DEFAULT_LABEL;
+                            btnEl.onclick = null;
+                        }
+                    }
+                }
             }, { passive: true });
         })();
 

@@ -56,6 +56,7 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
    - `references/design-system.md` for CSS variables, component styles, and section templates
    - `references/tripadvisor-integration.md` for the TripAdvisor reviews integration (scraping, schema, build pipeline, n8n auto-rotation)
    - `references/mobile-emulation-testing-with-playwright.md` for mobile/responsive testing — **DO NOT use Chrome `--screenshot --window-size` for mobile verification** (sets window only, viewport stays desktop). Always use Playwright with `viewport + isMobile: true + deviceScaleFactor: 2` context
+   - `references/multi-tour-landing-page-with-smart-sticky-bar-and-preview-cards.md` for **multi-tour LPs** (2–4 tours sharing one URL, e.g. happytours.myvivatour.com bundling Honeymoon + Family + Luxury). Covers selector cards with preview images, per-tour color theming, IntersectionObserver-driven sticky bar price-sync, compare table with top+bottom swipe hints, shared booking form with `tour_interest` radio, host-based routing (`HOST_DEFAULTS`), scroll-margin-top fix, aggressive section trimming
 
 ### Phase 3: Host Images on Supabase
 
@@ -270,6 +271,15 @@ Save this as `gen_worker.py` in the workspace and run it after every HTML change
 | Generic ✓ icons in feature cards look cheap | Default checkmark + no visual differentiation | Use branded emoji icons inside circular tinted bg (🎯 🗣️ 💰 ⏰ 🏨 🌏) — each card gets its own meaning, hover lifts the card |
 | wrangler install blocked | Sandbox npm restrictions | Generate worker.js manually with Python script |
 | Sandbox can't reach Supabase | Network egress blocked | Use Edge Function + browser-based upload |
+| Selector card image renders as tall portrait crop on mobile | HTML `height="743"` attribute overrides CSS `aspect-ratio` | Always set explicit `height: 100%` (or `height: auto`) in CSS on images inside aspect-ratio wrappers — see multi-tour reference |
+| Sticky mobile bar shows stale price after scrolling past selector | Bar hard-coded one price, never updates as visitor moves through 3 tour sections | IntersectionObserver tracks active `#tour-{key}` section, swaps `priceEl.textContent` + button label. Reset to default after scrolling past all 3 — see multi-tour reference |
+| Sticky bar CTA opens booking form but no tour pre-selected | Button only scrolls, doesn't flip the `tour_interest` radio | `selectTourAndScroll(key)` helper: (1) set radio, (2) scrollIntoView, (3) optional focus. Without (1) visitor has to re-pick the tour they were just reading about |
+| Section heading hidden behind sticky nav after anchor click | Fixed nav covers top of section | `section[id] { scroll-margin-top: 80px; }` — applies to native `#id` links, `scrollIntoView`, and `smoothScroll()` helpers |
+| Compare table on mobile reads only col 1, visitor doesn't discover scroll | Only ONE swipe hint, below the table — visitor's eye hits cols first | Add `.compare-scroll-hint-top` ABOVE the table (white italic on dark navy) — primes the gesture before columns are read |
+| Multi-tour LP feels visually monotonous | All 3 tour sections look identical | Per-tour ambient color theme: rose/mint/emerald-gold backgrounds + heading colors. Keep CTAs brand-orange across all 3 (brand consistency) |
+| Custom subdomain serves wrong default page | Worker `/` always serves the default LP from PAGES_CONFIG | Add `HOST_DEFAULTS = { 'happytours.myvivatour.com': '/happytours' }` to `build.js` worker template, rewrite pathname before route lookup |
+| CF Custom Domain UI rejects wildcard | CF rejects `*.subdomain.com` patterns in Custom Domains | Use bare hostname `happytours.myvivatour.com` — no wildcard, no path suffix |
+| Multi-tour LP scroll > 14,000px on mobile, high bounce | Trying to include every single-tour section (gallery + highlights + pricing × 3) | Trim: no per-tour Gallery, no per-tour Pricing block (selector + compare cover it), no per-tour Highlights (collapse to pill row). Target <12,000px |
 
 ## Chrome MCP Disconnect Fallback
 
@@ -600,3 +610,28 @@ pages/*/index.html
 - 404 for unmatched routes (with links to all tour pages)
 
 DO NOT edit `worker.js` directly — it's auto-generated and overwritten by every `build.js` run.
+
+### Multi-tour LP on its own subdomain
+
+When a new tour LP deserves its own subdomain (e.g. `happytours.myvivatour.com` bundles 3 tours), add a `HOST_DEFAULTS` entry inside the worker template in `build.js` so root `/` on that hostname serves the right page:
+
+```js
+// build.js worker template
+const HOST_DEFAULTS = {
+  'happytours.myvivatour.com': '/happytours',
+  // Add new hosts here as more subdomains are added
+};
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    let pathname = url.pathname.replace(/\/+$/, '') || '/';
+    if (pathname === '/' && HOST_DEFAULTS[url.hostname]) {
+      pathname = HOST_DEFAULTS[url.hostname];
+    }
+    // ...rest of routing unchanged
+  },
+};
+```
+
+Then in Cloudflare dashboard → Worker → Triggers → Custom Domains, add the bare hostname (`happytours.myvivatour.com`, no wildcard, no path). One worker now serves every subdomain. Full pattern + per-tour section guide in `references/multi-tour-landing-page-with-smart-sticky-bar-and-preview-cards.md`.
