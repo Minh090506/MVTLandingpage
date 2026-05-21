@@ -114,12 +114,15 @@ ${cardsHtml}
 
 // Landing page config: folder name → route path
 // The first entry with isDefault:true is the homepage (/)
+// `redirectTo` entries emit a 301 redirect instead of serving HTML — used to
+// consolidate placeholder paths onto the fully-built happytours sections.
 const PAGES_CONFIG = {
-  'escape':        { path: '/', isDefault: true,  name: 'Escape Australia 10-Day Tour' },
-  'happytours':    { path: '/happytours',          name: 'Vietnam Holiday Packages - Multi-Tour' },
-  'honeymoon':     { path: '/honeymoon',           name: 'Vietnam Honeymoon Package' },
-  'family-tour':   { path: '/family-tour',          name: 'Vietnam Family Tour' },
-  'luxury-cruise': { path: '/luxury-cruise',        name: 'Luxury Vietnam Cruise Tour' },
+  'escape':                   { path: '/', isDefault: true,  name: 'Escape Australia 10-Day Tour' },
+  'happytours':               { path: '/happytours',                  name: 'Vietnam Holiday Packages - Multi-Tour' },
+  'dental-implants-vietnam':  { path: '/dental-implants-vietnam',     name: 'Dental Implants Vietnam — VietnamDentalTravel' },
+  'honeymoon':                { path: '/honeymoon',                   name: 'Vietnam Honeymoon (301 → happytours)',     redirectTo: 'https://happytours.myvivatour.com/#tour-honeymoon' },
+  'family-tour':              { path: '/family-tour',                 name: 'Vietnam Family Tour (301 → happytours)',    redirectTo: 'https://happytours.myvivatour.com/#tour-family' },
+  'luxury-cruise':            { path: '/luxury-cruise',               name: 'Luxury Vietnam Cruise (301 → happytours)',  redirectTo: 'https://happytours.myvivatour.com/#tour-luxury' },
 };
 
 function readPageHTML(folderName) {
@@ -149,9 +152,16 @@ function build() {
   console.log('Reading pages:');
 
   const pages = {};
+  const redirects = {};
   let defaultPage = null;
 
   for (const [folder, config] of Object.entries(PAGES_CONFIG)) {
+    // Redirect-only entries skip HTML loading entirely; they're served as 301 by the worker.
+    if (config.redirectTo) {
+      redirects[config.path] = config.redirectTo;
+      console.log(`  ↪ ${folder} → 301 → ${config.redirectTo}`);
+      continue;
+    }
     const html = readPageHTML(folder);
     if (html) {
       pages[folder] = { ...config, html };
@@ -203,6 +213,13 @@ function build() {
   for (const [folder, page] of Object.entries(pages)) {
     const varName = `PAGE_${folder.replace(/-/g, '_').toUpperCase()}`;
     workerCode += `  '${page.path}': ${varName},\n`;
+  }
+  workerCode += `};\n\n`;
+
+  // 301 redirect map — placeholder paths consolidate onto fully-built happytours sections.
+  workerCode += `// 301 redirects: path → external URL (Location header)\nconst REDIRECTS = {\n`;
+  for (const [path, target] of Object.entries(redirects)) {
+    workerCode += `  '${path}': '${target}',\n`;
   }
   workerCode += `};\n\n`;
 
@@ -277,6 +294,7 @@ Sitemap: \${baseUrl}/sitemap.xml\`;
 // Avoids needing separate workers per subdomain
 const HOST_DEFAULTS = {
   'happytours.myvivatour.com': '/happytours',
+  'implant.vietnamdentaltravel.com': '/dental-implants-vietnam',
   // Add new hosts here as more subdomains are added
 };
 
@@ -316,6 +334,19 @@ export default {
       });
     }
 
+    // 301 redirects (placeholder paths → happytours anchors). Checked before ROUTES
+    // so a /honeymoon-style path never serves stale HTML.
+    const redirectTarget = REDIRECTS[pathname];
+    if (redirectTarget) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          'Location': redirectTarget,
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
     // Route to the correct landing page
     const html = ROUTES[pathname];
     if (html) {
@@ -350,6 +381,12 @@ export default {
   for (const [folder, page] of Object.entries(pages)) {
     const tag = page.isDefault ? ' (homepage)' : '';
     console.log(`  ${page.path} → ${page.name}${tag}`);
+  }
+  if (Object.keys(redirects).length) {
+    console.log('\nRedirects (301):');
+    for (const [path, target] of Object.entries(redirects)) {
+      console.log(`  ${path} → ${target}`);
+    }
   }
   console.log(`\n🚀 Ready to deploy: npx wrangler deploy`);
 }
