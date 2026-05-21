@@ -1,24 +1,27 @@
 #!/usr/bin/env node
-/**
- * MVT Supabase Image Uploader
- * ============================
- * Automatically uploads images from pages/*/images/ to Supabase Storage.
- *
- * Usage:
- *   node scripts/upload-to-supabase.js
- *
- * Environment variables required:
- *   SUPABASE_URL         - Your Supabase project URL
- *   SUPABASE_SERVICE_KEY - Service role key (NOT anon key)
- *
- * Image structure expected:
- *   pages/escape/images/hero.jpg      → landing-images/escape/hero.jpg
- *   pages/honeymoon/images/banner.jpg → landing-images/honeymoon/banner.jpg
- *
- * Also uploads from:
- *   images/                           → landing-images/shared/
- *   upload-ready/                     → landing-images/ (preserving structure)
- */
+//
+// MVT Supabase Image Uploader
+// ============================
+// Automatically uploads images from pages/<page>/images/ to Supabase Storage.
+//
+// Usage:
+//   node scripts/upload-to-supabase.js
+//
+// Environment variables required:
+//   SUPABASE_URL         - Your Supabase project URL
+//   SUPABASE_SERVICE_KEY - Service role key (NOT anon key)
+//
+// Image structure expected:
+//   pages/escape/images/hero.jpg      -> landing-images/escape/hero.jpg
+//   pages/honeymoon/images/banner.jpg -> landing-images/honeymoon/banner.jpg
+//
+// Also uploads from:
+//   images/                           -> landing-images/shared/
+//   upload-ready/                     -> landing-images/ (preserving structure)
+//
+// NOTE: switched from /** */ block comment to // line comments — the glob
+// "pages/*/images/" contains the "*/" sequence which prematurely closed the
+// block comment and caused a SyntaxError at runtime.
 
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
