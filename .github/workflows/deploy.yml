@@ -7,6 +7,7 @@ on:
       - 'pages/**'
       - 'build.js'
       - 'wrangler.toml'
+      - 'wrangler-dental.toml'
       - 'dashboard.html'
       - 'build-dashboard.js'
       - 'wrangler-dashboard.toml'
@@ -48,9 +49,20 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy -c wrangler-dashboard.toml
 
+      - name: Deploy Dental Worker (unified worker.js under vietnamdentaltravel name)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy -c wrangler-dental.toml
+
       - name: Deployment summary
         run: |
           echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Dental (implant.vietnamdentaltravel.com)" >> $GITHUB_STEP_SUMMARY
+          echo "**Worker:** vietnamdentaltravel" >> $GITHUB_STEP_SUMMARY
+          echo "- https://implant.vietnamdentaltravel.com/" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Landing Pages (escape.myvivatour.com)" >> $GITHUB_STEP_SUMMARY
           echo "**Worker:** escape-myvivatour" >> $GITHUB_STEP_SUMMARY
