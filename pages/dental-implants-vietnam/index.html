@@ -1329,8 +1329,18 @@
         padding-bottom: 20px;
       }
 
+      /* Mobile floating stack:
+         mobile-cta bar is fixed at y=0..~60 → push WhatsApp up to bottom:80px.
+         Back-to-top sits above WhatsApp at bottom:160px (60px gap) so it never
+         covers the WhatsApp tap target. */
       .whatsapp-btn {
         bottom: 80px;
+      }
+
+      .back-to-top {
+        bottom: 160px;
+        width: 44px;
+        height: 44px;
       }
 
       .footer-content {
@@ -2219,15 +2229,17 @@
             </div>
 
             <div class="form-group">
-              <label for="country">Country *</label>
-              <select id="country" name="country" required>
-                <option value="">Select country</option>
-                <option value="Australia">Australia</option>
-                <option value="New Zealand">New Zealand</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="USA">United States</option>
-                <option value="Canada">Canada</option>
-                <option value="Other">Other</option>
+              <label for="state">State (Australia) *</label>
+              <select id="state" name="state" required>
+                <option value="">Select your state</option>
+                <option value="New South Wales (NSW)">New South Wales (NSW)</option>
+                <option value="Victoria (VIC)">Victoria (VIC)</option>
+                <option value="Queensland (QLD)">Queensland (QLD)</option>
+                <option value="Western Australia (WA)">Western Australia (WA)</option>
+                <option value="South Australia (SA)">South Australia (SA)</option>
+                <option value="Tasmania (TAS)">Tasmania (TAS)</option>
+                <option value="Australian Capital Territory (ACT)">Australian Capital Territory (ACT)</option>
+                <option value="Northern Territory (NT)">Northern Territory (NT)</option>
               </select>
             </div>
 
@@ -2251,8 +2263,8 @@
             </div>
 
             <div class="form-group">
-              <label for="concerns">Main concerns or goals? *</label>
-              <textarea id="concerns" name="concerns" placeholder="e.g., missing teeth, broken tooth, cosmetic improvement..." required></textarea>
+              <label for="message">Your message *</label>
+              <textarea id="message" name="message" rows="4" placeholder="Tell us about your situation — e.g., missing teeth, broken tooth, cosmetic improvement, dental anxieties, travel preferences, anything you'd like us to know before we prepare your quote." required></textarea>
             </div>
 
             <div class="form-group">
