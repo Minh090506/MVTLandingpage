@@ -20,20 +20,27 @@ pages/*/index.html  →  build.js  →  worker.js  →  Cloudflare Workers
 ```
 MVTLandingpage/
 ├── pages/
-│   ├── escape/index.html      ← Landing page chính (10-Day Vietnam Tour, $2,099 AUD) ✅ Live
-│   ├── honeymoon/index.html   ← Vietnam Honeymoon 7-Day ($1,899 AUD) — placeholder
-│   ├── family-tour/index.html ← Vietnam Family Tour 8-Day ($1,699 AUD) — placeholder
-│   └── luxury-cruise/index.html ← Luxury Cruise 12-Day ($3,499 AUD) — placeholder
-├── build.js                   ← Bundler: đọc pages/*/index.html → generate worker.js
-├── worker.js                  ← AUTO-GENERATED (không sửa!)
-├── worker.js.backup           ← Bản cũ có Schema.org + GTM (tham khảo)
-├── wrangler.toml              ← CF Workers config
-├── .github/workflows/deploy.yml ← CI/CD auto-deploy
-├── scripts/upload-to-supabase.js ← Upload images lên Supabase Storage
-├── CLAUDE-CODE-PROMPTS.md     ← 6 prompts tối ưu (IDs đã điền sẵn)
-├── SESSION-SUMMARY.md         ← Tóm tắt tiến độ dự án
-└── SETUP-SECRETS.md           ← Hướng dẫn setup GitHub Secrets
+│   ├── escape/index.html                       ← Homepage (10-Day Vietnam Tour, $2,099 AUD) ✅ Live
+│   ├── happytours/index.html                   ← Vietnam Holiday Packages multi-tour ✅ Live
+│   ├── dental-implants-vietnam/index.html      ← Dental implants (AUD 1,220 from) ✅ Live at implant.vietnamdentaltravel.com
+│   ├── dental-implants-vietnam/images/         ← Source-of-truth dental images (synced to Supabase CDN)
+│   ├── honeymoon/index.html                    ← 301 → happytours#tour-honeymoon
+│   ├── family-tour/index.html                  ← 301 → happytours#tour-family
+│   └── luxury-cruise/index.html                ← 301 → happytours#tour-luxury
+├── build.js                       ← Bundler: pages/*/index.html → worker.js (PAGES_CONFIG + HOST_DEFAULTS)
+├── worker.js                      ← AUTO-GENERATED (không sửa!) — unified for ALL subdomains
+├── wrangler.toml                  ← CF Workers config — main worker "escape-myvivatour"
+├── wrangler-dental.toml           ← Same worker.js deployed as "vietnamdentaltravel" bound to implant.vietnamdentaltravel.com
+├── wrangler-dashboard.toml        ← Dashboard worker config
+├── .github/workflows/deploy.yml   ← Main CI/CD: build worker.js → deploy all 3 workers; [upload-images] commit → trigger image upload
+├── .github/workflows/deploy-dental.yml ← Dental-only fast path (triggers on pages/dental-implants-vietnam/**)
+├── scripts/upload-to-supabase.js  ← Image uploader (auto-scans pages/*/images/ → landing-images/<page>/)
+├── CLAUDE-CODE-PROMPTS.md         ← 6 prompts tối ưu (IDs đã điền sẵn)
+├── SESSION-SUMMARY.md             ← Tóm tắt tiến độ dự án
+└── SETUP-SECRETS.md               ← Hướng dẫn setup GitHub Secrets
 ```
+
+**Page registration:** Mỗi page mới phải có entry trong `build.js → PAGES_CONFIG`. Subdomain custom phải thêm vào `HOST_DEFAULTS` (worker route host → default path).
 
 ## Tracking IDs (đã cài vào code ngày 5/4/2026)
 
@@ -48,10 +55,18 @@ MVTLandingpage/
 ## Thông tin dùng chung cho mọi landing page
 
 - **Web3Forms API Key:** `cf0ca620-d064-4640-9454-afb27d588f67`
+  - Destination email được set TRONG Web3Forms dashboard (không phải HTML) — verify bằng submit test form
+  - Payload best practice: include `from_name`, `replyto: <user-email>`, descriptive `subject` (kèm domain LP)
+  - Submit test chỉ chạy từ browser/puppeteer (server-side curl bị Web3Forms chặn ở free plan)
 - **WhatsApp:** `+84974036614` (link: `https://wa.me/84974036614`)
-- **Supabase Storage:** bucket `landing-images`, URL: `https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/`
-- **Domain chính:** myvivatour.com
-- **Landing pages domain:** escape.myvivatour.com
+- **Supabase Storage:** project ref `tnwelgvypmhhksqwnfmr`, bucket `landing-images`, URL: `https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/`
+  - Image path convention: `landing-images/<page-folder-name>/<file>.webp` (auto-detect bởi upload script)
+  - **KHÔNG** dùng relative `images/foo.webp` trong HTML — Worker chỉ serve HTML, ảnh phải absolute URL trên Supabase
+- **Domain chính:** myvivatour.com (CF zone)
+- **Landing pages subdomains:**
+  - `escape.myvivatour.com` → page `escape` (homepage on root)
+  - `happytours.myvivatour.com` → page `happytours` (via HOST_DEFAULTS)
+  - `implant.vietnamdentaltravel.com` → page `dental-implants-vietnam` (separate CF zone, custom_domain route)
 
 ## Khi tạo landing page MỚI
 
@@ -64,8 +79,17 @@ Tạo `pages/<tên-tour>/index.html` — copy từ `pages/escape/index.html` là
 ### Bước 2: Cập nhật build.js
 Thêm vào `PAGES_CONFIG` trong `build.js`:
 ```javascript
-'<tên-tour>': '/<tên-tour>'
+'<tên-tour>': { path: '/<tên-tour>', name: '<Display Name>' },
 ```
+
+Nếu LP có subdomain riêng (vd `<sub>.myvivatour.com` hoặc khác zone), thêm vào `HOST_DEFAULTS`:
+```javascript
+const HOST_DEFAULTS = {
+  '<sub>.myvivatour.com': '/<tên-tour>',
+};
+```
+
+Nếu zone khác (vd `vietnamdentaltravel.com`) → tạo `wrangler-<brand>.toml` với `main = "worker.js"`, `name = "<worker-name>"`, và `[[routes]] pattern = "<sub>.<domain>" custom_domain = true`. Thêm step deploy worker đó vào `.github/workflows/deploy.yml`.
 
 ### Bước 3: Checklist nội dung bắt buộc cho mỗi landing page
 
@@ -85,13 +109,18 @@ Thêm vào `PAGES_CONFIG` trong `build.js`:
 - [ ] GTM noscript ngay sau `<body>`
 - [ ] Hero section: headline + giá + CTA button
 - [ ] Tour itinerary chi tiết (day-by-day)
-- [ ] Pricing packages (Base + upgrades)
-- [ ] Testimonials/Reviews (3+)
+- [ ] Pricing packages (Base + upgrades) — nếu table có 4+ cols, thêm mobile-compact CSS + ẩn cột phụ
+- [ ] Testimonials/Reviews (3+) — ưu tiên verbatim quotes từ Google Reviews (cao trust nhất)
 - [ ] FAQ section (5-8 câu hỏi)
-- [ ] Booking form (Web3Forms, key: `cf0ca620-d064-4640-9454-afb27d588f67`)
-- [ ] Floating WhatsApp button (góc phải dưới)
-- [ ] Sticky mobile CTA bar
-- [ ] Back-to-top button
+- [ ] Booking form (Web3Forms, key: `cf0ca620-d064-4640-9454-afb27d588f67`):
+  - 2-step flow OK (4-5 fields/step max)
+  - Country dropdown HOẶC State dropdown (AU-only target → State NSW/VIC/QLD/WA/SA/TAS/ACT/NT)
+  - Free-form textarea "Your message *" với placeholder gợi ý cụ thể
+  - Payload phải có `from_name`, `replyto: data.email`, subject kèm domain LP
+- [ ] Floating WhatsApp button (góc phải dưới) — mobile `bottom: 80px`
+- [ ] Sticky mobile CTA bar — `bottom: 0`
+- [ ] Back-to-top button — mobile `bottom: 160px; width:44px; height:44px` (gap ≥ 20px so với WhatsApp)
+- [ ] Verify 3 floating icons KHÔNG overlap (check bằng puppeteer scroll-mid screenshot)
 - [ ] Google Ads conversion tracking trong form submit handler:
   ```javascript
   gtag('event', 'conversion', {
@@ -107,20 +136,45 @@ Thêm vào `PAGES_CONFIG` trong `build.js`:
 - [ ] BreadcrumbList
 - [ ] AggregateRating (nếu có reviews)
 
-### Bước 4: Build + Deploy
+### Bước 4: Upload ảnh lên Supabase (CDN)
+HTML phải dùng absolute Supabase URLs, KHÔNG dùng `images/<file>` relative.
+
 ```bash
-node build.js
-git add -A
-git commit -m "feat: add <tên-tour> landing page"
-git push origin main
-# GitHub Actions sẽ tự deploy
+# Rewrite paths trong HTML (one-time):
+SUPA='https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/<tên-tour>'
+perl -i -pe "s|src=\"images/([^\"]+)\"|src=\"${SUPA}/\$1\"|g" pages/<tên-tour>/index.html
 ```
 
-### Bước 5: Verify
+Commit với `[upload-images]` flag để GH Actions auto-upload từ `pages/<tên-tour>/images/`:
+```bash
+git commit -m "feat: add <tên-tour> landing page [upload-images]"
+```
+
+Verify ảnh lên thành công (sau khi workflow chạy):
+```bash
+for img in $(ls pages/<tên-tour>/images/); do
+  http=$(curl -sI "https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/<tên-tour>/$img" -o /dev/null -w "%{http_code}")
+  [ "$http" = "200" ] && echo "✓ $img" || echo "✗ $img → $http"
+done
+```
+
+### Bước 5: Build + Deploy
+```bash
+node build.js
+git push origin main
+# GitHub Actions sẽ tự deploy (3 workers: main, dashboard, dental)
+```
+
+### Bước 6: Verify
 - Kiểm tra routes: /, /<tên-tour>
 - Kiểm tra sitemap.xml có URL mới
 - Kiểm tra 404 page có link tới tour mới
-- Test form submission
+- **Test form submission qua puppeteer** (`node test.js` với browser origin) → confirm Web3Forms trả 200 → check inbox `info@myvivatour.com`
+- **Run audit script** `node scripts/puppeteer-landing-page-screenshot-and-audit.js <URL> /tmp/audit/ r1` → check `r1-summary.json`:
+  - `layout.overflowing` rỗng trên mobile (390px viewport)
+  - `seo.imgsMissingAlt` = 0
+  - Tracking IDs đầy đủ
+  - Console errors = [] (hoặc trace nguyên nhân)
 - Verify tracking trong GTM Preview mode
 
 ## Tiến độ (cập nhật ngày 5/4/2026)
@@ -267,3 +321,77 @@ Display Path: /vietnam-tour/[duration]
 6. **SEO** — mỗi page phải có unique title, description, canonical URL — **DÙNG KEYWORD DATABASE Ở TRÊN**
 7. **Conversion tracking** — mọi CTA + form submit phải fire dataLayer events
 8. **Google Ads** — khi tạo landing page mới, luôn setup 4 campaigns theo template ở trên
+
+## Pitfalls & Patterns (lessons learned)
+
+Các bài học rút ra từ những lần build LP trước. Đọc kỹ trước khi bắt đầu LP mới hoặc fix bug để không lặp lại.
+
+### Image hosting — KHÔNG dùng relative paths trong HTML
+- CF Worker chỉ serve HTML route, KHÔNG serve image binaries.
+- HTML phải reference ảnh qua absolute Supabase URL: `https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/<page>/<file>.webp`
+- Source-of-truth `.webp` giữ trong `pages/<page>/images/` để re-upload qua script.
+- Upload qua: commit message có `[upload-images]` flag → trigger upload-images job trong `deploy.yml`.
+- Hoặc manual: `gh workflow run deploy.yml --ref main` (event = workflow_dispatch cũng trigger upload).
+
+### Subdomain routing — 3 cách
+1. Cùng zone (myvivatour.com) → thêm vào `HOST_DEFAULTS` trong build.js. CF route đã có cho `*.myvivatour.com`.
+2. Zone khác (vd vietnamdentaltravel.com) → cần `wrangler-<brand>.toml` riêng với `name = "<worker>"` + `[[routes]] custom_domain = true`. Worker này dùng CHUNG `worker.js` (set `main = "worker.js"`).
+3. Workers.dev URL → fallback khi chưa có DNS.
+
+Mỗi subdomain thêm mới phải: (a) `HOST_DEFAULTS['<sub>']` trong build.js, (b) DNS CNAME orange-cloud trên CF, (c) hoặc dedicated wrangler toml + workflow.
+
+### Web3Forms form configuration
+- Destination email được set TRONG Web3Forms dashboard, KHÔNG trong HTML — submit test entry rồi check inbox để verify.
+- Payload phải có: `access_key`, `from_name`, `replyto: <user-email>`, `subject` kèm domain LP.
+- Server-side curl (free plan) bị chặn — test phải qua browser/puppeteer với origin domain hợp lệ.
+- Subdomain mới phải được whitelist trên Web3Forms dashboard nếu form fail với "origin not allowed".
+
+### Mobile-specific UX pitfalls
+- **Pricing tables với 4+ columns** → mobile bị overflow ngoài viewport. Phải:
+  - Hide cột phụ trên mobile (e.g. `.col-usa, .col-uk { display: none }`)
+  - Compact padding cells: `th, td { padding: 12px 8px; font-size: 0.85rem }`
+  - Add scroll affordance: `.cost-table::after { content: '← scroll →' ... }`
+- **Floating icons stacking** — WhatsApp + back-to-top + mobile-cta đều `position: fixed; bottom`. Phải tính bottom + height từng cái sao cho non-overlap:
+  - WhatsApp mobile: `bottom: 80px` (push lên trên mobile-cta bar)
+  - Back-to-top mobile: `bottom: 160px` + `width: 44px; height: 44px` (gap ≥ 20px với WhatsApp)
+  - Mobile-cta: `bottom: 0; height: ~60px`
+- **Page height** > 30,000px trên mobile = nguy cơ scroll fatigue. Cân nhắc accordion / split detail pages cho LP rất dài.
+
+### Form best practices
+- **Target geo cụ thể** (e.g. AU only) → dùng State dropdown (NSW/VIC/QLD/WA/SA/TAS/ACT/NT) thay vì Country dropdown, để có dữ liệu region cho follow-up.
+- **Free-form input bắt buộc** — luôn có 1 textarea "Your message" với placeholder gợi ý cụ thể (situation, anxieties, travel prefs) thay vì label generic.
+- **2-step form** OK với 4-5 fields per step. Hơn nữa → 3-step hoặc accordion.
+
+### CI/CD & secrets pitfalls
+- **`gh secret list` chỉ show name + timestamp**, KHÔNG show value. Để verify JWT secret đúng (e.g. SUPABASE_SERVICE_KEY) → decode payload qua jwt.io hoặc base64 decode + check `ref` match project URL.
+- **Trailing newline khi paste qua `nano`** sẽ phá JWT signature. Dùng `read -s SB_KEY && printf "%s" "$SB_KEY" | gh secret set ...` thay vì file-based.
+- **`@supabase/supabase-js` cần Node ≥ 22** (native WebSocket). `actions/setup-node@v4` với `node-version: '22'` trong workflow.
+- **deploy.yml `paths:` trigger** — workflow chỉ chạy khi files trong paths thay đổi. Nếu chỉ sửa `scripts/*` hoặc `.github/*`, push KHÔNG trigger → dùng `gh workflow run deploy.yml --ref main` để manual dispatch.
+- **`[upload-images]` flag trong commit message** sẽ trigger image upload job (cùng với workflow_dispatch).
+
+### Script gotchas
+- **JSDoc block comment `/** ... */` + glob `pages/*/images/`** → `*/` đóng comment sớm → SyntaxError. Dùng `//` line comments cho headers có chứa glob/path.
+- **CommonJS `require` ở root** khi script chạy từ `/tmp` sẽ không tìm thấy `node_modules` của repo → đặt script trong project root.
+
+### Audit workflow (sau mỗi major change)
+Chạy:
+```bash
+mkdir -p /tmp/lp-audit-<round>
+node scripts/puppeteer-landing-page-screenshot-and-audit.js <URL> /tmp/lp-audit-<round>/ <tag>
+```
+Output: mobile+desktop fold + fullpage screenshots, `<tag>-summary.json` với SEO/perf/tracking/layout metrics.
+
+Check trong summary:
+- `layout.overflowing` = [] (mobile)
+- `layout.hasHorizontalScroll` = false
+- `seo.imgsMissingAlt` = 0
+- `tracking.*` đầy đủ 5 IDs
+- `consoleErrors` = [] (hoặc trace nguyên nhân)
+- `perf.fcp` < 2500ms mobile
+
+### Verify image URLs sau upload
+```bash
+for img in $(ls pages/<page>/images/); do
+  curl -sI "https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/<page>/$img" -o /dev/null -w "%{http_code}" | grep -q 200 || echo "FAIL: $img"
+done
+```
