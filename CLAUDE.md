@@ -326,9 +326,10 @@ Display Path: /vietnam-tour/[duration]
 
 Các bài học rút ra từ những lần build LP trước. Đọc kỹ trước khi bắt đầu LP mới hoặc fix bug để không lặp lại.
 
-### Image hosting — KHÔNG dùng relative paths trong HTML
+### Image hosting — KHÔNG dùng relative paths trong HTML (HOẶC CSS)
 - CF Worker chỉ serve HTML route, KHÔNG serve image binaries.
-- HTML phải reference ảnh qua absolute Supabase URL: `https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/<page>/<file>.webp`
+- HTML `<img src="...">` phải absolute Supabase URL: `https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/<page>/<file>.webp`
+- **CSS `background: url(...)` cũng phải absolute** — đây là gotcha thường bỏ sót khi rewrite `<img src>` qua sed/perl. Hero background `url('images/foo.webp')` sẽ fail silent (404 trong console, BG biến mất). Grep `url\(['"]?images/` để verify.
 - Source-of-truth `.webp` giữ trong `pages/<page>/images/` để re-upload qua script.
 - Upload qua: commit message có `[upload-images]` flag → trigger upload-images job trong `deploy.yml`.
 - Hoặc manual: `gh workflow run deploy.yml --ref main` (event = workflow_dispatch cũng trigger upload).
