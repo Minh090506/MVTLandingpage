@@ -17,7 +17,7 @@
   <meta property="og:url" content="https://implant.vietnamdentaltravel.com">
   <meta property="og:site_name" content="VietnamDentalTravel">
   <meta property="og:locale" content="en_AU">
-  <meta property="og:image" content="https://implant.vietnamdentaltravel.com/images/og-dental-implants-vietnam.jpg">
+  <meta property="og:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/dental-implants-vietnam/hero-banner.webp">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
 
@@ -25,7 +25,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Dental Implants Vietnam 2026 | Save up to 80% vs Australia — From AUD 1,220">
   <meta name="twitter:description" content="Genuine Straumann, Dentium & DIO implants in Hanoi from AUD 1,220 — placed by Hanoi Medical University Associate Professors. Lifetime warranty. Free quote in 24 hours.">
-  <meta name="twitter:image" content="https://implant.vietnamdentaltravel.com/images/og-dental-implants-vietnam.jpg">
+  <meta name="twitter:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/dental-implants-vietnam/hero-banner.webp">
 
   <!-- Hreflang -->
   <link rel="alternate" hreflang="en-AU" href="https://implant.vietnamdentaltravel.com">
@@ -99,7 +99,7 @@
     "name": "Dental Implants Vietnam",
     "description": "Professional dental implant treatment in Hanoi with Straumann, Dentium and DIO implant systems, placed by Hanoi Medical University Associate Professors. Lifetime warranty.",
     "url": "https://implant.vietnamdentaltravel.com",
-    "image": "https://implant.vietnamdentaltravel.com/images/dental-implants-hero.jpg",
+    "image": "https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/dental-implants-vietnam/hero-banner.webp",
     "brand": {
       "@type": "Brand",
       "name": "VietnamDentalTravel"
@@ -500,6 +500,17 @@
     .cost-table {
       overflow-x: auto;
       margin-top: 30px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Subtle scroll hint on mobile for the pricing table */
+    .cost-table::after {
+      content: '← scroll →';
+      display: none;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--medium-gray);
+      padding: 8px 0;
     }
 
     table {
@@ -1306,6 +1317,12 @@
 
       .hero-visual { display: none; }
       .col-usa, .col-uk { display: none; }
+
+      /* Compact pricing table for narrow viewports — keeps all 4 visible cols on screen */
+      th, td { padding: 12px 8px; font-size: 0.85rem; }
+      td small { font-size: 0.7rem; display: block; opacity: 0.8; }
+      .save-badge { padding: 3px 8px; font-size: 0.7rem; white-space: nowrap; }
+      .cost-table::after { display: block; }
 
       .mobile-cta.visible {
         display: flex;
@@ -2371,7 +2388,11 @@
           body: JSON.stringify({
             access_key: 'cf0ca620-d064-4640-9454-afb27d588f67',
             ...data,
-            subject: 'New Dental Implant Inquiry - Free Treatment Plan'
+            subject: 'New Dental Implant Inquiry — implant.vietnamdentaltravel.com',
+            from_name: 'VietnamDentalTravel Booking',
+            // Where the email lands is controlled by the Web3Forms dashboard config for this access_key.
+            // The destination should be info@myvivatour.com — verify in Web3Forms UI if mail not received.
+            replyto: data.email || ''
           })
         });
 
