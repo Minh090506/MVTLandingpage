@@ -334,6 +334,15 @@ Các bài học rút ra từ những lần build LP trước. Đọc kỹ trư�
 - Upload qua: commit message có `[upload-images]` flag → trigger upload-images job trong `deploy.yml`.
 - Hoặc manual: `gh workflow run deploy.yml --ref main` (event = workflow_dispatch cũng trigger upload).
 
+### Nguồn ảnh/video — LẤY TỪ KHO CÔNG TY, không chế từ nguồn khác
+Tất cả assets thật của MyVivaTour nằm trong Google Drive shared drive **Marketing** (mount: `~/Library/CloudStorage/GoogleDrive-<email>/Shared drives/Marketing/MY VIVA TOUR/`). **Cần Full Disk Access cho Terminal** (macOS TCC) — nếu `Operation not permitted` thì cấp FDA rồi restart Terminal.
+
+- **Ảnh tĩnh cho LP (tour cards, banners, gallery) → BẮT BUỘC lấy từ kho ẢNH:** `MVT_Kho ảnh/Kho ảnh (theo địa điểm)/<Location>/WEBP/Banner Tours (1920x743)/<Loc>_N.webp`. Đây là ảnh đã curate, **1920×743 webp, có watermark logo MVT** (đồng bộ brand) — khớp luôn tỉ lệ cover của tour cards. Cũng có `Kho ảnh (theo Tours)/` (theo tour) và mỗi location còn `JPG/` + `WIC RS/`.
+- **KHÔNG trích frame từ video** để làm ảnh tĩnh. Frame video chỉ chấp nhận cho **hero background video loop** (`.mp4`), KHÔNG cho `<img>` tĩnh. (Bài học: từng dùng frame Hạ Long/Mekong cho tour cards → phải thay lại bằng ảnh kho.)
+- **Video cho hero loop → lấy từ kho VIDEO:** `MVT_Kho video/Kho video (theo địa điểm)/<Location>/`. Phần lớn là video dọc (điện thoại); chỉ vài clip landscape 16:9 (Hạ Long `DuThuyen .mp4`, `7158353349520.mp4`). Xem pipeline trong memory `hero-video-pipeline`.
+- Quy trình: chọn từ kho → copy/encode webp vào `pages/<page>/images/` → commit `[upload-images]`. Ảnh "Banner Tours (1920x743)" đã là webp tối ưu nên copy thẳng được.
+- **Lưu ý bucket Supabase:** `landing-images` có `allowed_mime_types` whitelist — đã thêm `video/mp4,video/webm` (ngoài image/jpeg|png|webp). Nếu thêm định dạng mới phải update whitelist, nếu không upload báo `✗ mime type ... not supported` nhưng CI vẫn xanh → file 404 trên CDN.
+
 ### Subdomain routing — 3 cách
 1. Cùng zone (myvivatour.com) → thêm vào `HOST_DEFAULTS` trong build.js. CF route đã có cho `*.myvivatour.com`.
 2. Zone khác (vd vietnamdentaltravel.com) → cần `wrangler-<brand>.toml` riêng với `name = "<worker>"` + `[[routes]] custom_domain = true`. Worker này dùng CHUNG `worker.js` (set `main = "worker.js"`).
