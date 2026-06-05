@@ -341,7 +341,15 @@ Tất cả assets thật của MyVivaTour nằm trong Google Drive shared drive 
 - **KHÔNG trích frame từ video** để làm ảnh tĩnh. Frame video chỉ chấp nhận cho **hero background video loop** (`.mp4`), KHÔNG cho `<img>` tĩnh. (Bài học: từng dùng frame Hạ Long/Mekong cho tour cards → phải thay lại bằng ảnh kho.)
 - **Video cho hero loop → lấy từ kho VIDEO:** `MVT_Kho video/Kho video (theo địa điểm)/<Location>/`. Phần lớn là video dọc (điện thoại); chỉ vài clip landscape 16:9 (Hạ Long `DuThuyen .mp4`, `7158353349520.mp4`). Xem pipeline trong memory `hero-video-pipeline`.
 - Quy trình: chọn từ kho → copy/encode webp vào `pages/<page>/images/` → commit `[upload-images]`. Ảnh "Banner Tours (1920x743)" đã là webp tối ưu nên copy thẳng được.
-- **Lưu ý bucket Supabase:** `landing-images` có `allowed_mime_types` whitelist — đã thêm `video/mp4,video/webm` (ngoài image/jpeg|png|webp). Nếu thêm định dạng mới phải update whitelist, nếu không upload báo `✗ mime type ... not supported` nhưng CI vẫn xanh → file 404 trên CDN.
+- **Lưu ý bucket Supabase:** `landing-images` có `allowed_mime_types` whitelist — đã thêm `video/mp4,video/webm` (ngoài image/jpeg|png|webp). Nếu thêm định dạng mới phải update whitelist, nếu không upload báo `✗ mime type ... not supported` nhưng CI vẫn xanh → file 404 trên CDN. Update bằng SQL: `update storage.buckets set allowed_mime_types = array[...] where id='landing-images'` (file_size_limit hiện 10MB).
+
+### Hero background video (img-first, video-on-play)
+Pattern dùng cho escape + happytours (chi tiết: memory `hero-video-pipeline`):
+- Trong `.hero-parallax-layer`: `<img class="hero-bg-img">` (poster, fetchpriority=high — paint trước, giữ FCP) + `<video class="hero-bg-video" autoplay muted loop playsinline>` (opacity 0).
+- `onplaying="this.parentElement.classList.add('hero-video-on')"` → CSS `.hero-video-on .hero-bg-img { opacity:0 }` (ẩn poster) + `.hero-video-on .hero-bg-video { opacity:0.6 }` (video thành nền chính). **Đừng để video opacity thấp chồng lên poster** — sẽ thấy ảnh, không thấy video (bug đã gặp ở mức 0.45).
+- `.hero::after` scrim tối + headline `text-shadow` 2 lớp mềm (`0 1px 3px + 0 6px 20px rgba(0,0,0)`) giữ chữ trắng đọc được trên video sáng.
+- `muted+playsinline` BẮT BUỘC cho mobile autoplay. `prefers-reduced-motion` → ẩn video (không fire `onplaying` → poster giữ nguyên, an toàn).
+- Encode: `scripts/build-hero-loop.sh single|montage`. ffmpeg 1280×720 muted H.264 CRF 30 (~1-2MB/loop). `montage` cắt từ `0:00` mỗi clip → muốn đoạn giữa phải pre-extract `ffmpeg -ss <t> -t <d>` vào `/tmp` trước rồi montage temp. Footage Drive đa số dọc; landscape 16:9 hiếm.
 
 ### Subdomain routing — 3 cách
 1. Cùng zone (myvivatour.com) → thêm vào `HOST_DEFAULTS` trong build.js. CF route đã có cho `*.myvivatour.com`.
@@ -379,9 +387,19 @@ Mỗi subdomain thêm mới phải: (a) `HOST_DEFAULTS['<sub>']` trong build.js,
 - **deploy.yml `paths:` trigger** — workflow chỉ chạy khi files trong paths thay đổi. Nếu chỉ sửa `scripts/*` hoặc `.github/*`, push KHÔNG trigger → dùng `gh workflow run deploy.yml --ref main` để manual dispatch.
 - **`[upload-images]` flag trong commit message** sẽ trigger image upload job (cùng với workflow_dispatch).
 
+### Git hygiene — KHÔNG commit audit artifacts
+- **`git add -A` mù sẽ nuốt screenshot audit** — full-page mobile PNG có thể 20MB+/file (trang ~23.000px). Từng suýt commit 460MB. `.gitignore` đã chặn:
+  - `plans/reports/**/screenshots/` (screenshot audit, regenerable)
+  - `release-manifest.json` (artifact ClaudeKit, không phải source)
+  - `pages/escape/index-v2.html` (draft, không đăng ký trong build.js)
+- GitHub hard-reject file >100MB. Trước khi commit/push hàng loạt: `find . -size +5M` để soi file nặng; muốn lưu screenshot lâu dài → Git LFS hoặc Drive, đừng commit thẳng.
+- Supabase upload là upsert (ghi đè cùng path) → sau khi thay ảnh, verify byte-size served khớp file mới (không stale CDN): `curl -sI <url> | grep -i content-length`.
+
 ### Script gotchas
 - **JSDoc block comment `/** ... */` + glob `pages/*/images/`** → `*/` đóng comment sớm → SyntaxError. Dùng `//` line comments cho headers có chứa glob/path.
-- **CommonJS `require` ở root** khi script chạy từ `/tmp` sẽ không tìm thấy `node_modules` của repo → đặt script trong project root.
+- **CommonJS `require` ở root** khi script chạy từ `/tmp` sẽ không tìm thấy `node_modules` của repo → đặt script trong project root. (Hook `scout-block` chặn mọi lệnh bash chứa chuỗi `node_modules` → đừng grep/ls path đó.)
+- **ffmpeg homebrew thiếu `libwebp`** → encode webp fail `Unknown encoder 'libwebp'`. Trích frame ra `.png` bằng ffmpeg rồi convert sang webp bằng `cwebp -q 82 in.png -o out.webp` (hoặc `magick`).
+- **Convert/crop ảnh kho → webp giữ tỉ lệ 1920×743** (khớp cover banner). Cover-crop landscape cho frame dọc: `scale=1280:800:force_original_aspect_ratio=increase,crop=...`.
 
 ### Audit workflow (sau mỗi major change)
 Chạy:
@@ -392,12 +410,14 @@ node scripts/puppeteer-landing-page-screenshot-and-audit.js <URL> /tmp/lp-audit-
 Output: mobile+desktop fold + fullpage screenshots, `<tag>-summary.json` với SEO/perf/tracking/layout metrics.
 
 Check trong summary:
-- `layout.overflowing` = [] (mobile)
-- `layout.hasHorizontalScroll` = false
-- `seo.imgsMissingAlt` = 0
+- `layout.hasHorizontalScroll` = false ← **gate thật** cho mobile, không phải `overflowing`
+- `layout.overflowing` — bỏ qua nếu phần tử nằm trong khung `overflow-x:auto` (bảng giá/compare scroll ngang có chủ đích vẫn bị liệt kê nhưng KHÔNG vỡ trang). Chỉ lo khi `hasHorizontalScroll=true`.
+- `seo.imgsMissingAlt` — `1` thường là **false positive**: ảnh nền hero `alt=""` (decorative + `aria-hidden`) là chuẩn accessibility, không cần alt. Verify bằng grep `<img` thiếu `alt=` (khác `alt=""`).
 - `tracking.*` đầy đủ 5 IDs
 - `consoleErrors` = [] (hoặc trace nguyên nhân)
 - `perf.fcp` < 2500ms mobile
+
+**Reveal-animation artifact khi screenshot:** phần tử `.section-reveal` start `opacity:0`, fade-in qua IntersectionObserver. Auto-scroll nhanh + chụp ngay → vùng hiện mờ/trống (chưa fire) → tưởng lỗi layout. Verify bằng scroll chậm từng bước (`scrollTo` mỗi ~200px, chờ ~60ms) cho IO fire, rồi mới chụp. Không phải bug — user thật scroll chậm vẫn thấy.
 
 ### Verify image URLs sau upload
 ```bash
