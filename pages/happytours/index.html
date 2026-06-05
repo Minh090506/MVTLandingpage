@@ -400,7 +400,11 @@
             transition: opacity 1.2s ease;
             pointer-events: none;
         }
-        .hero-bg-video.is-playing { opacity: 0.45; }
+        /* Once the video can actually play it becomes THE hero background:
+           the static poster fades fully out (no longer shown underneath) and the
+           video shows at a dimmed opacity so the ::after scrim keeps white text legible. */
+        .hero-parallax-layer.hero-video-on .hero-bg-video { opacity: 0.6; }
+        .hero-parallax-layer.hero-video-on .hero-bg-img { animation: none; opacity: 0; transition: opacity 1.2s ease; }
         @media (prefers-reduced-motion: reduce) {
             .hero-bg-video { display: none; }
         }
@@ -3662,7 +3666,7 @@
             <img class="hero-bg-img" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg" alt="" fetchpriority="high" decoding="sync" width="1920" height="1080" aria-hidden="true">
             <video class="hero-bg-video" autoplay muted loop playsinline preload="auto"
                    poster="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg"
-                   aria-hidden="true" onplaying="this.classList.add('is-playing')">
+                   aria-hidden="true" onplaying="this.parentElement.classList.add('hero-video-on')">
                 <source src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/hero-vietnam-montage.mp4" type="video/mp4">
             </video>
         </div>
