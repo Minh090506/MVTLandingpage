@@ -1,0 +1,109 @@
+{
+  "url": "https://escape.myvivatour.com/honeymoon",
+  "tag": "honeymoon",
+  "ts": "2026-05-19T03:37:14.852Z",
+  "viewports": {
+    "mobile": {
+      "status": 200,
+      "loadMs": 966,
+      "perf": {
+        "dom": 326,
+        "load": 326.30000019073486,
+        "ttfb": 57.69999980926514,
+        "fcp": 364,
+        "domNodes": 19,
+        "bodyTextLen": 96
+      },
+      "seo": {
+        "title": "Vietnam Honeymoon Package — 7-Day Romantic Getaway | MyVivaTour",
+        "titleLen": 63,
+        "description": "Romantic Vietnam Honeymoon Package — 7 Days from $1,899 AUD. Private tours, luxury resorts & candlelight dinners. Ha Long Bay cruise, Hoi An lanterns & Saigon romance. Book with MyVivaTour!",
+        "descLen": 189,
+        "keywords": "",
+        "canonical": "https://escape.myvivatour.com/honeymoon",
+        "ogTitle": "Vietnam Honeymoon Package — 7-Day Romantic Getaway from $1,899 AUD",
+        "ogDesc": "",
+        "ogImage": "",
+        "twitterCard": "",
+        "h1": [
+          "Vietnam Honeymoon Package"
+        ],
+        "h2Count": 0,
+        "imgs": 0,
+        "imgsMissingAlt": 0,
+        "schemaTypes": [],
+        "hreflang": []
+      },
+      "tracking": {
+        "hasDataLayer": false,
+        "dataLayerLen": 0,
+        "whatsappLink": false
+      },
+      "layout": {
+        "docW": 390,
+        "winW": 390,
+        "hasHorizontalScroll": false,
+        "overflowing": []
+      },
+      "consoleErrors": [],
+      "requestCount": 2,
+      "imgRequests": 0,
+      "scriptRequests": 0,
+      "screenshots": {
+        "fold": "honeymoon-mobile-fold.png",
+        "full": "honeymoon-mobile-full.png"
+      }
+    },
+    "desktop": {
+      "status": 200,
+      "loadMs": 993,
+      "perf": {
+        "dom": 4.800000190734863,
+        "load": 4.900000095367432,
+        "ttfb": 0.10000038146972656,
+        "fcp": 20,
+        "domNodes": 19,
+        "bodyTextLen": 96
+      },
+      "seo": {
+        "title": "Vietnam Honeymoon Package — 7-Day Romantic Getaway | MyVivaTour",
+        "titleLen": 63,
+        "description": "Romantic Vietnam Honeymoon Package — 7 Days from $1,899 AUD. Private tours, luxury resorts & candlelight dinners. Ha Long Bay cruise, Hoi An lanterns & Saigon romance. Book with MyVivaTour!",
+        "descLen": 189,
+        "keywords": "",
+        "canonical": "https://escape.myvivatour.com/honeymoon",
+        "ogTitle": "Vietnam Honeymoon Package — 7-Day Romantic Getaway from $1,899 AUD",
+        "ogDesc": "",
+        "ogImage": "",
+        "twitterCard": "",
+        "h1": [
+          "Vietnam Honeymoon Package"
+        ],
+        "h2Count": 0,
+        "imgs": 0,
+        "imgsMissingAlt": 0,
+        "schemaTypes": [],
+        "hreflang": []
+      },
+      "tracking": {
+        "hasDataLayer": false,
+        "dataLayerLen": 0,
+        "whatsappLink": false
+      },
+      "layout": {
+        "docW": 1440,
+        "winW": 1440,
+        "hasHorizontalScroll": false,
+        "overflowing": []
+      },
+      "consoleErrors": [],
+      "requestCount": 2,
+      "imgRequests": 0,
+      "scriptRequests": 0,
+      "screenshots": {
+        "fold": "honeymoon-desktop-fold.png",
+        "full": "honeymoon-desktop-full.png"
+      }
+    }
+  }
+}

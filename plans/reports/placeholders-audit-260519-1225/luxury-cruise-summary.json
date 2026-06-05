@@ -1,0 +1,109 @@
+{
+  "url": "https://escape.myvivatour.com/luxury-cruise",
+  "tag": "luxury-cruise",
+  "ts": "2026-05-19T03:37:23.614Z",
+  "viewports": {
+    "mobile": {
+      "status": 200,
+      "loadMs": 962,
+      "perf": {
+        "dom": 244,
+        "load": 244.2000002861023,
+        "ttfb": 71.19999980926514,
+        "fcp": 268,
+        "domNodes": 19,
+        "bodyTextLen": 97
+      },
+      "seo": {
+        "title": "Luxury Vietnam Cruise Tour — 12-Day Premium Package | MyVivaTour",
+        "titleLen": 64,
+        "description": "Luxury Ha Long Bay Cruise & Vietnam Tour — 12 Days from $3,499 AUD. 5-star resorts, private yacht cruise, gourmet dining & spa treatments. Premium Vietnam experience with MyVivaTour.",
+        "descLen": 182,
+        "keywords": "",
+        "canonical": "https://escape.myvivatour.com/luxury-cruise",
+        "ogTitle": "Luxury Vietnam Cruise Tour — 12-Day Premium Package from $3,499 AUD",
+        "ogDesc": "",
+        "ogImage": "",
+        "twitterCard": "",
+        "h1": [
+          "Luxury Vietnam Cruise Tour"
+        ],
+        "h2Count": 0,
+        "imgs": 0,
+        "imgsMissingAlt": 0,
+        "schemaTypes": [],
+        "hreflang": []
+      },
+      "tracking": {
+        "hasDataLayer": false,
+        "dataLayerLen": 0,
+        "whatsappLink": false
+      },
+      "layout": {
+        "docW": 390,
+        "winW": 390,
+        "hasHorizontalScroll": false,
+        "overflowing": []
+      },
+      "consoleErrors": [],
+      "requestCount": 2,
+      "imgRequests": 0,
+      "scriptRequests": 0,
+      "screenshots": {
+        "fold": "luxury-cruise-mobile-fold.png",
+        "full": "luxury-cruise-mobile-full.png"
+      }
+    },
+    "desktop": {
+      "status": 200,
+      "loadMs": 988,
+      "perf": {
+        "dom": 5.199999809265137,
+        "load": 5.5,
+        "ttfb": 0.19999980926513672,
+        "fcp": 24,
+        "domNodes": 19,
+        "bodyTextLen": 97
+      },
+      "seo": {
+        "title": "Luxury Vietnam Cruise Tour — 12-Day Premium Package | MyVivaTour",
+        "titleLen": 64,
+        "description": "Luxury Ha Long Bay Cruise & Vietnam Tour — 12 Days from $3,499 AUD. 5-star resorts, private yacht cruise, gourmet dining & spa treatments. Premium Vietnam experience with MyVivaTour.",
+        "descLen": 182,
+        "keywords": "",
+        "canonical": "https://escape.myvivatour.com/luxury-cruise",
+        "ogTitle": "Luxury Vietnam Cruise Tour — 12-Day Premium Package from $3,499 AUD",
+        "ogDesc": "",
+        "ogImage": "",
+        "twitterCard": "",
+        "h1": [
+          "Luxury Vietnam Cruise Tour"
+        ],
+        "h2Count": 0,
+        "imgs": 0,
+        "imgsMissingAlt": 0,
+        "schemaTypes": [],
+        "hreflang": []
+      },
+      "tracking": {
+        "hasDataLayer": false,
+        "dataLayerLen": 0,
+        "whatsappLink": false
+      },
+      "layout": {
+        "docW": 1440,
+        "winW": 1440,
+        "hasHorizontalScroll": false,
+        "overflowing": []
+      },
+      "consoleErrors": [],
+      "requestCount": 2,
+      "imgRequests": 0,
+      "scriptRequests": 0,
+      "screenshots": {
+        "fold": "luxury-cruise-desktop-fold.png",
+        "full": "luxury-cruise-desktop-full.png"
+      }
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "url": "https://escape.myvivatour.com/family-tour",
+  "tag": "family-tour",
+  "ts": "2026-05-19T03:37:19.271Z",
+  "viewports": {
+    "mobile": {
+      "status": 200,
+      "loadMs": 925,
+      "perf": {
+        "dom": 206.09999990463257,
+        "load": 206.40000009536743,
+        "ttfb": 69.7999997138977,
+        "fcp": 228,
+        "domNodes": 19,
+        "bodyTextLen": 90
+      },
+      "seo": {
+        "title": "Vietnam Family Tour — 8-Day Family Adventure | MyVivaTour",
+        "titleLen": 57,
+        "description": "Family Vietnam Tour — 8 Days from $1,699 AUD per person. Kid-friendly activities, cultural experiences & beach time. Perfect for families from Australia. Book with MyVivaTour!",
+        "descLen": 175,
+        "keywords": "",
+        "canonical": "https://escape.myvivatour.com/family-tour",
+        "ogTitle": "Vietnam Family Tour — 8-Day Adventure from $1,699 AUD",
+        "ogDesc": "",
+        "ogImage": "",
+        "twitterCard": "",
+        "h1": [
+          "Vietnam Family Tour"
+        ],
+        "h2Count": 0,
+        "imgs": 0,
+        "imgsMissingAlt": 0,
+        "schemaTypes": [],
+        "hreflang": []
+      },
+      "tracking": {
+        "hasDataLayer": false,
+        "dataLayerLen": 0,
+        "whatsappLink": false
+      },
+      "layout": {
+        "docW": 390,
+        "winW": 390,
+        "hasHorizontalScroll": false,
+        "overflowing": []
+      },
+      "consoleErrors": [],
+      "requestCount": 2,
+      "imgRequests": 0,
+      "scriptRequests": 0,
+      "screenshots": {
+        "fold": "family-tour-mobile-fold.png",
+        "full": "family-tour-mobile-full.png"
+      }
+    },
+    "desktop": {
+      "status": 200,
+      "loadMs": 986,
+      "perf": {
+        "dom": 4.5,
+        "load": 4.800000190734863,
+        "ttfb": 0.20000028610229492,
+        "fcp": 28,
+        "domNodes": 19,
+        "bodyTextLen": 90
+      },
+      "seo": {
+        "title": "Vietnam Family Tour — 8-Day Family Adventure | MyVivaTour",
+        "titleLen": 57,
+        "description": "Family Vietnam Tour — 8 Days from $1,699 AUD per person. Kid-friendly activities, cultural experiences & beach time. Perfect for families from Australia. Book with MyVivaTour!",
+        "descLen": 175,
+        "keywords": "",
+        "canonical": "https://escape.myvivatour.com/family-tour",
+        "ogTitle": "Vietnam Family Tour — 8-Day Adventure from $1,699 AUD",
+        "ogDesc": "",
+        "ogImage": "",
+        "twitterCard": "",
+        "h1": [
+          "Vietnam Family Tour"
+        ],
+        "h2Count": 0,
+        "imgs": 0,
+        "imgsMissingAlt": 0,
+        "schemaTypes": [],
+        "hreflang": []
+      },
+      "tracking": {
+        "hasDataLayer": false,
+        "dataLayerLen": 0,
+        "whatsappLink": false
+      },
+      "layout": {
+        "docW": 1440,
+        "winW": 1440,
+        "hasHorizontalScroll": false,
+        "overflowing": []
+      },
+      "consoleErrors": [],
+      "requestCount": 2,
+      "imgRequests": 0,
+      "scriptRequests": 0,
+      "screenshots": {
+        "fold": "family-tour-desktop-fold.png",
+        "full": "family-tour-desktop-full.png"
+      }
+    }
+  }
+}
