@@ -24,3 +24,12 @@ assets/videos/introduction/claudekit-engineer-2-intro.mp4
 *.tmp
 *.swp
 *~
+
+# Audit screenshot artifacts — full-page PNGs, hundreds of MB, regenerable
+plans/reports/**/screenshots/
+
+# Generated ClaudeKit release manifest (tooling artifact, not project source)
+release-manifest.json
+
+# Draft/experimental page — not registered in build.js
+pages/escape/index-v2.html
