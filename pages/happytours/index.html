@@ -42,7 +42,7 @@
     <!-- Mark JS as loaded synchronously so CSS scroll-reveal rules can safely hide content until observer fires.
          Without this, the .section-reveal / card opacity:0 baseline would persist if JS failed or was slow. -->
     <script>document.documentElement.classList.add('js');</script>
-    <meta name="description" content="3 ways to discover Vietnam from Australia — Honeymoon ($1,899), Family ($1,699), or Luxury Cruise ($2,999) AUD. All-inclusive packages with flights, hotels, meals & guides. Trusted by 500+ Aussie travellers. ★ 5.0 / 230+ reviews on TripAdvisor.">
+    <meta name="description" content="Vietnam holiday from Australia — Honeymoon $1,899, Family $1,699, Luxury Cruise $2,999 AUD. All-inclusive: flights, hotels, meals. ★5.0/230 reviews.">
     <meta name="keywords" content="Vietnam tour packages from Australia, Vietnam holiday packages 2026, Vietnam tours by interest, Vietnam honeymoon package from Australia, Vietnam family tour from Australia, luxury Vietnam cruise tour, romantic Vietnam tour for couples, kid-friendly Vietnam holiday, 5-star Halong Bay cruise, private Vietnam honeymoon, multi-generation Vietnam tour, premium Vietnam cruise from Australia, all inclusive Vietnam holiday, Vietnam tour with flights included, Ha Long Bay tour, Hanoi tour, Hoi An tour, Phu Quoc tour, Sapa tour, Mekong Delta tour, MyVivaTour, Vietnam holiday packages, best Vietnam tour operator Australia, Vietnam tour deals 2026, Vietnam tour packages Australia 2026, happy tours Vietnam, multi-tour Vietnam package">
 
     <!-- Geo & Audience Targeting -->
@@ -64,8 +64,8 @@
     <link rel="dns-prefetch" href="https://api.web3forms.com">
 
     <!-- Open Graph Tags -->
-    <meta property="og:title" content="3 Vietnam Tour Packages from Australia — Honeymoon, Family, Luxury Cruise | MyVivaTour 2026">
-    <meta property="og:description" content="Choose your Vietnam holiday from 3 curated packages. All-inclusive from Australia, prices from $1,699 AUD. ★ 5.0/230 reviews. Trusted by 500+ Aussie travellers.">
+    <meta property="og:title" content="Vietnam Tour Packages from $1,699 AUD | MyVivaTour 2026">
+    <meta property="og:description" content="Honeymoon, Family, or Luxury Cruise — pick your Vietnam holiday from Australia. All-inclusive, ★5.0/230 TripAdvisor reviews.">
     <meta property="og:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -76,8 +76,8 @@
 
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="3 Vietnam Tour Packages from Australia — Honeymoon, Family, Luxury Cruise | MyVivaTour">
-    <meta name="twitter:description" content="Choose your Vietnam holiday from 3 curated packages. All-inclusive from Australia, prices from $1,699 AUD. ★ 5.0/230 reviews.">
+    <meta name="twitter:title" content="Vietnam Tour Packages from $1,699 AUD | MyVivaTour">
+    <meta name="twitter:description" content="Honeymoon, Family, or Luxury Cruise — Vietnam holidays from Australia. All-inclusive, ★5.0/230 reviews.">
     <meta name="twitter:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg">
 
     <!-- Geo & Language -->
@@ -97,7 +97,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <title>Vietnam Holiday Packages from Australia 2026 | Honeymoon · Family · Luxury Cruise | MyVivaTour</title>
+    <title>Vietnam Tour Packages from $1,699 AUD | MyVivaTour 2026</title>
 
     <style>
         * {
@@ -381,6 +381,28 @@
                 transform: scale(1);
                 opacity: 0.4;
             }
+        }
+
+        /* Hero background video — short Vietnam montage (Ha Long, Hoi An, etc.)
+           layered over the static poster. The img paints first (keeps LCP/FCP fast);
+           the video fades in only once it can play, so first paint never waits on the
+           MP4. muted + playsinline are required for mobile autoplay. Reduced-motion
+           users keep the static image. */
+        .hero-bg-video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            opacity: 0;
+            z-index: 0;
+            transition: opacity 1.2s ease;
+            pointer-events: none;
+        }
+        .hero-bg-video.is-playing { opacity: 0.45; }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-bg-video { display: none; }
         }
 
         .hero::after {
@@ -3029,6 +3051,29 @@
             border-radius: 16px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.08);
             background: white;
+            position: relative;
+        }
+        /* Right-edge fade hints there's more content to scroll on mobile.
+           Sticky-left first column keeps the row label visible while user swipes. */
+        @media (max-width: 768px) {
+            .compare-wrapper::after {
+                content: "";
+                position: absolute;
+                top: 0; right: 0; bottom: 0;
+                width: 32px;
+                pointer-events: none;
+                background: linear-gradient(to left, rgba(255,255,255,0.95), rgba(255,255,255,0));
+                border-radius: 0 16px 16px 0;
+            }
+            .compare-table thead th:first-child,
+            .compare-table tbody td:first-child {
+                position: sticky;
+                left: 0;
+                z-index: 2;
+                box-shadow: 1px 0 0 var(--border);
+            }
+            .compare-table thead th:first-child { background: var(--dark); }
+            .compare-table th, .compare-table td { padding: 0.75rem 0.85rem; font-size: 0.88rem; }
         }
         .compare-table {
             width: 100%;
@@ -3045,12 +3090,13 @@
             text-align: left;
             border-bottom: 1px solid var(--border);
             vertical-align: top;
-            color: var(--text-dark); /* FIX: parent .compare-section sets color:#fff which cascades into the white-bg table → invisible text. Override explicitly. */
+            color: var(--text-dark); /* parent .compare-section sets color:#fff which cascades into white-bg cells → invisible. Override here; thead re-overrides below. */
         }
         .compare-table thead th {
             font-weight: 700;
             font-size: 1rem;
             text-align: center;
+            color: #fff; /* re-apply white on dark thead bg (parent th rule above set it to var(--text-dark) which made header text invisible) */
         }
         .compare-table thead th .compare-icon {
             display: block;
@@ -3614,6 +3660,11 @@
     <section class="hero">
         <div class="hero-parallax-layer">
             <img class="hero-bg-img" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg" alt="" fetchpriority="high" decoding="sync" width="1920" height="1080" aria-hidden="true">
+            <video class="hero-bg-video" autoplay muted loop playsinline preload="auto"
+                   poster="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg"
+                   aria-hidden="true" onplaying="this.classList.add('is-playing')">
+                <source src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/hero-vietnam-montage.mp4" type="video/mp4">
+            </video>
         </div>
         <div class="hero-content">
             <h1>3 Ways to Discover Vietnam from Australia</h1>

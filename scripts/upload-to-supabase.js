@@ -32,8 +32,8 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const BUCKET_NAME = 'landing-images';
 const ROOT_DIR = path.join(__dirname, '..');
 
-// Supported image extensions
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.avif']);
+// Supported media extensions (images + short hero-loop videos)
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.avif', '.mp4', '.webm']);
 
 // MIME type mapping
 const MIME_TYPES = {
@@ -44,6 +44,8 @@ const MIME_TYPES = {
   '.svg':  'image/svg+xml',
   '.gif':  'image/gif',
   '.avif': 'image/avif',
+  '.mp4':  'video/mp4',
+  '.webm': 'video/webm',
 };
 
 function validateEnv() {
