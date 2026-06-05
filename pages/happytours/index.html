@@ -505,7 +505,8 @@
         .hero h1 {
             color: white;
             margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            /* Layered soft shadow lifts the headline off bright video frames (water/sky) without a heavy box */
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 6px 20px rgba(0, 0, 0, 0.38);
         }
 
         .hero-subtitle {
@@ -1778,7 +1779,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 3rem;
-            align-items: center;
+            align-items: start;
         }
 
         .booking-form {
@@ -2813,7 +2814,24 @@
             gap: 2.5rem;
             max-width: 1100px;
             margin: 0 auto 2rem;
-            align-items: start;
+            align-items: stretch;
+        }
+        /* Image column = vertical stack of 2 photos that together match the taller
+           details card's height (grid stretch), so the left side no longer looks short. */
+        .tour-img-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 0;
+        }
+        .tour-img-stack .tour-stack-img {
+            flex: 1 1 0;
+            min-height: 190px;
+            width: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 16px;
+            box-shadow: 0 18px 48px rgba(0,0,0,0.15);
         }
         /* Hero image — uses image's NATIVE 1920x743 ratio (~2.58:1) so the whole image is visible
            on every viewport with NO cropping. height:auto must override the height="743" HTML
@@ -3339,6 +3357,7 @@
         @media (max-width: 900px) {
             .tour-selector-grid { grid-template-columns: 1fr; }
             .tour-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+            .tour-img-stack .tour-stack-img { flex: none; min-height: 0; aspect-ratio: 16 / 10; }
             .tour-section { padding: 3rem 0; }
             .booking-tour-selector { grid-template-columns: 1fr; }
             .compare-scroll-hint { display: block; }
@@ -3759,11 +3778,16 @@
             </div>
 
             <div class="tour-layout">
-                <img class="tour-hero-img section-reveal"
-                     loading="lazy" decoding="async"
-                     src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/honeymoon-vhm10-cover.webp"
-                     alt="Romantic honeymoon suite on Halong Bay cruise — Vietnam Honeymoon 10-Day package (VHM10)"
-                     width="1920" height="743">
+                <div class="tour-img-stack section-reveal">
+                    <img class="tour-stack-img" loading="lazy" decoding="async"
+                         src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/honeymoon-vhm10-cover.webp"
+                         alt="Romantic honeymoon suite on Halong Bay cruise — Vietnam Honeymoon 10-Day package (VHM10)"
+                         width="1920" height="743">
+                    <img class="tour-stack-img" loading="lazy" decoding="async"
+                         src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/honeymoon-vhm10-2.webp"
+                         alt="Halong Bay emerald water and limestone karsts with overnight cruise boat — Vietnam Honeymoon (VHM10)"
+                         width="1280" height="800">
+                </div>
 
                 <div class="tour-info-card section-reveal">
                     <div class="tour-meta-row">
@@ -3854,11 +3878,16 @@
             </div>
 
             <div class="tour-layout">
-                <img class="tour-hero-img section-reveal"
-                     loading="lazy" decoding="async"
-                     src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/family-v7-cover.webp"
-                     alt="Ben Thanh Market Saigon at night — Overlook Vietnam Family 7-Day tour (V7)"
-                     width="1920" height="743">
+                <div class="tour-img-stack section-reveal">
+                    <img class="tour-stack-img" loading="lazy" decoding="async"
+                         src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/family-v7-cover.webp"
+                         alt="Ben Thanh Market Saigon at night — Overlook Vietnam Family 7-Day tour (V7)"
+                         width="1920" height="743">
+                    <img class="tour-stack-img" loading="lazy" decoding="async"
+                         src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/family-v7-2.webp"
+                         alt="Mekong Delta sampan boat ride through palm-lined canals — Overlook Vietnam Family tour (V7)"
+                         width="1280" height="800">
+                </div>
 
                 <div class="tour-info-card section-reveal">
                     <div class="tour-meta-row">
@@ -3937,11 +3966,16 @@
             </div>
 
             <div class="tour-layout">
-                <img class="tour-hero-img section-reveal"
-                     loading="lazy" decoding="async"
-                     src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/luxury-vlu10-cover.webp"
-                     alt="Premium Halong Bay cruise deck at sunset — Luxury & Unique Vietnam 10-Day tour (VLU10)"
-                     width="1920" height="743">
+                <div class="tour-img-stack section-reveal">
+                    <img class="tour-stack-img" loading="lazy" decoding="async"
+                         src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/luxury-vlu10-cover.webp"
+                         alt="Premium Halong Bay cruise deck at sunset — Luxury & Unique Vietnam 10-Day tour (VLU10)"
+                         width="1920" height="743">
+                    <img class="tour-stack-img" loading="lazy" decoding="async"
+                         src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/luxury-vlu10-2.webp"
+                         alt="Premium mega-yacht cruise ship on Halong Bay — Luxury & Unique Vietnam (VLU10)"
+                         width="1280" height="800">
+                </div>
 
                 <div class="tour-info-card section-reveal">
                     <div class="tour-meta-row">

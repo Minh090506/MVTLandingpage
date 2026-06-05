@@ -499,7 +499,8 @@
         .hero h1 {
             color: white;
             margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            /* Layered soft shadow lifts the headline off bright video frames (water/sky) without a heavy box */
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 6px 20px rgba(0, 0, 0, 0.38);
         }
 
         .hero-subtitle {
@@ -1769,7 +1770,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 3rem;
-            align-items: center;
+            align-items: start;
         }
 
         .booking-form {
