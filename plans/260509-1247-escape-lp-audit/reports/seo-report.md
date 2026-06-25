@@ -29,7 +29,7 @@ Strong technical foundation (6 JSON-LD blocks, full meta/OG/Twitter/hreflang, GT
 2. **JSON-LD coverage** — 6 blocks: TravelAgency, TouristTrip + AggregateRating(4.9, 127) + 3 Reviews, FAQPage (8 Q&A), BreadcrumbList, WebPage+Speakable, ItemList for package comparison. Most competitors have 1-2 blocks max.
 3. **Meta description** (319 chars in keywords + a clean 220-char description) — has price, destinations, "holiday", CTA, brand. 
 4. **OG/Twitter/hreflang** all present + en-AU + x-default + locale=en_AU + canonical. Geo meta (geo.region=AU) reinforced.
-5. **Tracking stack complete** — GTM-TPQWV864, GA4 G-LKDCCNJMP3, Ads AW-17709107883, FB Pixel 579298288600609 — fires PageView at load. Sitemap+robots OK.
+5. **Tracking stack complete** — GTM-TPQWV864, GA4 G-2R0EJ2LBJ5, Ads AW-17709107883, FB Pixel 579298288600609 — fires PageView at load. Sitemap+robots OK.
 
 ## ⚠️ Cần cải thiện (Medium severity)
 
@@ -118,7 +118,7 @@ Fix → Add ABN + ATAS number (if applicable) to footer + TravelAgency schema. I
 ## Detailed findings (reference)
 
 ### Tracking & infrastructure
-- ✅ GTM-TPQWV864, GA4 G-LKDCCNJMP3, Ads AW-17709107883, FB Pixel 579298288600609 all present
+- ✅ GTM-TPQWV864, GA4 G-2R0EJ2LBJ5, Ads AW-17709107883, FB Pixel 579298288600609 all present
 - ✅ Robots.txt OK (Cloudflare managed, allows search, blocks AI scrapers — fine)
 - ✅ Sitemap.xml lists 4 URLs, points to escape.myvivatour.com
 - ⚠️ Robots.txt blocks ClaudeBot, GPTBot, Google-Extended → AI-search visibility (ChatGPT, Perplexity, Gemini SGE) **disabled**. Reconsider for brand discovery; AI-search traffic is rising fast in AU.

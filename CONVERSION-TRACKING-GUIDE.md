@@ -4,7 +4,7 @@
 
 **Đã cài trong code HTML (on-page):** ✅
 - GTM Container: `GTM-TPQWV864`
-- GA4 gtag: `G-LKDCCNJMP3`
+- GA4 gtag: `G-2R0EJ2LBJ5`
 - Google Ads: `AW-17709107883`
 - Facebook Pixel: `579298288600609`
 - DataLayer events: `form_submit`, `form_success`, `form_error`, `cta_click`, `whatsapp_click`, `popup_shown`, `popup_submit`
@@ -102,7 +102,7 @@ Vào menu **Variables** > **New** (User-Defined Variables):
 #### TAG 1: GA4 Configuration (nếu chưa có)
 - Name: `GA4 - Config`
 - Type: `Google Analytics: GA4 Configuration`
-- Measurement ID: `G-LKDCCNJMP3`
+- Measurement ID: `G-2R0EJ2LBJ5`
 - Trigger: `All Pages`
 - Save
 
@@ -228,7 +228,7 @@ Vào menu **Variables** > **New** (User-Defined Variables):
 
 1. Trong Google Ads: **Tools & Settings** > **Linked accounts**
 2. Tìm **Google Analytics (GA4)** > click **Details**
-3. Tìm property `G-LKDCCNJMP3` > click **Link**
+3. Tìm property `G-2R0EJ2LBJ5` > click **Link**
 4. Confirm
 
 ---
@@ -238,13 +238,13 @@ Vào menu **Variables** > **New** (User-Defined Variables):
 ### Bước 3.1: Verify Data Stream
 
 1. Mở `https://analytics.google.com`
-2. Vào property có Measurement ID `G-LKDCCNJMP3`
+2. Vào property có Measurement ID `G-2R0EJ2LBJ5`
 3. **Admin** (gear icon) > **Data Streams**
 4. Click vào web stream (ID: 14312720580)
 5. Confirm:
    - Stream URL = `escape.myvivatour.com`
    - Enhanced measurement = ON
-   - Measurement ID = `G-LKDCCNJMP3`
+   - Measurement ID = `G-2R0EJ2LBJ5`
 
 ### Bước 3.2: Mark Conversions
 
@@ -380,7 +380,7 @@ Vào menu **Variables** > **New** (User-Defined Variables):
 
 ```
 GTM Container:          GTM-TPQWV864
-GA4 Measurement ID:     G-LKDCCNJMP3
+GA4 Measurement ID:     G-2R0EJ2LBJ5
 GA4 Stream ID:          14312720580
 Google Ads Account:     572-470-7852
 Google Ads Conversion:  AW-17709107883

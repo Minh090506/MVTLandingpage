@@ -38,7 +38,7 @@ Plus 3 placeholder routes (`/honeymoon`, `/family-tour`, `/luxury-cruise`) that 
 
 - **Form provider:** Web3Forms (key `cf0ca620-d064-4640-9454-afb27d588f67`, destination `info@myvivatour.com` — verify in Web3Forms dashboard).
 - **WhatsApp:** `+84 974 036 614` (https://wa.me/84974036614).
-- **Tracking:** GTM `GTM-TPQWV864`, GA4 `G-LKDCCNJMP3`, Google Ads `AW-17709107883`/`Wq0ECKXBmfsbEKuVrvxB`, Facebook Pixel `579298288600609`.
+- **Tracking:** GTM `GTM-TPQWV864`, GA4 `G-2R0EJ2LBJ5`, Google Ads `AW-17709107883`/`Wq0ECKXBmfsbEKuVrvxB`, Facebook Pixel `579298288600609`.
 - **TripAdvisor reviews** are injected at build time from `data/tripadvisor-reviews.json` into pages that have `<!-- TA-REVIEWS-START -->` markers (currently used by `escape`).
 
 ## Why this architecture
@@ -61,7 +61,7 @@ Trade-offs:
 | System | ID | Where to find |
 |---|---|---|
 | GTM | `GTM-TPQWV864` | Google Tag Manager |
-| GA4 | `G-LKDCCNJMP3` | Property 14312720580 |
+| GA4 | `G-2R0EJ2LBJ5` | Property hợp nhất cho tất cả landing page |
 | Google Ads | `AW-17709107883` | Customer 572-470-7852 |
 | Ads conversion label | `Wq0ECKXBmfsbEKuVrvxB` | send_to: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB` |
 | Facebook Pixel | `579298288600609` | Business 623339086973908 |

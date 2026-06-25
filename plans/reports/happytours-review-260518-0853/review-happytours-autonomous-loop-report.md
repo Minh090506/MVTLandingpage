@@ -43,7 +43,7 @@ screenshot mobile+desktop → audit JSON → diff vs prev → fix HTML
 
 ## Verified (no changes needed)
 
-- All 5 tracking IDs present in HTML: GTM-TPQWV864, G-LKDCCNJMP3, AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 579298288600609.
+- All 5 tracking IDs present in HTML: GTM-TPQWV864, G-2R0EJ2LBJ5, AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 579298288600609.
 - `dataLayer` fires on:
   - hero CTA click → `cta_click`
   - tour-section CTA click → `tour_cta_click`

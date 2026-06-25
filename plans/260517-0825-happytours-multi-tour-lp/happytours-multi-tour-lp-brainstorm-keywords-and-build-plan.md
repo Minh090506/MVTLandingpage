@@ -182,7 +182,7 @@ Shared:
 Same tracking stack as escape page (already proven working):
 
 - GTM: `GTM-TPQWV864`
-- GA4: `G-LKDCCNJMP3`
+- GA4: `G-2R0EJ2LBJ5`
 - Google Ads: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB`
 - Facebook Pixel: `579298288600609`
 

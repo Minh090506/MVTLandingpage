@@ -26,7 +26,7 @@ Hệ thống multi-landing-page cho công ty du lịch **myvivatour.com** (targe
 | Tracking | ID |
 |---|---|
 | GTM Container | `GTM-TPQWV864` |
-| GA4 Measurement | `G-LKDCCNJMP3` (Stream: 14312720580) |
+| GA4 Measurement | `G-2R0EJ2LBJ5` (Stream: 14312720580) |
 | Google Ads Conversion ID | `AW-17709107883` |
 | Google Ads Conversion Label | `Wq0ECKXBmfsbEKuVrvxB` |
 | Google Ads Customer ID (MCC) | `572-470-7852` (ocid: 7771865759) |

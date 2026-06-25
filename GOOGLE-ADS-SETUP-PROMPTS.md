@@ -16,7 +16,7 @@ Hãy vào trang Tags trong GTM workspace hiện tại và kiểm tra xem đã c�
 
 === TAG 1: GA4 Configuration ===
 - Tag type: Google Analytics: GA4 Configuration
-- Measurement ID: G-LKDCCNJMP3
+- Measurement ID: G-2R0EJ2LBJ5
 - Trigger: All Pages (built-in)
 - Tag name: "GA4 - Configuration"
 

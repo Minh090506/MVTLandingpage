@@ -62,7 +62,7 @@
 
 ## Conversion event tracking (already wired)
 - GTM: `GTM-TPQWV864`
-- GA4: `G-LKDCCNJMP3`
+- GA4: `G-2R0EJ2LBJ5`
 - Google Ads conversion: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB`
 - FB Pixel: `579298288600609`
 - Events to fire: `form_submit_lead`, `whatsapp_click`, `phone_click`, `calculator_used`, `xray_upload`

@@ -508,7 +508,7 @@ Keep all 3 descriptions ~40-50 chars to maintain visual balance.
 ### Tracking (must be on every LP)
 
 - GTM container: `GTM-TPQWV864`
-- GA4: `G-LKDCCNJMP3`
+- GA4: `G-2R0EJ2LBJ5`
 - Google Ads conversion: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB`
 - Facebook Pixel: `579298288600609`
 - Required dataLayer events: `page_view`, `form_start`, `form_submit`, `form_success`, `cta_click`, `whatsapp_click`

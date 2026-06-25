@@ -172,7 +172,7 @@
 |-----|--------|-------------|---------|
 | **Total leads (form + WhatsApp)** | 40–60 | Web3Forms submissions + WhatsApp message count | Daily |
 | **Cost per lead** | Under $50 AUD | (Google Ads + FB Ads spend) / total leads | Weekly |
-| **Website sessions** | 1,500+ over 4 weeks | GA4 (G-LKDCCNJMP3) | Weekly |
+| **Website sessions** | 1,500+ over 4 weeks | GA4 (G-2R0EJ2LBJ5) | Weekly |
 | **Google Ads CTR** | Above 5% | Google Ads dashboard | Weekly |
 | **Google Ads conversion rate** | Above 3% | Google Ads + GA4 | Weekly |
 | **Facebook ad CTR** | Above 1.5% | Meta Ads Manager | Weekly |

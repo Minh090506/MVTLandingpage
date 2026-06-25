@@ -4,7 +4,7 @@
 
 ### ✅ Đã có đầy đủ:
 1. **Google Tag Manager Container ID:** `GTM-TPQWV864`
-2. **Google Analytics 4 Measurement ID:** `G-LKDCCNJMP3` (Stream ID: 14312720580, Property: escape.myvivatour.com)
+2. **Google Analytics 4 Measurement ID:** `G-2R0EJ2LBJ5` (Stream ID: 14312720580, Property: escape.myvivatour.com)
 3. **Google Ads Conversion ID:** `AW-17709107883`
 4. **Google Ads Conversion Label:** `Wq0ECKXBmfsbEKuVrvxB`
 5. **Google Ads Customer ID:** `572-470-7852`
@@ -33,7 +33,7 @@ Hãy thêm các tracking code sau vào đúng vị trí:
    - GTM noscript vào ngay sau <body>
 
 2. Google Analytics 4 (qua GTM):
-   - GA4 Measurement ID: G-LKDCCNJMP3
+   - GA4 Measurement ID: G-2R0EJ2LBJ5
    - Config GA4 qua gtag.js (backup ngoài GTM)
 
 3. Google Ads Conversion Tracking:
@@ -248,7 +248,7 @@ Nếu chưa, chạy: npx wrangler deploy --name escape-myvivatour
 
 ## Thứ tự chạy prompts
 
-1. ✅ Đã có đủ IDs: GTM-TPQWV864, G-LKDCCNJMP3, AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 579298288600609
+1. ✅ Đã có đủ IDs: GTM-TPQWV864, G-2R0EJ2LBJ5, AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 579298288600609
 2. ▶️ Prompt 1 — Cài tracking (COPY NGUYÊN PROMPT — IDs đã điền sẵn)
 3. ▶️ Prompt 2 — Sync structured data
 4. ▶️ Prompt 5 — AI SEO (có thể gộp với Prompt 2)

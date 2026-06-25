@@ -18,7 +18,7 @@ Implementation is **functional and mostly correct**. Script placement follows be
 
 **Impact:** Low in practice -- GTM and gtag.js coexist, but this is a known anti-pattern. If GTM already loads GA4 internally, you're double-counting pageviews.
 
-**Recommendation:** Confirm whether GA4 (G-LKDCCNJMP3) is configured inside GTM. If yes, remove lines 14-22 entirely. If it's truly a "backup", document why both are needed. Double-firing `config` calls causes duplicate pageview hits.
+**Recommendation:** Confirm whether GA4 (G-2R0EJ2LBJ5) is configured inside GTM. If yes, remove lines 14-22 entirely. If it's truly a "backup", document why both are needed. Double-firing `config` calls causes duplicate pageview hits.
 
 ### 2. Google Ads Conversion Fires But `confirm()` Blocks the Thread (Lines 2753-2772)
 **Problem:** The sequence is:
@@ -104,11 +104,11 @@ setTimeout(conversionCallback, 2000); // fallback timeout
 ## Medium Priority
 
 ### 6. Duplicate Pageview from GA4 + GTM
-**Problem:** Line 20 fires `gtag('config', 'G-LKDCCNJMP3')` which auto-sends a `page_view`. If GTM also has a GA4 Configuration tag for the same Measurement ID, you get 2x pageviews.
+**Problem:** Line 20 fires `gtag('config', 'G-2R0EJ2LBJ5')` which auto-sends a `page_view`. If GTM also has a GA4 Configuration tag for the same Measurement ID, you get 2x pageviews.
 
 **Recommendation:** Verify in GTM. If GA4 is configured in GTM, either remove the gtag.js backup (lines 14-22) or add `{ send_page_view: false }` to the config call:
 ```js
-gtag('config', 'G-LKDCCNJMP3', { send_page_view: false });
+gtag('config', 'G-2R0EJ2LBJ5', { send_page_view: false });
 ```
 
 ### 7. WhatsApp Click Tracking Does Not Prevent Default (Lines 2812-2816)
@@ -185,7 +185,7 @@ if (waLink) {
 
 ## Unresolved Questions
 
-1. Is GA4 (G-LKDCCNJMP3) also configured as a tag inside GTM container GTM-TPQWV864? If yes, pageviews are double-counted.
+1. Is GA4 (G-2R0EJ2LBJ5) also configured as a tag inside GTM container GTM-TPQWV864? If yes, pageviews are double-counted.
 2. Does the Google Ads conversion label `Wq0ECKXBmfsbEKuVrvxB` map to one or two conversion actions? If one, the `generate_lead` call is a duplicate.
 3. Is there a consent management solution planned? GDPR/privacy compliance may require delaying GTM/FB Pixel load until consent is given (relevant for Australian users under Privacy Act).
 4. Are there any GTM Custom HTML tags that read `error_message` from dataLayer? If so, XSS risk from issue #4 is elevated from medium to critical.

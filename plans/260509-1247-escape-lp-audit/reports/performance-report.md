@@ -48,7 +48,7 @@ CF Cache:      public, max-age=3600 (1 hour) for HTML
 | Tag | Status | Notes |
 |-----|--------|-------|
 | GTM-TPQWV864 | LOADED | Inline snippet, `async` load ✅ |
-| GA4 G-LKDCCNJMP3 | LOADED via gtag.js | `async` ✅ — but see duplicate risk below |
+| GA4 G-2R0EJ2LBJ5 | LOADED via gtag.js | `async` ✅ — but see duplicate risk below |
 | Google Ads AW-17709107883 | CONFIGURED | `gtag('config', 'AW-17709107883')` line 21 ✅ |
 | Ads Conversion `Wq0ECKXBmfsbEKuVrvxB` | FIRES ON SUCCESS | In all 3 form handlers ✅ (bookingForm, exitForm, heroQuickForm) |
 | FB Pixel 579298288600609 | LOADED | fbq('init') + fbq('track', 'PageView') ✅ |
@@ -66,8 +66,8 @@ CF Cache:      public, max-age=3600 (1 hour) for HTML
 ## Tracking Details
 
 ### Duplicate GA4 Risk (Critical)
-- Line 15: `<script async src="...gtag/js?id=G-LKDCCNJMP3">` loads GA4 directly
-- Line 20-21: `gtag('config', 'G-LKDCCNJMP3')` fires GA4 PageView
+- Line 15: `<script async src="...gtag/js?id=G-2R0EJ2LBJ5">` loads GA4 directly
+- Line 20-21: `gtag('config', 'G-2R0EJ2LBJ5')` fires GA4 PageView
 - GTM-TPQWV864 container almost certainly has a GA4 tag configured inside it
 - Result: **GA4 PageView fires twice** per visit → inflated session count, distorted metrics
 - Fix: Remove direct gtag.js if GA4 is managed via GTM. Or keep direct gtag.js but remove GA4 tag from GTM container.
