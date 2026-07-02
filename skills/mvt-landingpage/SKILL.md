@@ -1,5 +1,5 @@
 ---
-name: mvt-landing-page
+name: mvt-landingpage
 description: "Build premium landing pages for MyVivaTour tour packages, deployed via Cloudflare Workers with images on Supabase Storage. Use this skill whenever the user asks to create a landing page, tour page, product page, or marketing page for myvivatour.com — including any subdomain like escape.myvivatour.com, 10days.myvivatour.com, etc. Also trigger when the user mentions 'landing page' together with 'tour', 'travel', 'vivatour', or 'cloudflare worker'. This skill covers the entire workflow: scraping tour data, designing the page, optimizing images, hosting on Supabase, generating the Cloudflare Worker, and deploying."
 ---
 
@@ -25,8 +25,11 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 
 ### Phase 1: Gather Tour Data
 
-1. **Scrape tour info** from myvivatour.com product page using Firecrawl MCP (`firecrawl_scrape`). WebFetch is blocked for myvivatour.com domain — always use Firecrawl.
-   - Extract: tour name, tour ID, duration, price (AUD), was-price, inclusions, exclusions, itinerary, upgrade options
+> **SOURCE OF TRUTH — NON-NEGOTIABLE.** The corresponding tour page on `myvivatour.com/tour/<slug>/` is the single source of truth for every landing page. ALWAYS pull price, itinerary (day-by-day), number of days/nights, and included/excluded services from that page — never invent, carry over stale values, or trust the LP's own prior content. This prevents info drift between the LP and the real tour. Each LP tour must record its source URL (in the plan-folder memory file and in `~/.claude/.../memory/happytours-tour-source-urls.md` for the multi-tour LP). When re-checking or updating an existing LP, re-fetch the source tour first and reconcile every field. If the site "from" price is in USD and the LP shows AUD, keep the user-confirmed AUD figure but verify duration/itinerary/inclusions against the source.
+
+1. **Scrape tour info** from the `myvivatour.com/tour/<slug>/` product page. WebFetch is blocked (403) for myvivatour.com — use Firecrawl MCP (`firecrawl_scrape`), or fall back to `curl -A "<browser User-Agent>"` (a real browser UA returns HTTP 200; the plain bot UA is blocked).
+   - Extract: tour name, tour ID, duration (days/nights), price, was-price, inclusions, exclusions, day-by-day itinerary, domestic-flight count, upgrade options
+   - Confirm whether **international airfare** is included: land-only tours run "Day 1 <city> Arrival → final day <city> Departure" and do NOT include international flights — state this clearly on the LP (domestic Vietnam flights may still be included)
    - Use JSON format with schema for structured extraction
 
 2. **Scrape design reference** from an existing landing page (e.g., `10days.myvivatour.com`) using Firecrawl with `branding` format to get colors, fonts, spacing.
