@@ -34,26 +34,24 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 
 2. **Scrape design reference** from an existing landing page (e.g., `10days.myvivatour.com`) using Firecrawl with `branding` format to get colors, fonts, spacing.
 
-3. **Collect images** from user's local folder. Ask user to place images in the workspace folder. Typical structure:
+3. **Collect images from the company asset library FIRST** (real photos only — no AI, no video-frame extraction for static images). Google Drive shared drive Marketing, mounted at `~/Library/CloudStorage/GoogleDrive-<email>/Shared drives/Marketing/MY VIVA TOUR/`:
    ```
-   images/
-   ├── {CityName}/
-   │   ├── Banner Tours (1920x743)/
-   │   └── WIC RS/
-   └── tour-map.jpg
+   MVT_Kho ảnh/Kho ảnh (theo địa điểm)/{Location}/WEBP/Banner Tours (1920x743)/{Loc}_N.webp   ← curated, watermarked, already-optimized WebP
+   MVT_Kho video/Kho video (theo địa điểm)/{Location}/                                        ← hero-loop footage (mostly portrait; landscape 16:9 is rare)
    ```
+   Terminal needs macOS Full Disk Access to read the mount (`Operation not permitted` → grant FDA, restart Terminal). Fallbacks: og:image from the canonical tour page, or `wp-content/uploads/YYYY/MM/` destination shots. Only ask the user for images when the library has no match.
 
 ### Phase 2: Build the Landing Page
 
-4. **Optimize images** using Python Pillow. Target specs:
-   - Hero banner: 1920x743, JPEG quality 82, ~250KB
-   - Destination cards: 600x400, JPEG quality 82, ~50-80KB
-   - Gallery images: 800x600, JPEG quality 82, ~80-165KB
-   - Itinerary banners: 1200x465, JPEG quality 82, ~120-190KB
-   - Tour map: 800x800, JPEG quality 82, ~95KB
-   - Save all to `upload-ready/` folder with consistent naming:
-     - `hero-{subject}.jpg`, `dest-{city}.jpg`, `gallery-{subject}.jpg`
-     - `itin-{city}.jpg`, `tour-map-{tourID}.jpg`
+4. **Optimize images** — **WebP is the default format** (repo standard). Company photo library "Banner Tours (1920x743)" images are already optimized WebP — copy straight. For conversions use `cwebp -q 82 in.png -o out.webp` (homebrew ffmpeg lacks libwebp — extract frame to `.png` with ffmpeg first, then cwebp/magick). Target specs:
+   - Hero banner: 1920x743, ~250KB
+   - Destination cards: 600x400, ~50-80KB
+   - Gallery images: 800x600, ~80-165KB
+   - Itinerary banners: 1200x465, ~120-190KB
+   - Tour map: 800x800, ~95KB
+   - Save into `pages/{tour-slug}/images/` (source of truth, synced to CDN) with consistent naming:
+     - `hero-{subject}.webp`, `dest-{city}.webp`, `gallery-{subject}.webp`
+     - `itin-{city}.webp`, `tour-map-{tourID}.webp`
 
 5. **Create `index.html`** — a single-file HTML with inline CSS and JS. Use the design system below and include all sections in order. Refer to:
    - `references/design-system.md` for CSS variables, component styles, and section templates
@@ -61,44 +59,52 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
    - `references/mobile-emulation-testing-with-playwright.md` for mobile/responsive testing — **DO NOT use Chrome `--screenshot --window-size` for mobile verification** (sets window only, viewport stays desktop). Always use Playwright with `viewport + isMobile: true + deviceScaleFactor: 2` context
    - `references/multi-tour-landing-page-with-smart-sticky-bar-and-preview-cards.md` for **multi-tour LPs** (2–4 tours sharing one URL, e.g. happytours.myvivatour.com bundling Honeymoon + Family + Luxury). Covers selector cards with preview images, per-tour color theming, IntersectionObserver-driven sticky bar price-sync, compare table with top+bottom swipe hints, shared booking form with `tour_interest` radio, host-based routing (`HOST_DEFAULTS`), scroll-margin-top fix, aggressive section trimming
 
-### Phase 3: Host Images on Supabase
+### Phase 3: Host Images on Supabase (canonical: repo CI pipeline)
 
-6. **Create Supabase Storage bucket** via Supabase MCP:
-   ```sql
-   INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-   VALUES ('landing-images', 'landing-images', true, 10485760, ARRAY['image/jpeg','image/png','image/webp'])
-   ON CONFLICT (id) DO NOTHING;
-   ```
-   Then create RLS policies for public read and upload access.
+> The bucket `landing-images` (project `tnwelgvypmhhksqwnfmr`) already exists and is public. Path convention: `landing-images/{page-folder-name}/{file}.webp`. Bucket has an `allowed_mime_types` whitelist (jpeg/png/webp + mp4/webm) — adding a new format requires a SQL update or upload silently 404s on CDN while CI stays green.
 
-7. **Get current anon key** — always call `get_publishable_keys` because the key changes after project restore. Never hardcode old keys.
+6. **Place optimized `.webp` files in `pages/{tour-slug}/images/`** — this folder is the source of truth; `scripts/upload-to-supabase.js` auto-scans it.
 
-8. **Deploy upload Edge Function** on Supabase (name: `upload-image`, verify_jwt: false) that accepts POST with `{filename, data}` (base64) and uploads to storage using service_role key. This avoids anon key auth issues.
-
-9. **Upload images** — create `auto-upload.html` with all images base64-encoded inline, JS that POSTs each to the Edge Function. Open via Finder (`Cmd+Down` on selected file) to trigger auto-upload in browser. Or if Chrome MCP is available, use that.
-
-10. **Update image URLs** in `index.html` — replace placeholder URLs with Supabase Storage public URLs:
+7. **Use absolute Supabase URLs in HTML** — the Worker serves HTML only, never image binaries. NEVER use relative `images/foo.webp` in `<img src>` **or CSS `background: url(...)`** (the CSS case is the classic silent miss — grep `url\(['"]?images/` to verify):
     ```
-    https://{project}.supabase.co/storage/v1/object/public/landing-images/{folder}/{filename}
+    https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/{page}/{filename}
     ```
-    Use `replace_all` in Edit tool for batch replacement.
 
-### Phase 4: Deploy to Cloudflare
+8. **Upload via CI**: commit with `[upload-images]` flag in the message → GitHub Actions runs the upload job. Or manual dispatch: `gh workflow run deploy.yml --ref main`. Supabase upload is upsert (same path overwrites) — after replacing an image, verify served `content-length` matches the new file.
 
-11. **Generate `worker.js`** using Python script that:
-    - Reads `index.html`
-    - Escapes backticks and `${}` for JS template literal
-    - Wraps in Cloudflare Worker fetch handler
-    - Saves as `worker.js` (~90KB)
+9. **Verify every image URL returns 200**:
+    ```bash
+    for img in $(ls pages/{page}/images/); do
+      curl -sI "https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/{page}/$img" \
+        -o /dev/null -w "%{http_code}" | grep -q 200 || echo "FAIL: $img"
+    done
+    ```
 
-12. **Deploy the worker** — if Chrome MCP is available, navigate to Cloudflare Dashboard and deploy. If Chrome MCP is disconnected:
-    - Open `worker.js` in Chrome via Finder (so content is ready in a tab)
-    - Write detailed step-by-step instructions for the user to copy into Chrome Claude extension
-    - Include: navigate to dash.cloudflare.com, create worker, paste code, add custom domain
+10. **Fallback (only when working OUTSIDE this repo/CI)**: create bucket via Supabase MCP SQL insert, deploy an `upload-image` Edge Function (verify_jwt: false, service_role key), and upload via a local `auto-upload.html` with base64-inlined images opened in the browser. Always call `get_publishable_keys` for the current anon key — it changes after project restore.
+
+### Phase 4: Build & Deploy (canonical: build.js + GitHub Actions)
+
+11. **Register the page** in `build.js`:
+    - Add to `PAGES_CONFIG`: `'{tour-slug}': { path: '/{tour-slug}', name: 'Display Name' }`
+    - If the LP gets its own subdomain, add to `HOST_DEFAULTS` (see Multi-Page Build Pipeline section)
+    - Different zone (e.g. vietnamdentaltravel.com) → dedicated `wrangler-<brand>.toml` with `main = "worker.js"` + `[[routes]] custom_domain = true`, plus a deploy step in `.github/workflows/deploy.yml`
+
+12. **Build + deploy**: `node build.js` (regenerates `worker.js` — NEVER edit it directly) → `git push origin main` → GitHub Actions deploys all workers. Manual: `npx wrangler deploy --name escape-myvivatour`. Note: `deploy.yml` has `paths:` triggers — changes only under `scripts/` or `.github/` don't trigger it; use `gh workflow run deploy.yml --ref main`.
+
+13. **Fallback (outside this repo)**: generate a standalone worker with `scripts/gen_worker.py` (escapes backticks/`${}`, wraps in fetch handler) and paste into the Cloudflare dashboard manually — write step-by-step instructions for the user if Chrome MCP is unavailable.
 
 ### Phase 5: Verify
 
-13. **Test the live page** — use Firecrawl to scrape the deployed URL and verify images load (HTTP 200), form works, all sections render correctly.
+14. **Test the live page** — verify routes (`/`, `/{tour-slug}`), sitemap.xml contains the new URL, form submits (must be via browser/puppeteer — Web3Forms blocks server-side curl on free plan; confirm 200 + check inbox `info@myvivatour.com`).
+
+15. **Run the audit script** and check gates:
+    ```bash
+    node scripts/puppeteer-landing-page-screenshot-and-audit.js <URL> /tmp/lp-audit/ r1
+    ```
+    - `layout.hasHorizontalScroll` = false (the REAL mobile gate — ignore `overflowing` entries that live inside intentional `overflow-x:auto` containers)
+    - `tracking.*` all 5 IDs present · `consoleErrors` = [] · `perf.fcp` < 2500ms mobile
+    - `seo.imgsMissingAlt`: `1` is usually the decorative hero `alt=""` false positive — verify by grepping for `<img` lacking `alt=` entirely
+    - Reveal-animation artifact: `.section-reveal` sections screenshot as blank if auto-scroll outruns IntersectionObserver — scroll stepwise (~200px / 60ms) before capturing
 
 ## Design System
 
@@ -127,6 +133,7 @@ This architecture is chosen because Cloudflare Workers are fast (edge-deployed g
 > **CRO rule v2 (shipped 2026-05-16):** "Why Choose This Tour?" (highlights/value-stack) must sit **directly before booking form**, NOT right after hero. Reason: value-stack adjacent to commit moment > value-stack as background info. The hero must be a single CTA (no inline form) — splitting intent between hero form + main form leaks ~15-25% conversions.
 
 1. **Hero** — Full-viewport `<img class="hero-bg-img" fetchpriority="high">` (NOT CSS bg), trust bar with TripAdvisor link, headline, price badge, **SINGLE pulsing CTA** scrolling to `#booking` + reassurance line. **NO inline hero form** (see "Single-CTA Hero" pattern in Conversion section)
+   - **Optional hero background video** (img-first, video-on-play — used on escape + happytours): keep the poster `<img class="hero-bg-img">` for FCP, add `<video class="hero-bg-video" autoplay muted loop playsinline>` at opacity 0; `onplaying` adds `hero-video-on` class → poster fades to 0, video to ~0.6 (never leave low-opacity video OVER the poster — you'll see the photo, not the video). `muted+playsinline` mandatory for mobile autoplay; `prefers-reduced-motion` hides video (poster stays — safe). Dark scrim `.hero::after` + 2-layer text-shadow keeps white copy readable. Encode: `scripts/build-hero-loop.sh single|montage` (ffmpeg 1280×720 H.264 CRF 30, ~1-2MB). Source clips ONLY from the company video library (see project CLAUDE.md §Nguồn ảnh/video); never use video frames as static `<img>` content.
 2. **Destinations** — 6-card grid with overlay text, hover zoom effect
 3. **Itinerary** — `<button class="accordion-header" aria-expanded>` pattern (NOT `<div>` — keyboard a11y) with day headers, content, meals/accommodation details
 4. **Video** — **YouTube facade pattern, NOT bare `<iframe loading="lazy">`**. Render a poster `<div>` with `i.ytimg.com/vi/{ID}/maxresdefault.jpg` as background + orange play button. Click handler swaps the div for the real iframe with `autoplay=1`. Eliminates the ~600px blank box that bare lazy iframes create during scroll, saves ~500KB initial weight, fires `video_play` dataLayer event on activation. Full pattern in `references/js-gated-reveal-youtube-facade-and-brand-orange-cta-hierarchy.md`
@@ -197,41 +204,52 @@ Inline if ≤10 KB base64 (saves an HTTP request, improves LCP). Apply to nav lo
 ```
 Missing `allow` or `referrerpolicy` causes Error 153 on YouTube embeds.
 
-## Worker.js Generation Script
+## SEO / GEO / AEO Checklist (every LP, no exceptions)
 
-```python
-import re, os
+Three layers, one pass. SEO = rank in Google; AEO = win the answer box / voice / AI-assistant citation; GEO = get quoted by generative engines (ChatGPT, Perplexity, Google AI Overviews).
 
-with open('index.html', 'r', encoding='utf-8') as f:
-    html = f.read()
+### SEO (classic on-page)
 
-escaped = html.replace('\\', '\\\\')
-escaped = escaped.replace('`', '\\`')
-escaped = re.sub(r'\$\{', '\\${', escaped)
+- **Title format (MANDATORY)**: `[Duration] Vietnam [Type] from Australia $[Price] AUD | MyVivaTour [Year]` — always "holiday" (AU English, never "vacation"), always the year, always "from Australia", always AUD price. Keyword database + competitor table live in project `CLAUDE.md` §SEO Keywords Database.
+- **Meta description 150–160 chars** — price, destinations, "holiday", CTA. Over 160 = truncated in SERP.
+- **Canonical** to the official subdomain URL. **Hreflang** `en-au` + `x-default`.
+- **OG + Twitter Card tags** — og:image must be THIS page's hero (absolute Supabase URL).
+- **One H1, message-matched to Google Ads keyword** (`"10-Day All-Inclusive Vietnam Holiday from Australia"`, not brand-y taglines). H2s use Tier-2 destination keywords.
+- Descriptive `alt` with target keyword on content images; decorative images `alt=""` + `aria-hidden="true"`.
 
-worker_js = 'const HTML_CONTENT = `' + escaped + '`;\n\n'
-worker_js += '''export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    if (url.pathname === "/favicon.ico") {
-      return new Response(null, { status: 204 });
-    }
-    return new Response(HTML_CONTENT, {
-      headers: {
-        "Content-Type": "text/html;charset=UTF-8",
-        "Cache-Control": "public, max-age=3600",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  },
-};
-'''
+### Schema.org JSON-LD stack (all required)
 
-with open('worker.js', 'w', encoding='utf-8') as f:
-    f.write(worker_js)
-```
+| Schema | Notes |
+|---|---|
+| `TravelAgency` | Include `sameAs` (TripAdvisor, socials), `ContactPoint`, `award` |
+| `TouristTrip` | With `Offer` (AUD price) + full `Itinerary` as `ItemList` of day stops |
+| `FAQPage` | Mirror the visible FAQ exactly — never schema-only questions |
+| `BreadcrumbList` | |
+| `AggregateRating` | Numbers must match live TripAdvisor snapshot + `url` to TA listing |
+| `WebPage` + `SpeakableSpecification` | `speakable` cssSelector → H1 + hero summary paragraph |
 
-Save this as `gen_worker.py` in the workspace and run it after every HTML change.
+Validate with Google Rich Results Test after deploy.
+
+### AEO (answer engine optimization)
+
+- **FAQ section = 5–8 real questions in the user's words**, drawn from Tier-4 FAQ keywords ("how much does a vietnam tour cost from australia", "is vietnam safe for australian tourists"...). First sentence of each answer must stand alone as a complete 40–60-word answer (that's what gets lifted into answer boxes / voice).
+- **Question-format H2/H3s** where natural ("What's Included in the Price?") — headings are the #1 answer-extraction anchor.
+- **Speakable schema** on H1 + hero summary (see table above).
+- Key facts (price, duration, inclusions) stated in **plain extractable sentences near the top**, not only inside styled cards/tables.
+
+### GEO (generative engine optimization)
+
+- **Entity-rich first paragraph**: name the operator, the product, duration, price, and destinations in the first ~50 words of body copy — generative engines quote openings.
+- **Stable, citable numbers**: one consistent price/duration/inclusion set across visible copy, schema, and OG tags. Contradictions kill AI citations.
+- **Third-party verifiability**: TripAdvisor rating + link (real profile URLs) — generative engines weight externally-corroborated claims.
+- **robots.txt must allow AI crawlers** (current worker serves allow-all `User-agent: *` — keep it; never block GPTBot/ClaudeBot/PerplexityBot/Google-Extended on an LP that wants AI-referral traffic).
+- **`/llms.txt`**: serve a short markdown index (brand, tours, prices, contact, canonical URLs) from the worker alongside sitemap/robots. Generate per llmstxt.org spec (`llms` skill can help).
+
+---
+
+## Worker.js Generation Script (fallback only)
+
+Canonical builds go through `build.js` (see Multi-Page Build Pipeline below). For one-off work outside this repo, use `scripts/gen_worker.py` — it reads `index.html`, escapes backticks + `${}` for the template literal, wraps in a Worker fetch handler, and writes `worker.js`. Run it after every HTML change.
 
 ## Common Issues & Solutions
 
