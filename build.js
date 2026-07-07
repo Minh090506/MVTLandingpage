@@ -116,10 +116,12 @@ ${cardsHtml}
 // The first entry with isDefault:true is the homepage (/)
 // `redirectTo` entries emit a 301 redirect instead of serving HTML — used to
 // consolidate placeholder paths onto the fully-built happytours sections.
+// `canonicalHost` marks the one hostname a page should index under — drives the
+// host-scoped sitemap and the cross-host 301 guard in the worker.
 const PAGES_CONFIG = {
-  'escape':                   { path: '/', isDefault: true,  name: 'Escape Australia 10-Day Tour' },
-  'happytours':               { path: '/happytours',                  name: 'Vietnam Holiday Packages - Multi-Tour' },
-  'dental-implants-vietnam':  { path: '/dental-implants-vietnam',     name: 'Dental Implants Vietnam — VietnamDentalTravel' },
+  'escape':                   { path: '/', isDefault: true,  name: 'Escape Australia 10-Day Tour',              canonicalHost: 'escape.myvivatour.com' },
+  'happytours':               { path: '/happytours',                  name: 'Vietnam Holiday Packages - Multi-Tour',      canonicalHost: 'happytours.myvivatour.com' },
+  'dental-implants-vietnam':  { path: '/dental-implants-vietnam',     name: 'Dental Implants Vietnam — VietnamDentalTravel', canonicalHost: 'implant.vietnamdentaltravel.com' },
   'honeymoon':                { path: '/honeymoon',                   name: 'Vietnam Honeymoon (301 → happytours)',     redirectTo: 'https://happytours.myvivatour.com/#tour-honeymoon' },
   'family-tour':              { path: '/family-tour',                 name: 'Vietnam Family Tour (301 → happytours)',    redirectTo: 'https://happytours.myvivatour.com/#tour-family' },
   'luxury-cruise':            { path: '/luxury-cruise',               name: 'Luxury Vietnam Cruise (301 → happytours)',  redirectTo: 'https://happytours.myvivatour.com/#tour-luxury' },
@@ -216,6 +218,15 @@ function build() {
   }
   workerCode += `};\n\n`;
 
+  // Canonical host map — each page indexes under exactly one hostname.
+  workerCode += `// Canonical host per page path — drives host-scoped sitemap + cross-host 301 guard\nconst PAGE_HOSTS = {\n`;
+  for (const [folder, page] of Object.entries(pages)) {
+    if (page.canonicalHost) {
+      workerCode += `  '${page.path}': '${page.canonicalHost}',\n`;
+    }
+  }
+  workerCode += `};\nconst KNOWN_HOSTS = new Set(Object.values(PAGE_HOSTS));\n\n`;
+
   // 301 redirect map — placeholder paths consolidate onto fully-built happytours sections.
   workerCode += `// 301 redirects: path → external URL (Location header)\nconst REDIRECTS = {\n`;
   for (const [path, target] of Object.entries(redirects)) {
@@ -265,20 +276,56 @@ function build() {
 </body>
 </html>\`;\n\n`;
 
-  // Add sitemap generator
-  workerCode += `function generateSitemap(baseUrl) {
-  const urls = Object.keys(ROUTES).map(path => {
-    return \`  <url>
-    <loc>\${baseUrl}\${path === '/' ? '' : path}</loc>
+  // Add sitemap generator — host-scoped: each hostname's sitemap lists only the
+  // page(s) canonical to that host, so one page never advertises under 3 domains.
+  workerCode += `function generateSitemap(hostname) {
+  let hosts = Object.values(PAGE_HOSTS).filter(h => h === hostname);
+  // Unknown host (workers.dev preview, localhost) → list every page at its canonical host
+  if (hosts.length === 0) hosts = [...KNOWN_HOSTS];
+  const urls = hosts.map(h => \`  <url>
+    <loc>https://\${h}/</loc>
     <changefreq>weekly</changefreq>
-    <priority>\${path === '/' ? '1.0' : '0.8'}</priority>
-  </url>\`;
-  }).join('\\n');
+    <priority>1.0</priority>
+  </url>\`).join('\\n');
 
   return \`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 \${urls}
 </urlset>\`;
+}\n\n`;
+
+  // llms.txt (llmstxt.org) — LLM-friendly brand index for generative engines.
+  // Facts (prices, ratings) are duplicated from page copy — update here when tour prices change.
+  workerCode += `const LLMS_MVT = \`# MyVivaTour — Vietnam Tours for Australian Travellers
+
+> Australian-focused Vietnam tour operator (myvivatour.com). All prices in AUD, land-only unless stated (international airfare excluded, domestic Vietnam flights included where listed). Rated 5.0/5 from 230+ TripAdvisor reviews — Travellers' Choice 2026, Top 6% of Hanoi tour operators. Contact: info@myvivatour.com · WhatsApp +84 974 036 614.
+
+## Landing Pages
+
+- [10-Day All-Inclusive Vietnam Holiday from Australia](https://escape.myvivatour.com/): Hanoi, Ha Long Bay, Hoi An, Ho Chi Minh City & Mekong Delta. From $2,099 AUD including hotels, meals, guides and domestic flights.
+- [Vietnam Holiday Packages — Honeymoon, Family, Luxury Cruise](https://happytours.myvivatour.com/): Three curated tours — Honeymoon from $2,070, Family from $676, Luxury Cruise from $1,379 AUD. Hotels, meals & domestic flights included.
+
+## Company
+
+- [Main website](https://www.myvivatour.com/): Full tour catalogue and day-by-day itineraries
+- [TripAdvisor listing](https://www.tripadvisor.com/Attraction_Review-g293924-d29687552-Reviews-My_Viva_Tour-Hanoi.html): Independent traveller reviews
+\`;
+
+const LLMS_DENTAL = \`# VietnamDentalTravel — Dental Implants in Hanoi for Australians
+
+> Dental tourism service in Hanoi, Vietnam. Genuine Straumann, Dentium & DIO implants from AUD 1,220 all-inclusive (consultation, 3D CBCT scan, fixture, abutment, crown) — 65-80% below Australian prices. Surgeons are Associate Professors from Hanoi Medical University; partner clinic certified by the Vietnamese Ministry of Health. Lifetime implant warranty. Contact: info@myvivatour.com · WhatsApp +84 974 036 614.
+
+## Landing Pages
+
+- [Dental Implants Vietnam — prices, brands, safety, FAQ](https://implant.vietnamdentaltravel.com/): Single implants from AUD 1,220 · All-on-4 from AUD 8,240 per jaw · All-on-6 from AUD 11,480 per jaw. Free treatment plan within 24 hours.
+
+## Company
+
+- [Main website](https://vietnamdentaltravel.com/): Full service list and clinic details
+\`;
+
+function generateLlmsTxt(hostname) {
+  return hostname.endsWith('vietnamdentaltravel.com') ? LLMS_DENTAL : LLMS_MVT;
 }\n\n`;
 
   // Add robots.txt generator
@@ -314,11 +361,21 @@ export default {
       return new Response(null, { status: 204 });
     }
 
-    // Sitemap
+    // Sitemap (host-scoped)
     if (pathname === '/sitemap.xml') {
-      return new Response(generateSitemap(baseUrl), {
+      return new Response(generateSitemap(url.hostname), {
         headers: {
           'Content-Type': 'application/xml;charset=UTF-8',
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    // llms.txt — LLM-friendly index for generative engines (GEO)
+    if (pathname === '/llms.txt') {
+      return new Response(generateLlmsTxt(url.hostname), {
+        headers: {
+          'Content-Type': 'text/plain;charset=UTF-8',
           'Cache-Control': 'public, max-age=86400',
         },
       });
@@ -342,6 +399,20 @@ export default {
         status: 301,
         headers: {
           'Location': redirectTarget,
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    // Cross-host duplicate guard: every path is technically reachable on every bound
+    // hostname; 301 to the page's canonical host so each page indexes under one URL.
+    // Unknown hosts (workers.dev preview) are left alone so previews keep working.
+    const canonicalHost = PAGE_HOSTS[pathname];
+    if (canonicalHost && KNOWN_HOSTS.has(url.hostname) && url.hostname !== canonicalHost) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          'Location': \`https://\${canonicalHost}/\`,
           'Cache-Control': 'public, max-age=86400',
         },
       });
