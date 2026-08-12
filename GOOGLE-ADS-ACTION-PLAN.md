@@ -41,7 +41,7 @@ Campaign **MVT - Escape - High Intent** có CTR 12.33% (xuất sắc) và CPC 32
 
 **Mục đích:** Đảm bảo popup form submit cũng fire conversion tags
 
-**Bước 1:** Mở GTM → https://tagmanager.google.com → Container GTM-TPQWV864
+**Bước 1:** Mở GTM → https://tagmanager.google.com → Container GTM-KRFGX69D (account myvivatour)
 
 **Bước 2:** Vào tag **"Google Ads - Form Conversion"**
 - Click Edit

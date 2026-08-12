@@ -40,6 +40,12 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Run lead attribution client tests
+        run: node scripts/test-lead-attribution-client.mjs
+
+      - name: Run lead ingest handler tests
+        run: node scripts/test-lead-ingest-handler.mjs
+
       - name: Run validator
         id: validation
         shell: bash
