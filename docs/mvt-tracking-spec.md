@@ -204,5 +204,6 @@ Lặp lại với `-c wrangler-dental.toml` cho worker `vietnamdentaltravel`. **
 
 ## Câu hỏi chưa giải quyết
 
-1. Endpoint nhận lead của mvt-saas chưa xác định → `MVT_CRM_LEAD_URL` để trống, `crm_synced_at` sẽ null cho tới khi có. (Đang dò qua MCP `operator.myvivatour.com` — T6.)
+1. **Endpoint nhận lead của mvt-saas: chưa tồn tại** (đã dò 260812 qua MCP `operator.myvivatour.com`). mvt-saas **có sẵn** hệ CRM lead — `get_company_leads` (lọc theo seller / trạng thái / nguồn / tháng / quá-hạn-follow-up), `get_crm_dashboard`, `get_campaign_funnel` (lead → đủ điều kiện → gắn chặt → booking → doanh thu) — nhưng trong 56 MCP tool **không có tool ghi nào** ngoài `approve_payment` / `reject_payment`. Không có `create_lead` / ingest.
+   ⇒ Nối `/api/lead` sang CRM là **feature mới bên repo mvt-saas**, phải mở plan riêng. Phía repo này cũng còn nợ: `pushLeadToCrm()` mới chỉ POST rồi log, **không ghi** `crm_synced_at` / `crm_ref` / `crm_error`, và chưa ghi được vì insert Supabase dùng `Prefer: return=minimal` nên không có row id trả về. `MVT_CRM_LEAD_URL` để trống tới lúc đó; index `marketing_leads_crm_pending_idx` đã sẵn cho backfill.
 2. Rate limit Cloudflare cho `/api/lead` — việc người, chưa bật.
