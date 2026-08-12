@@ -42,3 +42,10 @@ pages/escape/index-v2.html
 .env.*
 !.env.example
 .dev.vars
+
+# Operator wizard run state and results — written into the repo root when the
+# wizards run, specific to one operator's session, not source
+.gtm-wizard-state
+gtm-publish-result.txt
+.cf-ratelimit-wizard-state
+cf-ratelimit-result.txt
