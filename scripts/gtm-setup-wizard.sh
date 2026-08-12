@@ -183,7 +183,7 @@ finish() {
 # STAGES — author this section. One stage() per step the human takes.
 # ──────────────────────────────────────────────────────────────────────────
 #
-# Scope: GTM (GTM-TPQWV864) trigger+tag setup that consumes the dataLayer
+# Scope: GTM (GTM-KRFGX69D) trigger+tag setup that consumes the dataLayer
 # events landing pages already fire (docs/mvt-tracking-spec.md §2/§3/§6/§7),
 # GA4 (G-2R0EJ2LBJ5) custom dimensions + Key event, and container PUBLISH.
 # This wizard only tells you what to click — it never calls Google APIs and
@@ -252,7 +252,7 @@ ADS_URL="https://ads.google.com/aw/conversions"
 LP_URL="https://escape.myvivatour.com/"
 
 banner "GTM + GA4 setup cho MyVivaTour landing pages"
-say "Container GTM-TPQWV864 · GA4 G-2R0EJ2LBJ5 · Ads AW-17709107883/Wq0ECKXBmfsbEKuVrvxB"
+say "Container GTM-KRFGX69D · GA4 G-2R0EJ2LBJ5 · Ads AW-17709107883/Wq0ECKXBmfsbEKuVrvxB"
 say "13 stage: tạo 5 trigger+tag, đăng ký custom dimension GA4, dọn trigger cũ,"
 say "kiểm tra Ads không import trùng generate_lead, Preview QA, PUBLISH, verify production."
 warn "KHÔNG import generate_lead từ GA4 sang Google Ads — chốt 260812, không bàn lại."
@@ -260,9 +260,9 @@ warn "KHÔNG import generate_lead từ GA4 sang Google Ads — chốt 260812, kh
 # ── Stage 1: Prerequisites & access ────────────────────────────────────────
 stage_01_access() {
   stage "Chuẩn bị — mở 3 công cụ, xác nhận đăng nhập đúng tài khoản"
-  say "Cần quyền Edit trên cả 3: GTM container GTM-TPQWV864, GA4 property G-2R0EJ2LBJ5, Ads account 572-470-7852."
+  say "Cần quyền Edit trên cả 3: GTM container GTM-KRFGX69D, GA4 property G-2R0EJ2LBJ5, Ads account 572-470-7852."
   open_url "$GTM_URL"
-  step "Trong Tag Manager, chọn Account/Container có Public ID = GTM-TPQWV864 (góc trên bên trái)."
+  step "Trong Tag Manager, chọn Account/Container có Public ID = GTM-KRFGX69D (góc trên bên trái)."
   step "Mở workspace mặc định (Default Workspace)."
   open_url "$GA4_URL"
   step "Chọn đúng property có Measurement ID G-2R0EJ2LBJ5 (Admin → Data Streams để verify)."

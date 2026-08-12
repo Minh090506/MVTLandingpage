@@ -27,9 +27,12 @@ const REMOTE_TIMEOUT_MS = 10_000;
 const REMOTE_MAX_ATTEMPTS = 3;
 const REMOTE_RETRY_BACKOFF_MS = [300, 900];
 
+// Page-level IDs that must appear in live HTML.
+// GA4 G-2R0EJ2LBJ5 is delivered via GTM only (no direct gtag/js?id=G-… — that
+// endpoint 404s for this property). Do not require the measurement ID string
+// in HTML or pages will be forced to re-introduce a dead loader.
 const TRACKING_IDS = {
-  gtm: 'GTM-TPQWV864',
-  ga4: 'G-2R0EJ2LBJ5',
+  gtm: 'GTM-KRFGX69D',
   googleAds: 'AW-17709107883',
   googleAdsLabel: 'Wq0ECKXBmfsbEKuVrvxB',
   metaPixel: '579298288600609',
