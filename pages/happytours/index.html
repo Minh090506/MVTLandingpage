@@ -3828,7 +3828,7 @@
                         <a class="tour-source-link"
                            href="https://myvivatour.com/tour/vietnam-honeymoon-trip-10-days/"
                            target="_blank" rel="noopener"
-                           onclick="if(window.dataLayer){dataLayer.push({event:'tour_source_click', tour_code:'VHM10'});}"
+                           onclick="if(window.dataLayer){dataLayer.push({event:'tour_source_click', tour_code:'VHM10', tour_id:'VHM10'});}"
                            >View full tour details on myvivatour.com →</a>
                     </div>
                 </div>
@@ -3933,7 +3933,7 @@
                         <a class="tour-source-link"
                            href="https://myvivatour.com/tour/overlook-vietnam-7-days/"
                            target="_blank" rel="noopener"
-                           onclick="if(window.dataLayer){dataLayer.push({event:'tour_source_click', tour_code:'V7'});}"
+                           onclick="if(window.dataLayer){dataLayer.push({event:'tour_source_click', tour_code:'V7', tour_id:'V7'});}"
                            >View full tour details on myvivatour.com →</a>
                     </div>
                 </div>
@@ -4026,7 +4026,7 @@
                         <a class="tour-source-link"
                            href="https://myvivatour.com/tour/luxury-unique-vietnam-10-days/"
                            target="_blank" rel="noopener"
-                           onclick="if(window.dataLayer){dataLayer.push({event:'tour_source_click', tour_code:'VLU10'});}"
+                           onclick="if(window.dataLayer){dataLayer.push({event:'tour_source_click', tour_code:'VLU10', tour_id:'VLU10'});}"
                            >View full tour details on myvivatour.com →</a>
                     </div>
                 </div>
@@ -4554,6 +4554,7 @@
                         <input type="hidden" name="subject" value="New Inquiry - Happy Tours Multi-Tour LP">
                         <input type="hidden" name="from_name" value="Happy Tours Landing Page">
                         <input type="hidden" name="redirect" value="">
+                        <input type="hidden" name="form_id" value="bookingForm">
                         <input type="checkbox" name="botcheck" style="display:none;">
                         <!-- Tour code auto-filled by selectTourAndScroll() based on which tour CTA visitor clicked.
                              Sales gets a clean machine-readable code (VHM10, V7, VLU10) for fast lookup on myvivatour.com. -->
@@ -4888,6 +4889,7 @@
                 <input type="hidden" name="access_key" value="cf0ca620-d064-4640-9454-afb27d588f67">
                 <input type="hidden" name="subject" value="Lead Magnet - Vietnam Travel Guide">
                 <input type="hidden" name="from_name" value="Exit Intent Lead">
+                <input type="hidden" name="form_id" value="exitForm">
                 <input type="checkbox" name="botcheck" style="display:none;">
                 <input type="text" name="name" placeholder="Your Name" required maxlength="100">
                 <input type="email" name="email" placeholder="Your Email" required maxlength="254">
@@ -5366,16 +5368,28 @@
         }
 
         // dataLayer: CTA click tracking
+        // Helper: GA4 truncates event params at 100 chars — collapse whitespace + cap length.
+        function mvtCtaText(el) {
+            return String((el && el.textContent) || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+        }
         document.addEventListener('click', function(e) {
             const cta = e.target.closest('.cta-button, [onclick*="smoothScroll"]');
             if (cta) {
-                window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({ event: 'cta_click', cta_text: cta.textContent.trim() });
+                // Tour selector cards already fire tour_card_click; do not also emit cta_click
+                // with the full card body (~300 chars of emoji + copy + price).
+                if (!cta.closest('.tour-selector-card')) {
+                    window.dataLayer = window.dataLayer || [];
+                    window.dataLayer.push({ event: 'cta_click', cta_text: mvtCtaText(cta) });
+                }
             }
             const waLink = e.target.closest('a[href*="wa.me"]');
             if (waLink) {
                 window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({ event: 'whatsapp_click', link_url: waLink.href });
+                window.dataLayer.push({
+                    event: 'whatsapp_click',
+                    link_url: waLink.href,
+                    cta_text: mvtCtaText(waLink)
+                });
             }
         });
 
@@ -5441,7 +5455,7 @@
             radio.checked = true;
             const { code, name } = syncTourPrefillUI(radio);
             window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ event: 'tour_helper_card_click', tour_interest: tourKey, tour_code: code, tour_name: name });
+            window.dataLayer.push({ event: 'tour_helper_card_click', tour_interest: tourKey, tour_code: code, tour_name: name, tour_id: code });
             // Smoothly scroll the banner into view so the visitor sees the confirmation update
             const banner = document.getElementById('tourPrefillBanner');
             if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5451,7 +5465,7 @@
             if (radio) radio.checked = true;
             const { code, name } = syncTourPrefillUI(radio);
             window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ event: 'tour_cta_click', tour_interest: tourKey, tour_code: code, tour_name: name });
+            window.dataLayer.push({ event: 'tour_cta_click', tour_interest: tourKey, tour_code: code, tour_name: name, tour_id: code });
             smoothScroll('booking');
         }
         // Listen for visitor manually picking a radio → sync banner + hidden fields + textarea starter
@@ -5475,9 +5489,12 @@
         }
 
         // trackTourCardClick: fire GA4 event when visitor clicks a tour card in the selector strip
+        // tour_id = machine code from the matching radio's data-tour-code (empty for unknown keys).
         function trackTourCardClick(tourKey) {
+            const radio = document.getElementById('tour_' + tourKey);
+            const tourId = radio ? (radio.getAttribute('data-tour-code') || '') : '';
             window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ event: 'tour_card_click', tour_interest: tourKey });
+            window.dataLayer.push({ event: 'tour_card_click', tour_interest: tourKey, tour_id: tourId });
         }
 
         // ===== Video facade: click → load real YouTube iframe with autoplay =====
@@ -5589,7 +5606,12 @@
                 sessionStorage.setItem('exitPopupShown', '1');
                 document.getElementById('exitOverlay').classList.add('active');
                 window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({ event: 'popup_shown', popup_type: 'exit_intent' });
+                window.dataLayer.push({
+                    event: 'popup_shown',
+                    popup_type: 'exit_intent',
+                    popup_id: 'exit_popup',
+                    form_id: 'exitForm'
+                });
             });
         })();
 
@@ -5621,7 +5643,12 @@
                     status.style.color = '#10B981';
                     status.textContent = '✓ Check your email for the guide!';
                     window.dataLayer = window.dataLayer || [];
-                    window.dataLayer.push({ event: 'popup_submit', popup_type: 'exit_intent' });
+                    window.dataLayer.push({
+                        event: 'popup_submit',
+                        popup_type: 'exit_intent',
+                        popup_id: 'exit_popup',
+                        form_id: 'exitForm'
+                    });
                     // Also push form_success so GTM tags fire for popup too
                     window.dataLayer.push({ event: 'form_success', form_id: 'exitForm' });
                     // Google Ads conversion tracking
