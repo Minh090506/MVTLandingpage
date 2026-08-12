@@ -10,9 +10,12 @@ Một tên event = một ý nghĩa, trên mọi trang. LP mới phải tuân the
 ```
 Visitor (browser)
   │
-  ├─► dataLayer ──► GTM (GTM-TPQWV864) ──┬─► GA4        G-2R0EJ2LBJ5
+  ├─► dataLayer ──► GTM (GTM-KRFGX69D) ──┬─► GA4        G-2R0EJ2LBJ5
   │                                       ├─► Google Ads AW-17709107883
   │                                       └─► Meta Pixel 579298288600609
+  │
+  ├─► gtag.js (id=AW-17709107883 only) ──► Google Ads conversion runtime
+  │      (direct; form handlers call gtag('event','conversion',…))
   │
   └─► form submit (fetch wrap)
         ├─► POST api.web3forms.com  ──► info@myvivatour.com   (email — browser only)
@@ -24,13 +27,15 @@ GA4/Ads/Meta trả lời **"bao nhiêu, từ kênh nào"**. Supabase trả lời
 Email đi **từ trình duyệt** (Web3Forms free chặn server-side; Worker không có IP tĩnh).
 `/api/lead` chỉ ghi DB (+ CRM optional). Hai đường độc lập — email fail/DB fail không kéo theo nhau về UX.
 
-| ID | Giá trị |
-|---|---|
-| GTM container | `GTM-TPQWV864` |
-| GA4 measurement | `G-2R0EJ2LBJ5` |
-| Google Ads | `AW-17709107883` |
-| Ads conversion label | `Wq0ECKXBmfsbEKuVrvxB` |
-| Meta Pixel | `579298288600609` |
+| ID | Giá trị | Ghi chú |
+|---|---|---|
+| GTM container | `GTM-KRFGX69D` | Account GTM **"myvivatour"** (container mới; thay ID mẫu `GTM-TPQWV864` không tồn tại) |
+| GA4 measurement | `G-2R0EJ2LBJ5` | Gửi **qua GTM**, không qua gtag trực tiếp trên LP |
+| Google Ads | `AW-17709107883` | gtag trực tiếp **chỉ phục vụ Ads**; loader phải `gtag/js?id=AW-…` vì ID GA4 không có bản gtag.js phục vụ |
+| Ads conversion label | `Wq0ECKXBmfsbEKuVrvxB` | |
+| Meta Pixel | `579298288600609` | |
+
+**Loader rule:** LP load `gtag/js?id=AW-17709107883` + `gtag('config','AW-17709107883')` only. Do **not** load or `config` GA4 via direct gtag (404 + double-count risk). GA4 hits come from GTM tags in container `GTM-KRFGX69D`.
 
 ---
 
