@@ -2521,11 +2521,23 @@
       document.querySelector('.progress-fill').style.width = '50%';
     }
 
+    var bookingFormSubmitting = false;
     async function handleFormSubmit(event) {
       event.preventDefault();
+      if (bookingFormSubmitting) return;
+      bookingFormSubmitting = true;
 
-      const formData = new FormData(document.getElementById('bookingForm'));
+      const form = document.getElementById('bookingForm');
+      const submitBtn = form && form.querySelector('[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      const formData = new FormData(form);
       const data = Object.fromEntries(formData);
+
+      function unlockBookingForm() {
+        bookingFormSubmitting = false;
+        if (submitBtn) submitBtn.disabled = false;
+      }
 
       try {
         const response = await fetch('https://api.web3forms.com/submit', {
@@ -2542,22 +2554,34 @@
           })
         });
 
-        if (response.ok) {
+        let result = {};
+        try { result = await response.json(); } catch (_) { result = {}; }
+
+        if (response.ok && result.success !== false) {
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: 'form_success', form_id: 'bookingForm' });
+
           gtag('event', 'conversion', {
             'send_to': 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB'
           });
 
           fbq('track', 'Lead');
 
-          document.getElementById('bookingForm').style.display = 'none';
+          form.style.display = 'none';
           document.querySelector('.form-progress').style.display = 'none';
           document.querySelector('.progress-bar').style.display = 'none';
           document.getElementById('formSuccess').style.display = 'block';
         } else {
+          unlockBookingForm();
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: 'form_error', form_id: 'bookingForm', error_type: 'http_' + response.status });
           alert('Something went wrong. Please try again or contact us on WhatsApp: +84 974 036 614');
         }
       } catch (error) {
         console.error('Form submission error:', error);
+        unlockBookingForm();
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ event: 'form_error', form_id: 'bookingForm', error_type: 'network' });
         alert('Connection error. Please message us on WhatsApp: +84 974 036 614');
       }
     }
@@ -2655,9 +2679,20 @@
     function closeExitPopup() {
       document.getElementById('exitPopup').style.display = 'none';
     }
+    var exitFormSubmitting = false;
     function submitExitForm(e) {
       e.preventDefault();
+      if (exitFormSubmitting) return;
+      exitFormSubmitting = true;
       var form = e.target;
+      var submitBtn = form.querySelector('[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      function unlockExitForm() {
+        exitFormSubmitting = false;
+        if (submitBtn) submitBtn.disabled = false;
+      }
+
       fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
@@ -2667,10 +2702,29 @@
           email: form.querySelector('input[type=email]').value,
           subject: 'Exit Popup — Guide Download Request'
         })
-      }).then(function() {
-        form.innerHTML = '<p style="color:var(--accent-green);font-weight:600;padding:1rem;">✓ Check your email for the guide!</p>';
-        fbq('track', 'Lead');
-        dataLayer.push({event:'exit_popup_submit'});
+      }).then(function(response) {
+        return response.json().then(function(result) {
+          return { response: response, result: result };
+        }).catch(function() {
+          return { response: response, result: {} };
+        });
+      }).then(function(pack) {
+        if (pack.response.ok && pack.result.success !== false) {
+          form.innerHTML = '<p style="color:var(--accent-green);font-weight:600;padding:1rem;">✓ Check your email for the guide!</p>';
+          if (typeof fbq === 'function') fbq('track', 'Lead');
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: 'popup_submit', popup_id: 'exit_popup', form_id: 'exitPopup' });
+        } else {
+          unlockExitForm();
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: 'form_error', form_id: 'exitPopup', error_type: 'http_' + pack.response.status });
+          alert('Something went wrong. Please try again or contact us on WhatsApp: +84 974 036 614');
+        }
+      }).catch(function() {
+        unlockExitForm();
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ event: 'form_error', form_id: 'exitPopup', error_type: 'network' });
+        alert('Connection error. Please message us on WhatsApp: +84 974 036 614');
       });
     }
 

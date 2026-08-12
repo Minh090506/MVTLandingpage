@@ -1,0 +1,271 @@
+name: Validate & Preview MVT Landing Pages
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'pages/**'
+      - 'build.js'
+      - 'worker-modules/**'
+      - 'wrangler.toml'
+      - 'wrangler-dental.toml'
+      - 'dashboard.html'
+      - 'build-dashboard.js'
+      - 'wrangler-dashboard.toml'
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/validate.yml'
+      - 'scripts/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mvt-preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate landing pages
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run validator
+        id: validation
+        shell: bash
+        run: |
+          set +e
+          node scripts/validate-landing-pages.js --json > validation-report.json
+          validator_exit=$?
+          echo "exit_code=$validator_exit" >> "$GITHUB_OUTPUT"
+          if [ ! -s validation-report.json ]; then
+            echo '{"ok":false,"fatalError":"Validator produced no JSON report"}' > validation-report.json
+          fi
+          exit 0
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-page-validation-pr-${{ github.event.pull_request.number }}
+          path: validation-report.json
+          retention-days: 14
+
+      - name: Write validation summary
+        if: always()
+        run: |
+          node - "$GITHUB_STEP_SUMMARY" <<'NODE'
+          const fs = require('fs');
+          let markdown;
+          try {
+            const report = JSON.parse(fs.readFileSync('validation-report.json', 'utf8'));
+            const summary = report.summary || {};
+            const status = report.ok ? '✅ Passed' : '❌ Failed';
+            const lines = [
+              '## Landing-page validation',
+              '',
+              `**${status}** — ${summary.pages ?? 0} page(s), ${summary.supabaseUrls ?? 0} Supabase URL(s), ${summary.errors ?? report.errors?.length ?? 1} error(s).`,
+            ];
+            if (Array.isArray(report.errors) && report.errors.length > 0) {
+              lines.push('', '### Failures', '');
+              for (const error of report.errors) {
+                const page = error.page ? ` (${error.page})` : '';
+                lines.push(`- **${error.group}${page}:** ${error.message}`);
+              }
+            }
+            if (report.fatalError) lines.push('', `- **Fatal:** ${report.fatalError}`);
+            markdown = `${lines.join('\n')}\n`;
+          } catch (error) {
+            markdown = `## Landing-page validation\n\n❌ Could not read validation-report.json: ${error.message}\n`;
+          }
+          fs.appendFileSync(process.argv[2], markdown);
+          NODE
+
+      - name: Enforce validation gate
+        if: always() && steps.validation.outputs.exit_code != '0'
+        run: exit 1
+
+  preview:
+    name: Deploy PR preview
+    needs: validate
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      PREVIEW_WORKER_NAME: mvt-preview-pr-${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build preview worker
+        run: node build.js
+
+      - name: Generate preview Wrangler config
+        shell: bash
+        run: |
+          cat > .wrangler-preview.toml <<EOF
+          name = "$PREVIEW_WORKER_NAME"
+          main = "worker.js"
+          compatibility_date = "2024-01-01"
+          workers_dev = true
+          preview_urls = false
+          EOF
+
+      - name: Deploy preview to workers.dev
+        id: deploy_preview
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy -c .wrangler-preview.toml
+
+      - name: Verify preview URL was returned
+        env:
+          PREVIEW_URL: ${{ steps.deploy_preview.outputs.deployment-url }}
+        run: test -n "$PREVIEW_URL"
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy_preview.outputs.deployment-url }}
+          PREVIEW_WORKER_NAME: ${{ env.PREVIEW_WORKER_NAME }}
+        with:
+          script: |
+            const marker = '<!-- mvt-pr-preview -->';
+            const previewUrl = process['env']['PREVIEW_URL'].trim();
+            const workerName = process['env']['PREVIEW_WORKER_NAME'];
+            const body = [
+              marker,
+              '## MVT landing-page preview',
+              '',
+              `✅ [Open preview](${previewUrl})`,
+              '',
+              `Worker: \`${workerName}\``,
+              '',
+              'The same URL is updated after each new commit. It is removed when this PR closes.',
+            ].join('\n');
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  cleanup-preview:
+    name: Delete closed PR preview
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      PREVIEW_WORKER_NAME: mvt-preview-pr-${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Delete preview Worker
+        id: delete_preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module - <<'NODE'
+          const environment = process['env'];
+          const workerName = environment['PREVIEW_WORKER_NAME'];
+          const accountId = environment['CLOUDFLARE_ACCOUNT_ID'];
+          const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${workerName}`;
+          const response = await fetch(endpoint, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${environment['CLOUDFLARE_API_TOKEN']}` },
+          });
+          if (response.ok) {
+            console.log(`Deleted ${workerName}`);
+            process.exit(0);
+          }
+          if (response.status === 404) {
+            console.log(`${workerName} was already absent`);
+            process.exit(0);
+          }
+          const body = await response.text();
+          throw new Error(`Cloudflare delete failed (${response.status}): ${body}`);
+          NODE
+
+      - name: Mark preview as removed
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          DELETE_OUTCOME: ${{ steps.delete_preview.outcome }}
+          PREVIEW_WORKER_NAME: ${{ env.PREVIEW_WORKER_NAME }}
+        with:
+          script: |
+            const marker = '<!-- mvt-pr-preview -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (!existing) return;
+            const environment = process['env'];
+            const succeeded = environment['DELETE_OUTCOME'] === 'success';
+            const body = [
+              marker,
+              '## MVT landing-page preview',
+              '',
+              succeeded
+                ? `🧹 Preview Worker \`${environment['PREVIEW_WORKER_NAME']}\` was removed when this PR closed.`
+                : `⚠️ Automatic cleanup failed for \`${environment['PREVIEW_WORKER_NAME']}\`. Check the workflow logs and remove it manually.`,
+            ].join('\n');
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });

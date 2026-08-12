@@ -52,6 +52,19 @@ MVTLandingpage/
 | Google Ads Label | `Wq0ECKXBmfsbEKuVrvxB` | send_to: AW-17709107883/Wq0ECKXBmfsbEKuVrvxB |
 | Facebook Pixel | `579298288600609` | Business ID: 623339086973908 |
 
+## Tài liệu nền (đọc trước khi làm LP mới)
+
+| Doc | Dùng khi |
+|---|---|
+| `docs/mvt-brand-guidelines.md` | Màu, logo, typography, giọng nói, quy tắc tiếng Anh Úc |
+| `docs/mvt-tracking-spec.md` | Event taxonomy, conversion, attribution, schema `marketing_leads`, secrets Worker |
+| `docs/mvt-content-playbook.md` | Công thức copy LP/blog, persona, brief, checklist xuất bản |
+| `docs/mvt-landingpage-cicd-guide.md` | CI chạy gì, đọc lỗi validator, PR preview, bypass khẩn cấp |
+
+**Lead pipeline:** form → `worker-modules/lead-attribution-client.js` (gắn UTM/gclid) → `POST /api/lead` → Supabase `marketing_leads` + Web3Forms. Handler ở `worker-modules/lead-ingest-handler.js`, `build.js` inline vào `worker.js`. Sửa `worker-modules/*` → phải `node build.js` lại.
+
+**Trước khi commit:** `node scripts/validate-landing-pages.js` (CI cũng chạy, sẽ chặn merge nếu fail).
+
 ## Thông tin dùng chung cho mọi landing page
 
 - **Web3Forms API Key:** `cf0ca620-d064-4640-9454-afb27d588f67`
@@ -90,6 +103,8 @@ const HOST_DEFAULTS = {
 ```
 
 Nếu zone khác (vd `vietnamdentaltravel.com`) → tạo `wrangler-<brand>.toml` với `main = "worker.js"`, `name = "<worker-name>"`, và `[[routes]] pattern = "<sub>.<domain>" custom_domain = true`. Thêm step deploy worker đó vào `.github/workflows/deploy.yml`.
+
+**BẮT BUỘC với subdomain mới:** thêm host vào `LEAD_ALLOWED_HOSTS` trong `worker-modules/lead-ingest-handler.js`. Quên bước này → `/api/lead` trả 403, lead không vào DB (chỉ còn đường email, im lặng, rất khó phát hiện).
 
 ### Bước 3: Checklist nội dung bắt buộc cho mỗi landing page
 

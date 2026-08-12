@@ -31,6 +31,36 @@ const OUTPUT_FILE = path.join(__dirname, 'worker.js');
  *
  * If JSON file is missing or malformed → returns html unchanged (graceful fallback to hardcoded).
  */
+// Inject the attribution/lead-routing client into a page's <head>.
+// It must run before any form handler, so it goes immediately after <head>.
+// Idempotent: a page that already carries the marker is returned untouched.
+const LEAD_CLIENT_MARKER = 'mvt-lead-attribution';
+
+function injectLeadAttributionClient(html, pageFolder) {
+  if (html.includes(LEAD_CLIENT_MARKER)) return html;
+
+  const clientPath = path.join(__dirname, 'worker-modules', 'lead-attribution-client.js');
+  if (!fs.existsSync(clientPath)) {
+    console.warn('  ⚠ lead-attribution-client.js missing — leads will bypass /api/lead');
+    return html;
+  }
+
+  const source = fs
+    .readFileSync(clientPath, 'utf-8')
+    .replace(/__MVT_LANDING_PAGE__/g, pageFolder.replace(/'/g, ''));
+
+  const trackingPath = path.join(__dirname, 'worker-modules', 'tracking-client.js');
+  const tracking = fs.existsSync(trackingPath) ? fs.readFileSync(trackingPath, 'utf-8') : '';
+
+  const tag = `<script data-${LEAD_CLIENT_MARKER}>\n${source}\n${tracking}\n</script>`;
+  const headIndex = html.indexOf('<head>');
+  if (headIndex === -1) {
+    console.warn(`  ⚠ ${pageFolder}: no <head> found — attribution client not injected`);
+    return html;
+  }
+  return html.slice(0, headIndex + 6) + '\n' + tag + html.slice(headIndex + 6);
+}
+
 function injectTripAdvisorData(html) {
   const dataPath = path.join(DATA_DIR, 'tripadvisor-reviews.json');
   if (!fs.existsSync(dataPath)) {
@@ -188,6 +218,12 @@ function build() {
     }
   }
 
+  // Inject attribution capture + lead routing into every page. Done at build time so
+  // a new landing page picks it up automatically without hand-wiring its forms.
+  for (const [folder, page] of Object.entries(pages)) {
+    page.html = injectLeadAttributionClient(page.html, folder);
+  }
+
   const pageCount = Object.keys(pages).length;
   console.log(`\n📄 ${pageCount} pages loaded\n`);
 
@@ -336,6 +372,11 @@ Allow: /
 Sitemap: \${baseUrl}/sitemap.xml\`;
 }\n\n`;
 
+  // Lead ingest endpoint. Kept in its own source file so the handler stays reviewable
+  // and testable instead of living inside a template string.
+  const leadIngestPath = path.join(__dirname, 'worker-modules', 'lead-ingest-handler.js');
+  workerCode += fs.readFileSync(leadIngestPath, 'utf-8') + '\n\n';
+
   // Fetch handler with routing
   workerCode += `// Host-based default page mapping — when a custom subdomain hits "/", serve its dedicated LP
 // Avoids needing separate workers per subdomain
@@ -354,6 +395,12 @@ export default {
     // If root path on a host-specific subdomain, rewrite to the subdomain's default page
     if (pathname === '/' && HOST_DEFAULTS[url.hostname]) {
       pathname = HOST_DEFAULTS[url.hostname];
+    }
+
+    // Lead ingest — must run before the redirect rules below, which would otherwise
+    // 301 a cross-host POST and drop the body.
+    if (pathname === '/api/lead') {
+      return handleLeadIngest(request, url, env, ctx);
     }
 
     // Favicon

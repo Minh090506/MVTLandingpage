@@ -6,6 +6,8 @@ on:
     paths:
       - 'pages/**'
       - 'build.js'
+      # build.js inlines these into worker.js, so editing one changes what ships
+      - 'worker-modules/**'
       - 'wrangler.toml'
       - 'wrangler-dental.toml'
       - 'dashboard.html'
@@ -13,6 +15,12 @@ on:
       - 'wrangler-dashboard.toml'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:  # Allow manual trigger
+    inputs:
+      skip_validation:
+        description: 'Emergency only: deploy without the landing-page validation gate'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-and-deploy:
@@ -28,6 +36,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Validate landing pages
+        if: github.event_name != 'workflow_dispatch' || inputs.skip_validation != true
+        run: node scripts/validate-landing-pages.js
+
+      - name: Record emergency validation bypass
+        if: github.event_name == 'workflow_dispatch' && inputs.skip_validation == true
+        run: |
+          echo "## ⚠️ Validation bypassed" >> "$GITHUB_STEP_SUMMARY"
+          echo "This manual deployment skipped the landing-page validation gate." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build worker.js from pages
         run: node build.js

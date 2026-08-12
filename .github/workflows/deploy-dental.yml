@@ -9,6 +9,7 @@ on:
     paths:
       - 'pages/dental-implants-vietnam/**'
       - 'build.js'
+      - 'worker-modules/**'
       - 'wrangler-dental.toml'
 
 jobs:
@@ -19,6 +20,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      # Same gate as deploy.yml. Without it this fast path is a way to ship a page
+      # with missing tracking or a broken image URL straight to production.
+      - name: Validate landing pages
+        run: node scripts/validate-landing-pages.js
       - run: node build.js
       - uses: cloudflare/wrangler-action@v3
         with:
