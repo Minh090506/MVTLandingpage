@@ -4,9 +4,11 @@
 
 - A pull request targeting `main` runs `.github/workflows/validate.yml` when landing-page, build, Wrangler, dashboard, workflow, or `scripts/**` files change.
 - The validator runs `build.js` in an isolated temporary directory, syntax-checks the generated Worker, compares `PAGES_CONFIG` with page directories containing `index.html`, checks metadata/tracking/image references, and sends concurrency-limited HEAD requests to every referenced MVT Supabase CDN URL.
+- Each CDN HEAD check retries up to 3 attempts (300ms/900ms backoff) for transient failures only — timeout, network error, 429, or 5xx. A 404/403 fails on the first attempt, no retry. Happy path is still 1 request per URL. See `scripts/validate-landing-pages.js` (`isTransientHeadFailure`, `headUrl`) and its test `scripts/test-validate-landing-pages-remote-retry.mjs`.
 - After validation passes, same-repository PRs deploy `mvt-preview-pr-<PR_NUMBER>` to its `workers.dev` URL. The workflow creates its Wrangler config at runtime with `workers_dev = true` and no routes, then creates or updates one PR comment with the preview URL.
 - Fork PRs validate but do not receive Cloudflare secrets and do not deploy previews.
 - A push to `main` still runs `.github/workflows/deploy.yml`. The same validator is a blocking step before the existing build and three production deploy steps. The existing `[upload-images]` job remains unchanged.
+- `Deploy Dashboard Worker` no longer declares `[[routes]]` in `wrangler-dashboard.toml` — the route is managed manually in the Cloudflare dashboard (see the comment in that file for the token-permission root cause). This step only runs on push to `main`, so a fix to it can't be verified from a PR branch — merge first, then check the workflow run.
 - `.github/workflows/deploy-dental.yml` (the dental-only fast path) runs the same validator before deploying. It has no emergency bypass — an urgent dental deploy that must skip validation should go through the manual `deploy.yml` run instead.
 - All three workflows also trigger on `worker-modules/**`, because `build.js` inlines those files into `worker.js`; editing the lead-ingest handler or the tracking client changes what ships.
 

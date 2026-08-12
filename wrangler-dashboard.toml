@@ -2,8 +2,8 @@ name = "mvt-dashboard"
 main = "dashboard-worker.js"
 compatibility_date = "2024-01-01"
 
-# Custom domain: googlelead.myvivatour.com
-# Cloudflare will auto-create DNS record and SSL certificate
-[[routes]]
-pattern = "googlelead.myvivatour.com"
-custom_domain = true
+# Route googlelead.myvivatour.com is managed in the Cloudflare dashboard (same
+# pattern as wrangler.toml for escape/happytours). Do not declare [[routes]] here:
+# the CI CLOUDFLARE_API_TOKEN lacks Zone → Workers Routes → Edit on myvivatour.com,
+# which made every dashboard deploy fail with Authentication error [code: 10000]
+# while the live route continued serving HTTP 200.

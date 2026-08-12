@@ -22,6 +22,10 @@ const BUILD_FILE = path.join(REPO_ROOT, 'build.js');
 const CDN_PREFIX = 'https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/';
 const REMOTE_CONCURRENCY = 8;
 const REMOTE_TIMEOUT_MS = 10_000;
+// Transient CDN/network hiccups: up to 3 tries (1 initial + 2 retries).
+// Happy path stays 1 request/URL; backoff only runs between failed retries.
+const REMOTE_MAX_ATTEMPTS = 3;
+const REMOTE_RETRY_BACKOFF_MS = [300, 900];
 
 const TRACKING_IDS = {
   gtm: 'GTM-TPQWV864',
@@ -318,12 +322,25 @@ function isRedirectStub(html, config) {
   return isSmall && hasStubSignal;
 }
 
-async function headUrl(url) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** True for flaky failures worth retrying — not permanent 4xx path/auth errors. */
+function isTransientHeadFailure(result) {
+  if (!result || result.ok) return false;
+  if (result.status === null) return true; // timeout / network / AbortError
+  if (result.status === 429) return true;
+  if (result.status >= 500 && result.status <= 599) return true;
+  return false;
+}
+
+async function headUrlOnce(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REMOTE_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
       method: 'HEAD',
       redirect: 'follow',
       signal: controller.signal,
@@ -350,6 +367,35 @@ async function headUrl(url) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function headUrl(url) {
+  let lastResult = null;
+  let attempts = 0;
+
+  for (let attempt = 1; attempt <= REMOTE_MAX_ATTEMPTS; attempt += 1) {
+    attempts = attempt;
+    lastResult = await headUrlOnce(url);
+
+    if (lastResult.ok) {
+      return { ...lastResult, attempts };
+    }
+
+    const canRetry = isTransientHeadFailure(lastResult) && attempt < REMOTE_MAX_ATTEMPTS;
+    if (!canRetry) break;
+
+    const backoffMs = REMOTE_RETRY_BACKOFF_MS[attempt - 1] ?? REMOTE_RETRY_BACKOFF_MS[REMOTE_RETRY_BACKOFF_MS.length - 1];
+    await sleep(backoffMs);
+  }
+
+  const attemptLabel = attempts === 1 ? '1 attempt' : `${attempts} attempts`;
+  return {
+    ...lastResult,
+    attempts,
+    error: lastResult.error
+      ? `${lastResult.error} (after ${attemptLabel})`
+      : `HEAD request failed (after ${attemptLabel})`,
+  };
 }
 
 async function checkRemoteUrls(urls) {
@@ -586,4 +632,15 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  headUrl,
+  headUrlOnce,
+  isTransientHeadFailure,
+  REMOTE_MAX_ATTEMPTS,
+  REMOTE_TIMEOUT_MS,
+  REMOTE_RETRY_BACKOFF_MS,
+};
