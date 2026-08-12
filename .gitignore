@@ -36,3 +36,9 @@ pages/escape/index-v2.html
 
 # Harness orchestration state — local only, not source
 .harness/
+
+# Local secrets — never commit
+.env
+.env.*
+!.env.example
+.dev.vars
