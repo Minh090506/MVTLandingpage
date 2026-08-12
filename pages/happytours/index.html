@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
 
+    <!-- This page instruments its own cta_click / whatsapp_click below; the shared
+         tracking client injected by build.js skips clicks when this flag is set. -->
+    <script>window.MVT_PAGE_TRACKS_CLICKS = true;</script>
+
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
