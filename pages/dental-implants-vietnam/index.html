@@ -2334,6 +2334,7 @@
         <h2>Get Your Free Treatment Plan</h2>
 
         <form id="bookingForm" onsubmit="handleFormSubmit(event)">
+          <input type="hidden" name="form_id" value="bookingForm">
           <div class="progress-bar">
             <div class="progress-fill"></div>
           </div>
@@ -2674,6 +2675,9 @@
         if (timeOnPage > 45) {
           document.getElementById('exitPopup').style.display = 'flex';
           exitShown = true;
+          // Fire once per session when popup becomes visible (exitShown gate).
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: 'popup_shown', popup_id: 'exit_popup' });
         }
       }
     });
@@ -2701,7 +2705,8 @@
           access_key: 'cf0ca620-d064-4640-9454-afb27d588f67',
           name: form.querySelector('input[type=text]').value,
           email: form.querySelector('input[type=email]').value,
-          subject: 'Exit Popup — Guide Download Request'
+          subject: 'Exit Popup — Guide Download Request',
+          form_id: 'exitPopup'
         })
       }).then(function(response) {
         return response.json().then(function(result) {

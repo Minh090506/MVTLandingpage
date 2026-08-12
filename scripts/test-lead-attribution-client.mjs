@@ -224,5 +224,121 @@ console.log('lead-attribution-client');
     !threw && win.mvtAttribution().utm_campaign === 'escape-core-au');
 }
 
+{
+  // form_id from the page body must reach BOTH Web3Forms and /api/lead (T8).
+  // The monkey-patch only sees the body — pages must put form_id in FormData/JSON.
+  const { win, calls } = boot({ search: AD_CLICK });
+  await win.fetch('https://api.web3forms.com/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      access_key: 'k',
+      name: 'Jane',
+      email: 'jane@example.com',
+      form_id: 'bookingForm',
+    }),
+  });
+  await new Promise((r) => setTimeout(r, 0));
+  const w3f = calls.filter((c) => c.url.includes('web3forms'));
+  const lead = calls.filter((c) => c.url === '/api/lead');
+  const w3fPayload = JSON.parse(w3f[0].init.body);
+  const leadPayload = JSON.parse(lead[0].init.body);
+  check('forwards form_id on Web3Forms body', w3fPayload.form_id === 'bookingForm');
+  check('forwards form_id on /api/lead body', leadPayload.form_id === 'bookingForm');
+}
+
+{
+  // Two sequential submits on one page must not reuse the previous form_id.
+  // (Mirrors real pages: each <form> carries its own hidden form_id input.)
+  const { win, calls } = boot({ search: AD_CLICK });
+  await win.fetch('https://api.web3forms.com/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      access_key: 'k', email: 'a@example.com', form_id: 'bookingForm',
+    }),
+  });
+  await new Promise((r) => setTimeout(r, 0));
+  await win.fetch('https://api.web3forms.com/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      access_key: 'k', email: 'b@example.com', form_id: 'exitForm',
+    }),
+  });
+  await new Promise((r) => setTimeout(r, 0));
+  const leadCalls = calls.filter((c) => c.url === '/api/lead');
+  check('sequential dual-send produces two /api/lead calls', leadCalls.length === 2);
+  const firstLead = JSON.parse(leadCalls[0].init.body);
+  const secondLead = JSON.parse(leadCalls[1].init.body);
+  check('first submit keeps form_id=bookingForm', firstLead.form_id === 'bookingForm');
+  check('second submit keeps form_id=exitForm (no stale reuse)',
+    secondLead.form_id === 'exitForm');
+  check('second submit does not inherit bookingForm', secondLead.form_id !== 'bookingForm');
+}
+
+{
+  // formId camelCase is normalised to form_id (client already had this mapping).
+  const { win, calls } = boot();
+  await win.fetch('https://api.web3forms.com/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ access_key: 'k', email: 'c@example.com', formId: 'exitPopup' }),
+  });
+  await new Promise((r) => setTimeout(r, 0));
+  const leadPayload = JSON.parse(calls.find((c) => c.url === '/api/lead').init.body);
+  check('normalises formId → form_id', leadPayload.form_id === 'exitPopup');
+}
+
+{
+  // Static page contract: each form path that dual-sends must emit form_id.
+  // (Prevents regression of the T8 hidden-input / object-literal fix.)
+  const pagesRoot = path.join(here, '..', 'pages');
+  const escapeHtml = fs.readFileSync(path.join(pagesRoot, 'escape', 'index.html'), 'utf-8');
+  const happyHtml = fs.readFileSync(path.join(pagesRoot, 'happytours', 'index.html'), 'utf-8');
+  const dentalHtml = fs.readFileSync(path.join(pagesRoot, 'dental-implants-vietnam', 'index.html'), 'utf-8');
+
+  function formHasHiddenFormId(html, formIdAttr, expectedValue) {
+    // Extract the <form id="...">...</form> block (non-greedy, first match).
+    const re = new RegExp(
+      `<form[^>]*\\bid=["']${formIdAttr}["'][^>]*>([\\s\\S]*?)<\\/form>`,
+      'i',
+    );
+    const m = html.match(re);
+    if (!m) return false;
+    const hiddenRe = new RegExp(
+      `<input[^>]*type=["']hidden["'][^>]*name=["']form_id["'][^>]*value=["']${expectedValue}["']`,
+      'i',
+    );
+    const hiddenReAlt = new RegExp(
+      `<input[^>]*name=["']form_id["'][^>]*type=["']hidden["'][^>]*value=["']${expectedValue}["']`,
+      'i',
+    );
+    const hiddenReValFirst = new RegExp(
+      `<input[^>]*name=["']form_id["'][^>]*value=["']${expectedValue}["'][^>]*type=["']hidden["']`,
+      'i',
+    );
+    return hiddenRe.test(m[1]) || hiddenReAlt.test(m[1]) || hiddenReValFirst.test(m[1])
+      || new RegExp(
+        `<input[^>]*type=["']hidden["'][^>]*value=["']${expectedValue}["'][^>]*name=["']form_id["']`,
+        'i',
+      ).test(m[1]);
+  }
+
+  check('escape #bookingForm has hidden form_id=bookingForm',
+    formHasHiddenFormId(escapeHtml, 'bookingForm', 'bookingForm'));
+  check('escape #exitForm has hidden form_id=exitForm',
+    formHasHiddenFormId(escapeHtml, 'exitForm', 'exitForm'));
+  check('happytours #bookingForm has hidden form_id=bookingForm',
+    formHasHiddenFormId(happyHtml, 'bookingForm', 'bookingForm'));
+  check('happytours #exitForm has hidden form_id=exitForm',
+    formHasHiddenFormId(happyHtml, 'exitForm', 'exitForm'));
+  check('dental #bookingForm has hidden form_id=bookingForm',
+    formHasHiddenFormId(dentalHtml, 'bookingForm', 'bookingForm'));
+  // Dental exit popup builds an explicit object literal (no FormData) — assert the key is present.
+  check('dental exit popup body includes form_id: exitPopup',
+    /form_id:\s*['"]exitPopup['"]/.test(dentalHtml));
+}
+
 console.log(failures === 0 ? '\nAll attribution checks passed.' : `\n${failures} check(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);

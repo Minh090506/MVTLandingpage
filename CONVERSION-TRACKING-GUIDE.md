@@ -3,9 +3,9 @@
 ## Tổng quan hiện trạng
 
 **Đã cài trong code HTML (on-page):** ✅
-- GTM Container: `GTM-TPQWV864`
-- GA4 gtag: `G-2R0EJ2LBJ5`
-- Google Ads: `AW-17709107883`
+- GTM Container: `GTM-KRFGX69D` (account `myvivatour` · account ID `6256769444` · container ID `261027424`)
+- GA4 Measurement: `G-2R0EJ2LBJ5` — **gửi qua GTM** (không load/config GA4 bằng gtag trực tiếp trên LP)
+- Google Ads: `AW-17709107883` — on-page `gtag/js` loader dùng ID này
 - Facebook Pixel: `579298288600609`
 - DataLayer events: `form_submit`, `form_success`, `form_error`, `cta_click`, `whatsapp_click`, `popup_shown`, `popup_submit`
 - Google Ads conversion fire khi form success: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB`
@@ -24,7 +24,7 @@
 ### Bước 1.1: Đăng nhập GTM
 1. Mở Chrome, vào `https://tagmanager.google.com`
 2. Đăng nhập bằng tài khoản Google quản lý GTM
-3. Click vào container `GTM-TPQWV864`
+3. Click vào container `GTM-KRFGX69D` (account myvivatour)
 
 ### Bước 1.2: Tạo Variables (Biến)
 Vào menu **Variables** > **New** (User-Defined Variables):
@@ -379,11 +379,12 @@ Vào menu **Variables** > **New** (User-Defined Variables):
 ## IDs tham chiếu nhanh
 
 ```
-GTM Container:          GTM-TPQWV864
-GA4 Measurement ID:     G-2R0EJ2LBJ5
+GTM Container:          GTM-KRFGX69D
+GTM account / container: 6256769444 / 261027424
+GA4 Measurement ID:     G-2R0EJ2LBJ5  (via GTM tags only)
 GA4 Stream ID:          14312720580
 Google Ads Account:     572-470-7852
-Google Ads Conversion:  AW-17709107883
+Google Ads Conversion:  AW-17709107883  (on-page gtag/js loader)
 Google Ads Label:       Wq0ECKXBmfsbEKuVrvxB
 Facebook Pixel:         579298288600609
 Facebook Business ID:   623339086973908

@@ -2,10 +2,10 @@
 
 ## Thông tin cần chuẩn bị TRƯỚC khi chạy
 
-### ✅ Đã có đầy đủ:
-1. **Google Tag Manager Container ID:** `GTM-TPQWV864`
-2. **Google Analytics 4 Measurement ID:** `G-2R0EJ2LBJ5` (Stream ID: 14312720580, Property: escape.myvivatour.com)
-3. **Google Ads Conversion ID:** `AW-17709107883`
+### ✅ Đã có đầy đủ (verified live request 2026-08-12 — `gtm.js?id=GTM-KRFGX69D` → 200):
+1. **Google Tag Manager Container ID:** `GTM-KRFGX69D` (account `myvivatour` · account ID `6256769444` · container ID `261027424`)
+2. **Google Analytics 4 Measurement ID:** `G-2R0EJ2LBJ5` (Stream ID: 14312720580) — **gửi qua GTM**, không load/config GA4 bằng gtag trực tiếp trên LP
+3. **Google Ads Conversion ID:** `AW-17709107883` — on-page `gtag/js` loader dùng ID **này** (không dùng GA4 measurement ID)
 4. **Google Ads Conversion Label:** `Wq0ECKXBmfsbEKuVrvxB`
 5. **Google Ads Customer ID:** `572-470-7852`
 6. **Facebook Pixel ID:** `579298288600609` (Business ID: 623339086973908)
@@ -28,18 +28,20 @@ File cần sửa: pages/escape/index.html
 Hãy thêm các tracking code sau vào đúng vị trí:
 
 1. Google Tag Manager:
-   - Container ID: GTM-TPQWV864
+   - Container ID: GTM-KRFGX69D
    - GTM script vào <head> (càng cao càng tốt, sau <meta charset>)
    - GTM noscript vào ngay sau <body>
+   - GA4 Configuration + event tags sống TRONG container này (không dual-fire gtag GA4 on-page)
 
-2. Google Analytics 4 (qua GTM):
+2. Google Analytics 4 (qua GTM only):
    - GA4 Measurement ID: G-2R0EJ2LBJ5
-   - Config GA4 qua gtag.js (backup ngoài GTM)
+   - Cấu hình trong GTM (GA4 Configuration + event tags). KHÔNG thêm <script gtag/js?id=G-2R0EJ2LBJ5> hay gtag('config','G-2R0EJ2LBJ5') trên LP
 
 3. Google Ads Conversion Tracking:
    - Conversion ID: AW-17709107883
    - Conversion Label: Wq0ECKXBmfsbEKuVrvxB
    - send_to value: AW-17709107883/Wq0ECKXBmfsbEKuVrvxB
+   - On-page loader: gtag/js?id=AW-17709107883 + gtag('config','AW-17709107883') only
    - Fire conversion event khi form submit thành công (trong hàm handleSubmit, sau khi nhận response ok)
    - Event name: "generate_lead"
 
@@ -248,7 +250,7 @@ Nếu chưa, chạy: npx wrangler deploy --name escape-myvivatour
 
 ## Thứ tự chạy prompts
 
-1. ✅ Đã có đủ IDs: GTM-TPQWV864, G-2R0EJ2LBJ5, AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 579298288600609
+1. ✅ IDs verified live (2026-08-12, real gtm.js/gtag requests): GTM-KRFGX69D, GA4 G-2R0EJ2LBJ5 (via GTM), Ads AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 579298288600609. Do not reuse any old boilerplate GTM sample ID.
 2. ▶️ Prompt 1 — Cài tracking (COPY NGUYÊN PROMPT — IDs đã điền sẵn)
 3. ▶️ Prompt 2 — Sync structured data
 4. ▶️ Prompt 5 — AI SEO (có thể gộp với Prompt 2)

@@ -22,12 +22,12 @@ Hệ thống multi-landing-page cho công ty du lịch **myvivatour.com** (targe
 | Vietnam Family Tour | `/family-tour` | Placeholder |
 | Luxury Vietnam Cruise | `/luxury-cruise` | Placeholder |
 
-## 4. Tracking IDs (ĐÃ CÓ ĐẦY ĐỦ — đã cài vào code + verified trên live site)
+## 4. Tracking IDs (ĐÃ CÓ ĐẦY ĐỦ — live verified 2026-08-12: gtm.js GTM-KRFGX69D → 200)
 | Tracking | ID |
 |---|---|
-| GTM Container | `GTM-TPQWV864` |
-| GA4 Measurement | `G-2R0EJ2LBJ5` (Stream: 14312720580) |
-| Google Ads Conversion ID | `AW-17709107883` |
+| GTM Container | `GTM-KRFGX69D` (account myvivatour · 6256769444 / container 261027424) |
+| GA4 Measurement | `G-2R0EJ2LBJ5` (Stream: 14312720580) — via GTM tags only |
+| Google Ads Conversion ID | `AW-17709107883` (on-page gtag/js loader) |
 | Google Ads Conversion Label | `Wq0ECKXBmfsbEKuVrvxB` |
 | Google Ads Customer ID (MCC) | `572-470-7852` (ocid: 7771865759) |
 | Google Ads Account (thực tế) | `806-163-1566` (My Viva Tour, tiền tệ: VNĐ) |

@@ -7,10 +7,10 @@
 
 ## PROMPT A: Verify & Complete GTM Tags Setup
 
-> Paste prompt này khi bạn đã mở tab https://tagmanager.google.com/ và đang ở đúng container GTM-TPQWV864
+> Paste prompt này khi bạn đã mở tab https://tagmanager.google.com/ và đang ở đúng container GTM-KRFGX69D (account myvivatour)
 
 ```
-Tôi cần bạn kiểm tra và setup đầy đủ các tags trong Google Tag Manager container GTM-TPQWV864 cho website escape.myvivatour.com.
+Tôi cần bạn kiểm tra và setup đầy đủ các tags trong Google Tag Manager container GTM-KRFGX69D cho website escape.myvivatour.com.
 
 Hãy vào trang Tags trong GTM workspace hiện tại và kiểm tra xem đã có những tags nào. Sau đó đảm bảo TẤT CẢ các tags sau đây tồn tại và cấu hình đúng. Nếu tag nào chưa có, hãy tạo mới.
 
@@ -577,7 +577,7 @@ Hãy thực hiện từng bước.
 
 | # | Prompt | Đăng nhập sẵn vào | Thời gian ước tính |
 |---|--------|-------------------|-------------------|
-| 1 | **Prompt A** | tagmanager.google.com (container GTM-TPQWV864) | 15-20 phút |
+| 1 | **Prompt A** | tagmanager.google.com (container GTM-KRFGX69D) | 15-20 phút |
 | 2 | **Prompt B** | ads.google.com (account 572-470-7852) | 10 phút |
 | 3 | **Prompt C** | ads.google.com | 30-40 phút |
 | 4 | **Prompt D** | ads.google.com | 25-30 phút |
