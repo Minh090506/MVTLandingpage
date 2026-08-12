@@ -28,7 +28,9 @@ pages/<page>/index.html            (hand-written HTML, CSS/JS inline)
     escape.myvivatour.com/*          → escape-myvivatour worker → / (escape page)
     happytours.myvivatour.com/*      → escape-myvivatour worker → /happytours (host-default)
     implant.vietnamdentaltravel.com/* → vietnamdentaltravel worker (same worker.js) → /dental-implants-vietnam
-    googlead.myvivatour.com/*        → mvt-dashboard worker
+    googlead.myvivatour.com/*        → mvt-dashboard worker (route set manually in CF dashboard,
+                                        NOT declared in wrangler-dashboard.toml — see that file's
+                                        header comment for why)
 ```
 
 ## Repository layout
