@@ -33,3 +33,6 @@ release-manifest.json
 
 # Draft/experimental page — not registered in build.js
 pages/escape/index-v2.html
+
+# Harness orchestration state — local only, not source
+.harness/
