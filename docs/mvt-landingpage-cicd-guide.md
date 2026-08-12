@@ -3,6 +3,12 @@
 ## What runs when
 
 - A pull request targeting `main` runs `.github/workflows/validate.yml` when landing-page, build, Wrangler, dashboard, workflow, or `scripts/**` files change.
+- Job `validate` in that workflow runs **lead unit suites first**, then the page validator, then the gate:
+  1. `node scripts/test-lead-attribution-client.mjs` (shared client + page `form_id` contracts)
+  2. `node scripts/test-lead-ingest-handler.mjs` (Worker `/api/lead` handler)
+  3. `node scripts/validate-landing-pages.js --json` (page/build/CDN checks)
+  4. **Enforce validation gate** — fails the job if step 3 exited non-zero  
+  Evidence owner: `.github/workflows/validate.yml` (steps order). Do not re-count assertions here; the scripts exit non-zero on any failed check.
 - The validator runs `build.js` in an isolated temporary directory, syntax-checks the generated Worker, compares `PAGES_CONFIG` with page directories containing `index.html`, checks metadata/tracking/image references, and sends concurrency-limited HEAD requests to every referenced MVT Supabase CDN URL.
 - Each CDN HEAD check retries up to 3 attempts (300ms/900ms backoff) for transient failures only — timeout, network error, 429, or 5xx. A 404/403 fails on the first attempt, no retry. Happy path is still 1 request per URL. See `scripts/validate-landing-pages.js` (`isTransientHeadFailure`, `headUrl`) and its test `scripts/test-validate-landing-pages-remote-retry.mjs`.
 - After validation passes, same-repository PRs deploy `mvt-preview-pr-<PR_NUMBER>` to its `workers.dev` URL. The workflow creates its Wrangler config at runtime with `workers_dev = true` and no routes, then creates or updates one PR comment with the preview URL.
@@ -15,6 +21,9 @@
 ## Run and diagnose locally
 
 ```bash
+# Same order as CI validate job (fail fast on lead contracts):
+node scripts/test-lead-attribution-client.mjs
+node scripts/test-lead-ingest-handler.mjs
 node scripts/validate-landing-pages.js
 node scripts/validate-landing-pages.js --skip-remote
 node scripts/validate-landing-pages.js --json > validation-report.json

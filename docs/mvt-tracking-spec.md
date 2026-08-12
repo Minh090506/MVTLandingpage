@@ -49,28 +49,35 @@ Mọi event đẩy vào `window.dataLayer` dưới dạng `{ event: '<tên>', ..
 |---|---|---|---|
 | `form_success` | Lead gửi thành công | `form_id` | Page |
 | `form_error` | Gửi thất bại | `form_id`, `error_type` (`http_<mã>` \| `network`) | Page |
-| `cta_click` | Click nút/link CTA | `cta_text`, `cta_id` | Shared* |
-| `whatsapp_click` | Click link WhatsApp | `link_url`, `cta_text` | Shared* |
+| `cta_click` | Click nút/link CTA (không phải tour card — xem ghi chú) | `cta_text` (gộp whitespace, ≤100 ký tự), `cta_id` | Shared* |
+| `whatsapp_click` | Click link WhatsApp | `link_url`, `cta_text` (happytours đã bắn; shared client cũng có) | Shared* |
 | `phone_click` | Click `tel:` | `link_url` | Shared |
 | `email_click` | Click `mailto:` | `link_url` | Shared |
 | `scroll_depth` | Cuộn qua 25/50/75/90% | `percent_scrolled` | Shared |
 
 \* `cta_click` và `whatsapp_click`: trang tự instrument (escape, happytours) thì đặt `window.MVT_PAGE_TRACKS_CLICKS = true` trong `<head>` để shared client không bắn trùng.
 
+**happytours page rules (đã ship):**
+- `cta_click` **không** bắn khi click tour-selector card (card đã có `tour_card_click` / `tour_cta_click`).
+- `cta_text` gộp whitespace + cắt ≤100 ký tự (GA4 cắt param ở 100).
+- `whatsapp_click` mang thêm `cta_text`.
+
 ### 2.2 Tuỳ trang
 
 | Event | Bắn khi | Params | Đang có ở |
 |---|---|---|---|
-| `popup_shown` | Exit-intent popup hiện | `popup_id` | escape, happytours |
-| `popup_submit` | Submit form trong popup | `popup_id`, `form_id` | escape, happytours, dental |
+| `popup_shown` | Exit-intent popup hiện (1 lần / lượt tải) | happytours/dental: `popup_id: 'exit_popup'` (+ happytours `form_id: 'exitForm'`); escape: `popup_type: 'exit_intent'` (legacy) | escape, happytours, **dental** |
+| `popup_submit` | Submit form trong popup | happytours/dental: `popup_id` + `form_id`; escape: `popup_type` legacy (+ `form_success` riêng với `form_id`) | escape, happytours, dental |
 | `video_play` | Video hero/section chạy | `video_id` | escape, happytours |
-| `tour_card_click` | Click card tour | `tour_id` | happytours |
-| `tour_cta_click` | Click CTA trong card tour | `tour_id` | happytours |
+| `tour_card_click` | Click card tour | `tour_id` (+ `tour_interest` song song) | happytours |
+| `tour_cta_click` | Click CTA trong card tour | `tour_id` (+ `tour_interest` / `tour_code` / `tour_name` song song) | happytours |
 | `tour_itinerary_open` | Mở accordion lịch trình | `tour_id` | happytours |
-| `tour_source_click` | Click sang trang tour gốc | `tour_id` | happytours |
-| `tour_helper_card_click` | Click card gợi ý | `tour_id` | happytours |
+| `tour_source_click` | Click sang trang tour gốc | `tour_id` (+ `tour_code` song song) | happytours |
+| `tour_helper_card_click` | Click card gợi ý | `tour_id` (+ `tour_interest` / `tour_code` / `tour_name` song song) | happytours |
 
 > **Hợp nhất 260812:** dental dùng `popup_submit` (không còn `exit_popup_submit`). GTM chỉ cần **một** trigger `popup_submit` cho mọi LP. Nếu GTM còn trigger cũ `exit_popup_submit` → gỡ sau khi deploy.
+
+> **tour_***: mọi event tour trên happytours **đã có `tour_id`** (mã máy: `VHM10` / `V7` / `VLU10` / …). Form booking vẫn gửi field cũ `tour_interest` / `tour_code` / `tour_name`; dataLayer push **song song** các key đó khi có — GA4 custom dimension chính là `tour_id`.
 
 ### 2.3 Quy ước đặt tên
 
@@ -107,11 +114,28 @@ Xử lý bởi `worker-modules/lead-attribution-client.js`, inject tự động 
 - localStorage bị chặn (chế độ riêng tư) → degrade về attribution của riêng lượt xem này, trang vẫn chạy bình thường.
 
 **Dual-send khi form POST Web3Forms** (fetch wrap):
-1. Merge attribution + chuẩn hoá `full_name` / `form_id` vào payload.
+1. Merge attribution UTM/click-IDs + chuẩn hoá alias `name` → `full_name`, `formId` → `form_id` **nếu body đã có**.
 2. **POST Web3Forms** (request gốc, body đã merge) — response **trả về cho trang**.
 3. **POST `/api/lead`** fire-and-forget cùng payload — lỗi/chậm/timeout **không** ảnh hưởng UX.
 
 Truy cập trong page: `window.mvtAttribution()`.
+
+### `form_id` — trang sở hữu, shared client **không** tự biết form nào
+
+`worker-modules/lead-attribution-client.js` chỉ thấy body JSON của request Web3Forms. Nó **không** đọc DOM, **không** suy ra form đang submit, chỉ:
+- merge attribution keys;
+- rename `formId` → `form_id` nếu body dùng camelCase.
+
+**`form_id` phải có sẵn trong body do page gửi.** Cơ chế đã ship (verify trên prod qua PR #4):
+
+| Page | Cơ chế |
+|---|---|
+| escape `#bookingForm`, `#exitForm` | hidden `<input name="form_id" value="…">` |
+| happytours `#bookingForm`, `#exitForm` | hidden `<input name="form_id" value="…">` |
+| dental `#bookingForm` | hidden `<input name="form_id" value="bookingForm">` |
+| dental exit popup | object literal tường minh `form_id: 'exitPopup'` (không FormData) |
+
+Trước khi có hidden input / key tường minh, cột `marketing_leads.form_id` **luôn null** dù schema đã có cột. LP mới bắt buộc copy pattern trên — **đừng** kỳ vọng shared client tự điền.
 
 ---
 
@@ -121,7 +145,7 @@ Truy cập trong page: `window.mvtAttribution()`.
 
 | Nhóm | Cột |
 |---|---|
-| Nguồn | `landing_page`, `page_host`, `page_path`, `form_id` |
+| Nguồn | `landing_page`, `page_host`, `page_path`, `form_id` (**từ body page** — xem §4) |
 | Liên hệ | `full_name`, `email`, `phone` |
 | Nhu cầu | `state`, `country`, `travel_date`, `party_size`, `tour_interest`, `message` |
 | Attribution | `utm_source/medium/campaign/term/content`, `gclid`, `fbclid`, `msclkid`, `referrer`, `landing_first_seen` |
@@ -143,7 +167,9 @@ Truy cập trong page: `window.mvtAttribution()`.
 
 Chạy `scripts/gtm-setup-wizard.sh` — wizard 13 bước dẫn qua GTM UI thay vì tự mò: 5 Custom Event trigger + 5 GA4 tag (khớp bảng dưới), đăng ký 4 custom dimension, gỡ trigger cũ `exit_popup_submit`, Preview QA, Publish, verify incognito. Có resume state, không cần chạy lại từ đầu nếu gián đoạn giữa chừng. Script tự dẫn thao tác, không đọc thay ở đây.
 
-Mỗi event ở §2 cần một **Custom Event trigger** trùng tên, gắn vào một **GA4 Event tag**. Tối thiểu:
+### 6.1 Tối thiểu (wizard / baseline)
+
+Mỗi event dưới đây cần **Custom Event trigger** trùng tên + **GA4 Event tag**:
 
 1. Trigger `form_success` → GA4 event `generate_lead` (param: `form_id`) → đánh dấu **Key event** trong GA4.
 2. Trigger `cta_click` → GA4 event `cta_click` (param: `cta_text`).
@@ -153,6 +179,17 @@ Mỗi event ở §2 cần một **Custom Event trigger** trùng tên, gắn vào
 6. **KHÔNG** import `generate_lead` từ GA4 sang Google Ads (chốt 260812 — xem §3). Ads chỉ nhận conversion trực tiếp qua `gtag`. Nếu trong Ads đã lỡ tạo import từ GA4 thì **gỡ hoặc để "Secondary" và không tính vào bidding** — hai nguồn cùng đếm một lead là đếm đôi.
 
 Đăng ký `form_id`, `cta_text`, `percent_scrolled`, `tour_id` làm **custom dimension** trong GA4, nếu không param sẽ không hiện trong report.
+
+### 6.2 Trạng thái thật — tag **chưa có** (đã chốt dựng sau)
+
+LP đã push các event sau vào `dataLayer`, nhưng **container GTM hiện chưa có tag** cho chúng ⇒ **dừng ở dataLayer, không tới GA4**:
+
+| Nhóm dataLayer | Ghi chú |
+|---|---|
+| `tour_card_click`, `tour_cta_click`, `tour_itinerary_open`, `tour_source_click`, `tour_helper_card_click` | happytours; params gồm `tour_id` (+ song song `tour_interest` / `tour_code` / `tour_name` khi có) |
+| `popup_shown` | Đã bắn trên escape + happytours + dental. Param chuẩn spec = `popup_id` (happytours/dental đã có); escape còn `popup_type` legacy — tag GTM nên bắt event name, không phụ thuộc param escape |
+
+**Chưa làm:** tạo trigger + GA4 tag cho nhóm `tour_*` và `popup_shown`. Sẽ dựng **cùng đợt** star `generate_lead` làm Key event (việc người / GTM UI — không phải code LP).
 
 ---
 
@@ -185,8 +222,9 @@ Nhận **tự động** (không phải làm gì): attribution capture, dual-send
 Phải **tự làm**:
 - [ ] 5 tracking ID trong `<head>` (CI sẽ chặn nếu thiếu)
 - [ ] `form_success` + `form_error` trong handler submit (check `res.ok` + `data.success`, có `catch`, chặn double-submit)
+- [ ] **`form_id` trong body lead** — hidden input trên form HTML, hoặc key tường minh trong object literal nếu không dùng FormData (shared client **không** tự điền — §4)
 - [ ] Khối `gtag conversion` + `fbq('track','Lead')` ở §3
-- [ ] Popup dùng event `popup_submit` (không tên riêng)
+- [ ] Popup dùng event `popup_submit` (không tên riêng); `popup_shown` với `popup_id` khi mở popup
 - [ ] Nếu tự instrument click → đặt `window.MVT_PAGE_TRACKS_CLICKS = true`
 - [ ] Đăng ký page trong `build.js → PAGES_CONFIG`
 - [ ] Thêm host vào `LEAD_ALLOWED_HOSTS` (`worker-modules/lead-ingest-handler.js`) nếu là subdomain mới — **quên bước này thì `/api/lead` trả 403** (email browser vẫn chạy)
