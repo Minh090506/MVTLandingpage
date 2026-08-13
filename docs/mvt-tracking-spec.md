@@ -66,8 +66,8 @@ Mọi event đẩy vào `window.dataLayer` dưới dạng `{ event: '<tên>', ..
 
 | Event | Bắn khi | Params | Đang có ở |
 |---|---|---|---|
-| `popup_shown` | Exit-intent popup hiện (1 lần / lượt tải) | happytours/dental: `popup_id: 'exit_popup'` (+ happytours `form_id: 'exitForm'`); escape: `popup_type: 'exit_intent'` (legacy) | escape, happytours, **dental** |
-| `popup_submit` | Submit form trong popup | happytours/dental: `popup_id` + `form_id`; escape: `popup_type` legacy (+ `form_success` riêng với `form_id`) | escape, happytours, dental |
+| `popup_shown` | Exit-intent popup hiện (1 lần / lượt tải) | cả 3 LP: `popup_id: 'exit_popup'`; escape + happytours kèm `form_id: 'exitForm'` + `popup_type: 'exit_intent'` (param song song); dental không có `form_id` trên `popup_shown` | escape, happytours, **dental** |
+| `popup_submit` | Submit form trong popup | cả 3 LP: `popup_id: 'exit_popup'`; escape + happytours kèm `form_id: 'exitForm'` + `popup_type: 'exit_intent'` (param song song); dental kèm `form_id: 'exitPopup'` | escape, happytours, dental |
 | `video_play` | Video hero/section chạy | `video_id` | escape, happytours |
 | `tour_card_click` | Click card tour | `tour_id` (+ `tour_interest` song song) | happytours |
 | `tour_cta_click` | Click CTA trong card tour | `tour_id` (+ `tour_interest` / `tour_code` / `tour_name` song song) | happytours |
@@ -187,7 +187,7 @@ LP đã push các event sau vào `dataLayer`, nhưng **container GTM hiện chư
 | Nhóm dataLayer | Ghi chú |
 |---|---|
 | `tour_card_click`, `tour_cta_click`, `tour_itinerary_open`, `tour_source_click`, `tour_helper_card_click` | happytours; params gồm `tour_id` (+ song song `tour_interest` / `tour_code` / `tour_name` khi có) |
-| `popup_shown` | Đã bắn trên escape + happytours + dental. Param chuẩn spec = `popup_id` (happytours/dental đã có); escape còn `popup_type` legacy — tag GTM nên bắt event name, không phụ thuộc param escape |
+| `popup_shown` | Đã bắn trên escape + happytours + dental. Cả 3 LP đều có `popup_id: 'exit_popup'`; escape + happytours kèm `form_id: 'exitForm'` + `popup_type: 'exit_intent'` (param song song); dental không có `form_id` trên `popup_shown` |
 
 **Chưa làm:** tạo trigger + GA4 tag cho nhóm `tour_*` và `popup_shown`. Sẽ dựng **cùng đợt** star `generate_lead` làm Key event (việc người / GTM UI — không phải code LP).
 
