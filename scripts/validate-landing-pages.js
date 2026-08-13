@@ -35,7 +35,7 @@ const TRACKING_IDS = {
   gtm: 'GTM-KRFGX69D',
   googleAds: 'AW-17709107883',
   googleAdsLabel: 'Wq0ECKXBmfsbEKuVrvxB',
-  metaPixel: '579298288600609',
+  metaPixel: '531880273071891',
 };
 
 function parseArgs(argv) {

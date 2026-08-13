@@ -8,7 +8,7 @@
 3. **Google Ads Conversion ID:** `AW-17709107883` — on-page `gtag/js` loader dùng ID **này** (không dùng GA4 measurement ID)
 4. **Google Ads Conversion Label:** `Wq0ECKXBmfsbEKuVrvxB`
 5. **Google Ads Customer ID:** `572-470-7852`
-6. **Facebook Pixel ID:** `579298288600609` (Business ID: 623339086973908)
+6. **Facebook Pixel ID:** `531880273071891` (Business ID: 527344946945892)
 7. **GitHub Secrets** (cho auto-deploy) — Xem file SETUP-SECRETS.md trong repo
 
 ### Chưa cần ngay (tuần 3+):
@@ -46,7 +46,7 @@ Hãy thêm các tracking code sau vào đúng vị trí:
    - Event name: "generate_lead"
 
 4. Facebook Pixel:
-   - Pixel ID: 579298288600609
+   - Pixel ID: 531880273071891
    - Base pixel code vào <head>
    - Track PageView mặc định
    - Track "Lead" event khi form submit thành công (cùng chỗ với Google Ads conversion)
@@ -250,7 +250,7 @@ Nếu chưa, chạy: npx wrangler deploy --name escape-myvivatour
 
 ## Thứ tự chạy prompts
 
-1. ✅ IDs verified live (2026-08-12, real gtm.js/gtag requests): GTM-KRFGX69D, GA4 G-2R0EJ2LBJ5 (via GTM), Ads AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 579298288600609. Do not reuse any old boilerplate GTM sample ID.
+1. ✅ IDs verified live (2026-08-12, real gtm.js/gtag requests): GTM-KRFGX69D, GA4 G-2R0EJ2LBJ5 (via GTM), Ads AW-17709107883/Wq0ECKXBmfsbEKuVrvxB, FB Pixel 531880273071891. Do not reuse any old boilerplate GTM sample ID.
 2. ▶️ Prompt 1 — Cài tracking (COPY NGUYÊN PROMPT — IDs đã điền sẵn)
 3. ▶️ Prompt 2 — Sync structured data
 4. ▶️ Prompt 5 — AI SEO (có thể gộp với Prompt 2)

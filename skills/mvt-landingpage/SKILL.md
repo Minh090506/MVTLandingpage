@@ -547,7 +547,7 @@ Keep all 3 descriptions ~40-50 chars to maintain visual balance.
 - GTM container: `GTM-KRFGX69D` (account myvivatour · 6256769444 / container 261027424)
 - GA4: `G-2R0EJ2LBJ5` — **via GTM only** (do not load/config GA4 with direct gtag on the LP)
 - Google Ads conversion: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB` — on-page loader is `gtag/js?id=AW-17709107883`
-- Facebook Pixel: `579298288600609`
+- Facebook Pixel: `531880273071891`
 - Required dataLayer events: `page_view`, `form_start`, `form_submit`, `form_success`, `cta_click`, `whatsapp_click`
 - **Form submit must include lead-segmentation params** (added 2026-05-16): `departure_city` (string), `interests` (comma-string, NOT array — GA4 renders arrays as `"[object Object]"`), `interest_count` (number). Enables building GA4 audiences like "Honeymoon interested" → import to Google Ads for retargeting.
 

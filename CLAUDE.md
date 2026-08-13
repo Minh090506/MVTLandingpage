@@ -50,7 +50,7 @@ MVTLandingpage/
 | GA4 Measurement | `G-2R0EJ2LBJ5` | Property GA4 hợp nhất cho TẤT CẢ landing page (escape, happytours, dental). ID cũ `G-LKDCCNJMP3` đã ngừng dùng |
 | Google Ads Conversion | `AW-17709107883` | Customer ID: 572-470-7852 |
 | Google Ads Label | `Wq0ECKXBmfsbEKuVrvxB` | send_to: AW-17709107883/Wq0ECKXBmfsbEKuVrvxB |
-| Facebook Pixel | `579298288600609` | Business ID: 623339086973908 |
+| Facebook Pixel | `531880273071891` | Business ID: 527344946945892 |
 
 ## Tài liệu nền (đọc trước khi làm LP mới)
 
@@ -118,7 +118,7 @@ Nếu zone khác (vd `vietnamdentaltravel.com`) → tạo `wrangler-<brand>.toml
 - [ ] Hreflang tags (en-AU primary)
 - [ ] GTM script: `GTM-KRFGX69D`
 - [ ] GA4 gtag: `G-2R0EJ2LBJ5`
-- [ ] Facebook Pixel: `579298288600609`
+- [ ] Facebook Pixel: `531880273071891`
 
 **BODY (Content + Conversion):**
 - [ ] GTM noscript ngay sau `<body>`

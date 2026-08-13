@@ -6,7 +6,7 @@
 - GTM Container: `GTM-KRFGX69D` (account `myvivatour` · account ID `6256769444` · container ID `261027424`)
 - GA4 Measurement: `G-2R0EJ2LBJ5` — **gửi qua GTM** (không load/config GA4 bằng gtag trực tiếp trên LP)
 - Google Ads: `AW-17709107883` — on-page `gtag/js` loader dùng ID này
-- Facebook Pixel: `579298288600609`
+- Facebook Pixel: `531880273071891`
 - DataLayer events: `form_submit`, `form_success`, `form_error`, `cta_click`, `whatsapp_click`, `popup_shown`, `popup_submit`
 - Google Ads conversion fire khi form success: `AW-17709107883/Wq0ECKXBmfsbEKuVrvxB`
 - Facebook `fbq('track', 'Lead')` khi form success
@@ -279,9 +279,9 @@ Vào menu **Variables** > **New** (User-Defined Variables):
 ### Bước 4.1: Verify Pixel
 
 1. Mở `https://business.facebook.com`
-2. Business ID: `623339086973908`
+2. Business ID: `527344946945892`
 3. Menu: **Events Manager**
-4. Chọn Pixel ID: `579298288600609`
+4. Chọn Pixel ID: `531880273071891`
 5. Kiểm tra tab **Overview**:
    - Nếu thấy `PageView` events → Pixel đang hoạt động ✅
    - Nếu không thấy → cần debug (xem bước 4.3)
@@ -292,7 +292,7 @@ Vào menu **Variables** > **New** (User-Defined Variables):
 2. Click **Create Custom Conversion**
 3. Điền:
    - Name: `Booking Form Submit`
-   - Data source: Pixel `579298288600609`
+   - Data source: Pixel `531880273071891`
    - Rule: Event = `Lead`
    - Category: `Lead`
    - Value: `2099` AUD
@@ -386,7 +386,7 @@ GA4 Stream ID:          14312720580
 Google Ads Account:     572-470-7852
 Google Ads Conversion:  AW-17709107883  (on-page gtag/js loader)
 Google Ads Label:       Wq0ECKXBmfsbEKuVrvxB
-Facebook Pixel:         579298288600609
-Facebook Business ID:   623339086973908
+Facebook Pixel:         531880273071891
+Facebook Business ID:   527344946945892
 Web3Forms Key:          cf0ca620-d064-4640-9454-afb27d588f67
 ```
