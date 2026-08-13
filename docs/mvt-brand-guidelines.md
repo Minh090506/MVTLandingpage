@@ -144,7 +144,7 @@ Mỗi lockup có 5 biến thể: full-color, và các bản đơn sắc (ví d�
 > | `SVG/Viva Tour 4-chot-06-construction.svg` | Artboard kỹ thuật gốc, còn lưới. Không xuất bản. |
 > | `PNG/Viva Tour 4-chot-06-construction.png` | Bản raster cũ, còn lưới. Không xuất bản. |
 >
-> ⚠️ **Còn thiếu: PNG full-color dọc sạch.** `-06` là lockup dọc full-color **duy nhất** (`-07` là đơn sắc cam), nên sau khi đổi tên, slot PNG đang trống. Không tự render bù được — xem cảnh báo font ngay dưới. Cần designer xuất lại từ file AI trên máy **có cài Montserrat**.
+> ✅ **PNG full-color dọc sạch đã xuất (260813).** `PNG/Viva Tour 4-chot-06.png` — 2000×1453px, nền trong suốt, render từ `SVG/Viva Tour 4-chot-06.svg` sau khi cài Montserrat-Bold + Montserrat-Medium (OFL, Google Fonts) vào máy render. Không dính lưới dựng hình.
 
 > ⚠️ **Logo SVG phụ thuộc font.** Wordmark trong `-06` là **live text**, không outline — mở/render trên máy thiếu font sẽ ra chữ sai (đã kiểm chứng: render bằng `rsvg-convert` không có Montserrat cho ra wordmark fallback lệch hẳn). Khi giao file ra ngoài hoặc rasterize, phải outline chữ trước, hoặc đảm bảo máy đích có Montserrat.
 

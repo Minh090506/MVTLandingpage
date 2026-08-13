@@ -97,7 +97,9 @@ if (typeof fbq === 'function') fbq('track', 'Lead');
 
 Một lead = một conversion. Popup và form chính dùng **chung** label — phân biệt bằng `form_id`, không tạo label riêng (nếu không Ads sẽ đếm trùng khi khách submit cả hai).
 
-> **Chốt 260812 (Minh) — nguồn conversion của Google Ads:** `gtag` trực tiếp (khối trên) là **Primary và là nguồn DUY NHẤT**. **KHÔNG import `generate_lead` từ GA4 sang Ads**, kể cả dạng phụ. Lý do: một lead chỉ được đi vào Ads qua đúng một đường, không có đường thứ hai để đếm đôi. GA4 vẫn giữ `generate_lead` làm Key event để xem báo cáo và attribution — chỉ là không đẩy sang Ads.
+> **Chốt 260812 (Minh) — nguồn conversion của Google Ads:** `gtag` trực tiếp (khối trên) là **Primary và là nguồn DUY NHẤT**. Lý do: một lead chỉ được đi vào Ads qua đúng một đường, không có đường thứ hai để đếm đôi. GA4 vẫn giữ `generate_lead` làm Key event để xem báo cáo và attribution — chỉ là không đẩy sang Ads.
+>
+> **Sửa đổi 260813 (Minh) — trạng thái ĐANG SỐNG, ưu tiên hơn câu trên.** Tài khoản Ads **đã có sẵn** một hành động chuyển đổi nhập từ GA4 (`Lượt gửi biểu mẫu khách hàng tiềm năng`, nguồn `form_submit`) mà chốt 260812 không biết tới. Minh quyết **hạ nó xuống Hành động phụ**, **không xoá**. ⇒ Trạng thái đúng hiện nay: `MVT Landing Form Submit` (gtag) = **Chính**; action nhập GA4 = **Phụ**, tồn tại nhưng không tính vào cột Conversions. **Đừng nâng lại lên Chính, và cũng đừng đi xoá nó** vì đọc thấy câu "kể cả dạng phụ" ở bản 260812.
 
 ---
 
@@ -202,6 +204,8 @@ Bằng chứng nghiệm thu — parse payload `/g/collect` (không tin UI Tag As
 
 `tour_card_click` và `tour_itinerary_open` đã kiểm lại trên **tab thường, không nối Preview**.
 
+**Đăng ký tên event trong GA4 — trạng thái 260813:** cả 6 tên mới (`popup_shown` + 5 `tour_*`) đã vào danh sách 28 ngày và **dùng được trong báo cáo/phân đoạn**. Trước đó (260813 sáng) `popup_shown` còn vắng mặt trong khi Realtime và payload `/g/collect` đều đã có — **danh sách tên event của GA4 không phải oracle**, nó chỉ chậm đăng ký tên mới. Đừng chẩn đoán "tag hỏng" từ chỗ này.
+
 ---
 
 ## 7. QA sau mỗi lần đổi tracking
@@ -223,6 +227,25 @@ Bằng chứng nghiệm thu — parse payload `/g/collect` (không tin UI Tag As
 Test form **phải chạy từ trình duyệt thật** (Web3Forms chặn curl server-side ở gói free).
 
 **Rate limit thật** (CF WAF / rate limiting rules trên `/api/lead`) là **việc người** — code chỉ giới hạn size/keys. Ngưỡng đã chốt (Minh, 260812): **10 request/phút/IP**, action Block (→ 429), áp cho cả 2 zone (myvivatour.com + vietnamdentaltravel.com). Chạy `scripts/cloudflare-rate-limit-wizard.sh` để dựng rule + test bằng curl (không dùng Python — Cloudflare tự chặn `Python-urllib` bằng 403 trước khi vào rule).
+
+---
+
+## 7b. Đọc báo cáo GA4 riêng cho landing page
+
+Property `Myvivatour.vn-t8` (`G-2R0EJ2LBJ5`, path `a334536706p499301826`) **dùng chung với website chính** — Minh chốt 260813 giữ chung, **lọc theo host**, không tách property/stream. Số mặc định trong mọi báo cáo GA4 vì thế là *toàn property*, không phải LP.
+
+Để đọc số riêng LP, dùng bản khám phá đã lưu sẵn:
+
+| | |
+|---|---|
+| Tên | **`LP - 3 landing page (loc theo hostname)`** |
+| Ở đâu | GA4 → **Khám phá** (Explore), tài khoản `myvivatourvn@gmail.com` = `authuser=2` |
+| Phân đoạn | `LP - 3 landing page (loc hostname)` — phân đoạn **sự kiện**, điều kiện `Tên máy chủ` *là một trong*: `escape.myvivatour.com`, `happytours.myvivatour.com`, `implant.vietnamdentaltravel.com` |
+| Bố cục | hàng = `Tên sự kiện` · cột = `Tên máy chủ` · giá trị = `Số lượng sự kiện` |
+
+Phân đoạn dùng lại được cho bản khám phá khác. Muốn thêm LP mới thì sửa danh sách host trong phân đoạn — **không** đổi property.
+
+**Lưu ý khi đọc số:** múi giờ property lệch sau ICT, event tạo cuối ngày ICT có thể rơi vào ngày hôm trước.
 
 ---
 
