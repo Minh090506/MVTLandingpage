@@ -3823,7 +3823,7 @@
                            >Get My Honeymoon Quote →</a>
                         <button type="button" class="tour-details-btn"
                                 aria-expanded="false"
-                                onclick="toggleTourItinerary(this, 'tour-honeymoon-itinerary');"
+                                onclick="toggleTourItinerary(this, 'tour-honeymoon-itinerary', 'honeymoon');"
                                 >See full day-by-day itinerary ▼</button>
                         <a class="tour-source-link"
                            href="https://myvivatour.com/tour/vietnam-honeymoon-trip-10-days/"
@@ -3928,7 +3928,7 @@
                            >Get My Family Tour Quote →</a>
                         <button type="button" class="tour-details-btn"
                                 aria-expanded="false"
-                                onclick="toggleTourItinerary(this, 'tour-family-itinerary');"
+                                onclick="toggleTourItinerary(this, 'tour-family-itinerary', 'family');"
                                 >See full day-by-day itinerary ▼</button>
                         <a class="tour-source-link"
                            href="https://myvivatour.com/tour/overlook-vietnam-7-days/"
@@ -4021,7 +4021,7 @@
                            >Get My Luxury Cruise Quote →</a>
                         <button type="button" class="tour-details-btn"
                                 aria-expanded="false"
-                                onclick="toggleTourItinerary(this, 'tour-luxury-itinerary');"
+                                onclick="toggleTourItinerary(this, 'tour-luxury-itinerary', 'luxury');"
                                 >See full day-by-day itinerary ▼</button>
                         <a class="tour-source-link"
                            href="https://myvivatour.com/tour/luxury-unique-vietnam-10-days/"
@@ -5475,8 +5475,16 @@
             }
         });
 
+        // tourCodeFor: single source of truth for the machine tour code sent as GA4 tour_id.
+        // Reads the matching radio's data-tour-code so every tour_* event reports the same
+        // value space (VHM10 / V7 / VLU10); empty string for unknown keys.
+        function tourCodeFor(tourKey) {
+            const radio = document.getElementById('tour_' + tourKey);
+            return radio ? (radio.getAttribute('data-tour-code') || '') : '';
+        }
+
         // toggleTourItinerary: expand/collapse the full day-by-day accordion for a tour
-        function toggleTourItinerary(btn, contentId) {
+        function toggleTourItinerary(btn, contentId, tourKey) {
             const content = document.getElementById(contentId);
             if (!content) return;
             const isOpen = content.classList.toggle('open');
@@ -5484,17 +5492,14 @@
             btn.textContent = isOpen ? 'Hide full day-by-day itinerary ▲' : 'See full day-by-day itinerary ▼';
             if (isOpen) {
                 window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({ event: 'tour_itinerary_open', tour_id: contentId });
+                window.dataLayer.push({ event: 'tour_itinerary_open', tour_interest: tourKey, tour_id: tourCodeFor(tourKey) });
             }
         }
 
         // trackTourCardClick: fire GA4 event when visitor clicks a tour card in the selector strip
-        // tour_id = machine code from the matching radio's data-tour-code (empty for unknown keys).
         function trackTourCardClick(tourKey) {
-            const radio = document.getElementById('tour_' + tourKey);
-            const tourId = radio ? (radio.getAttribute('data-tour-code') || '') : '';
             window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ event: 'tour_card_click', tour_interest: tourKey, tour_id: tourId });
+            window.dataLayer.push({ event: 'tour_card_click', tour_interest: tourKey, tour_id: tourCodeFor(tourKey) });
         }
 
         // ===== Video facade: click → load real YouTube iframe with autoplay =====
