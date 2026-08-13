@@ -2312,14 +2312,6 @@
             .lightbox-nav {
                 display: none;
             }
-
-            .back-to-top {
-                bottom: 5.5rem;
-                right: 1rem;
-                width: 45px;
-                height: 45px;
-                font-size: 1.25rem;
-            }
         }
 
         /* Utility Classes */
@@ -2520,10 +2512,8 @@
             .whatsapp-float .wa-tooltip {
                 display: none;
             }
-        }
-        @media (max-width: 640px) {
             .back-to-top {
-                bottom: 9rem;
+                bottom: 9.5rem;
                 right: 1rem;
                 width: 45px;
                 height: 45px;
@@ -4734,7 +4724,12 @@
                 sessionStorage.setItem('exitPopupShown', '1');
                 document.getElementById('exitOverlay').classList.add('active');
                 window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({ event: 'popup_shown', popup_type: 'exit_intent' });
+                window.dataLayer.push({
+                    event: 'popup_shown',
+                    popup_type: 'exit_intent',
+                    popup_id: 'exit_popup',
+                    form_id: 'exitForm'
+                });
             });
         })();
 
@@ -4766,7 +4761,12 @@
                     status.style.color = '#10B981';
                     status.textContent = '✓ Check your email for the guide!';
                     window.dataLayer = window.dataLayer || [];
-                    window.dataLayer.push({ event: 'popup_submit', popup_type: 'exit_intent' });
+                    window.dataLayer.push({
+                        event: 'popup_submit',
+                        popup_type: 'exit_intent',
+                        popup_id: 'exit_popup',
+                        form_id: 'exitForm'
+                    });
                     // Also push form_success so GTM tags fire for popup too
                     window.dataLayer.push({ event: 'form_success', form_id: 'exitForm' });
                     // Google Ads conversion tracking
