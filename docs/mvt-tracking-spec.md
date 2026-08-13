@@ -71,13 +71,13 @@ Mọi event đẩy vào `window.dataLayer` dưới dạng `{ event: '<tên>', ..
 | `video_play` | Video hero/section chạy | `video_id` | escape, happytours |
 | `tour_card_click` | Click card tour | `tour_id` (+ `tour_interest` song song) | happytours |
 | `tour_cta_click` | Click CTA trong card tour | `tour_id` (+ `tour_interest` / `tour_code` / `tour_name` song song) | happytours |
-| `tour_itinerary_open` | Mở accordion lịch trình | `tour_id` | happytours |
+| `tour_itinerary_open` | Mở accordion lịch trình | `tour_id` (+ `tour_interest` song song) | happytours |
 | `tour_source_click` | Click sang trang tour gốc | `tour_id` (+ `tour_code` song song) | happytours |
 | `tour_helper_card_click` | Click card gợi ý | `tour_id` (+ `tour_interest` / `tour_code` / `tour_name` song song) | happytours |
 
 > **Hợp nhất 260812:** dental dùng `popup_submit` (không còn `exit_popup_submit`). GTM chỉ cần **một** trigger `popup_submit` cho mọi LP. Nếu GTM còn trigger cũ `exit_popup_submit` → gỡ sau khi deploy.
 
-> **tour_***: mọi event tour trên happytours **đã có `tour_id`** (mã máy: `VHM10` / `V7` / `VLU10` / …). Form booking vẫn gửi field cũ `tour_interest` / `tour_code` / `tour_name`; dataLayer push **song song** các key đó khi có — GA4 custom dimension chính là `tour_id`.
+> **tour_***: mọi event tour trên happytours **đã có `tour_id`** (mã máy: `VHM10` / `V7` / `VLU10` / …). Giá trị lấy từ một chỗ duy nhất — `data-tour-code` của radio tương ứng, qua helper `tourCodeFor(tourKey)` — nên mọi event nằm chung một hệ giá trị. **Đừng push id phần tử DOM vào `tour_id`**: `tour_itinerary_open` từng gửi `tour-honeymoon-itinerary`, làm chiều `tour_id` trong GA4 vỡ đôi (sửa 13/08/2026). Form booking vẫn gửi field cũ `tour_interest` / `tour_code` / `tour_name`; dataLayer push **song song** các key đó khi có — GA4 custom dimension chính là `tour_id`.
 
 ### 2.3 Quy ước đặt tên
 
@@ -165,7 +165,7 @@ Trước khi có hidden input / key tường minh, cột `marketing_leads.form_i
 
 ## 6. Việc phải làm trong GTM (chưa tự động hoá được)
 
-Chạy `scripts/gtm-setup-wizard.sh` — wizard 13 bước dẫn qua GTM UI thay vì tự mò: 5 Custom Event trigger + 5 GA4 tag (khớp bảng dưới), đăng ký 4 custom dimension, gỡ trigger cũ `exit_popup_submit`, Preview QA, Publish, verify incognito. Có resume state, không cần chạy lại từ đầu nếu gián đoạn giữa chừng. Script tự dẫn thao tác, không đọc thay ở đây.
+Chạy `scripts/gtm-setup-wizard.sh` — wizard 13 bước dẫn qua GTM UI thay vì tự mò: 5 Custom Event trigger + 5 GA4 tag (khớp bảng dưới), đăng ký 4 custom dimension, gỡ trigger cũ `exit_popup_submit`, Preview QA, Publish, verify incognito. Wizard chỉ phủ **đợt nền** đó; 6 tag `tour_*` + `popup_shown` và custom dimension `popup_id` dựng tay sau (§6.2), wizard chưa biết tới. Có resume state, không cần chạy lại từ đầu nếu gián đoạn giữa chừng. Script tự dẫn thao tác, không đọc thay ở đây.
 
 ### 6.1 Tối thiểu (wizard / baseline)
 
@@ -178,18 +178,29 @@ Mỗi event dưới đây cần **Custom Event trigger** trùng tên + **GA4 Eve
 5. Trigger `popup_submit` → GA4 event phù hợp (param: `popup_id` / `form_id`) — **một trigger cho mọi LP**.
 6. **KHÔNG** import `generate_lead` từ GA4 sang Google Ads (chốt 260812 — xem §3). Ads chỉ nhận conversion trực tiếp qua `gtag`. Nếu trong Ads đã lỡ tạo import từ GA4 thì **gỡ hoặc để "Secondary" và không tính vào bidding** — hai nguồn cùng đếm một lead là đếm đôi.
 
-Đăng ký `form_id`, `cta_text`, `percent_scrolled`, `tour_id` làm **custom dimension** trong GA4, nếu không param sẽ không hiện trong report.
+7. Trigger `tour_card_click` / `tour_cta_click` / `tour_itinerary_open` / `tour_source_click` / `tour_helper_card_click` → GA4 event cùng tên (param: `tour_id`).
+8. Trigger `popup_shown` → GA4 event `popup_shown` (param: `popup_id` + `form_id`). `form_id` để **optional** — dental không gửi param này.
 
-### 6.2 Trạng thái thật — tag **chưa có** (đã chốt dựng sau)
+Đăng ký `form_id`, `cta_text`, `percent_scrolled`, `tour_id`, `popup_id` làm **custom dimension** trong GA4, nếu không param sẽ không hiện trong report.
 
-LP đã push các event sau vào `dataLayer`, nhưng **container GTM hiện chưa có tag** cho chúng ⇒ **dừng ở dataLayer, không tới GA4**:
+### 6.2 Trạng thái thật — toàn bộ taxonomy đã có tag
 
-| Nhóm dataLayer | Ghi chú |
+Container `GTM-KRFGX69D` **Phiên bản 3** (publish 13/08/2026): 12 tag · 11 trigger · 10 biến. Mọi event trong §2 đều có trigger + GA4 tag; không còn nhóm nào dừng ở `dataLayer`.
+
+5 custom dimension đã đăng ký: `form_id`, `cta_text`, `percent_scrolled`, `tour_id`, `popup_id`. `generate_lead` đã bật làm **Sự kiện chính** (Key event) trong GA4.
+
+Bằng chứng nghiệm thu — parse payload `/g/collect` (không tin UI Tag Assistant), mỗi hành động **đúng 1 hit**:
+
+| Event | Payload quan sát được |
 |---|---|
-| `tour_card_click`, `tour_cta_click`, `tour_itinerary_open`, `tour_source_click`, `tour_helper_card_click` | happytours; params gồm `tour_id` (+ song song `tour_interest` / `tour_code` / `tour_name` khi có) |
-| `popup_shown` | Đã bắn trên escape + happytours + dental. Cả 3 LP đều có `popup_id: 'exit_popup'`; escape + happytours kèm `form_id: 'exitForm'` + `popup_type: 'exit_intent'` (param song song); dental không có `form_id` trên `popup_shown` |
+| `tour_card_click` | `ep.tour_id=VHM10` |
+| `tour_cta_click` | `ep.tour_id=VHM10` |
+| `tour_itinerary_open` | `ep.tour_id=VHM10` |
+| `tour_source_click` | `ep.tour_id=VHM10` |
+| `tour_helper_card_click` | `ep.tour_id=VHM10` |
+| `popup_shown` (escape + happytours) | `ep.popup_id=exit_popup` · `ep.form_id=exitForm` |
 
-**Chưa làm:** tạo trigger + GA4 tag cho nhóm `tour_*` và `popup_shown`. Sẽ dựng **cùng đợt** star `generate_lead` làm Key event (việc người / GTM UI — không phải code LP).
+`tour_card_click` và `tour_itinerary_open` đã kiểm lại trên **tab thường, không nối Preview**.
 
 ---
 
