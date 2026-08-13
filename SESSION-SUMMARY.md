@@ -31,7 +31,7 @@ Hệ thống multi-landing-page cho công ty du lịch **myvivatour.com** (targe
 | Google Ads Conversion Label | `Wq0ECKXBmfsbEKuVrvxB` |
 | Google Ads Customer ID (MCC) | `572-470-7852` (ocid: 7771865759) |
 | Google Ads Account (thực tế) | `806-163-1566` (My Viva Tour, tiền tệ: VNĐ) |
-| Facebook Pixel | `579298288600609` (Business: 623339086973908) |
+| Facebook Pixel | `531880273071891` (Business: 527344946945892) |
 
 ## 5. GitHub Secrets (ĐÃ SET)
 - `CLOUDFLARE_API_TOKEN` ✅
