@@ -31,9 +31,11 @@ Email đi **từ trình duyệt** (Web3Forms free chặn server-side; Worker kh�
 |---|---|---|
 | GTM container | `GTM-KRFGX69D` | Account GTM **"myvivatour"** (container mới; thay ID mẫu `GTM-TPQWV864` không tồn tại) |
 | GA4 measurement | `G-2R0EJ2LBJ5` | Gửi **qua GTM**, không qua gtag trực tiếp trên LP |
-| Google Ads | `AW-17709107883` | gtag trực tiếp **chỉ phục vụ Ads**; loader phải `gtag/js?id=AW-…` vì ID GA4 không có bản gtag.js phục vụ |
-| Ads conversion label | `Wq0ECKXBmfsbEKuVrvxB` | |
-| Meta Pixel | `531880273071891` | |
+| Google Ads (MCC) | `AW-17709107883` | gtag trực tiếp **chỉ phục vụ Ads**; loader phải `gtag/js?id=AW-…` vì ID GA4 không có bản gtag.js phục vụ. Action `MVT Landing Form Submit` thuộc **tài khoản quản lý** `572-470-7852` |
+| Ads conversion label (MCC) | `Wq0ECKXBmfsbEKuVrvxB` | Count = **Một**, cửa sổ 90 ngày (verify 260814) |
+| Google Ads (tài khoản chi tiền) | `AW-16765482840` | ID của **`806-163-1566`**. Campaign chỉ chọn được action của chính tài khoản mình ⇒ action MCC ở trên **không dùng làm mục tiêu campaign được**. Chỉ cần thêm `gtag('config', …)`, **không** load script thứ hai |
+| Ads conversion label (tài khoản chi tiền) | `MLW2CNnjnuEcENjus7o-` | Action `MVT LP Form Submit`, tạo 260814. Chính · Count **Một** · 90 ngày. Hiện **chỉ escape** bắn label này; happytours + dental vẫn chỉ bắn label MCC |
+| Meta Pixel | `531880273071891` | Dataset **dùng chung** với website chính + `asiadentaltour.com` (Minh xác nhận 260813 cả hai đều của MVT, cố ý không tách). Đọc báo cáo Meta phải **lọc theo domain**, giống cách GA4 lọc hostname (§7b) |
 
 **Loader rule:** LP load `gtag/js?id=AW-17709107883` + `gtag('config','AW-17709107883')` only. Do **not** load or `config` GA4 via direct gtag (404 + double-count risk). GA4 hits come from GTM tags in container `GTM-KRFGX69D`.
 

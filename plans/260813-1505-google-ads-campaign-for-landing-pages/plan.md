@@ -49,6 +49,7 @@ ngày review). Phase 00 phải đo `AU_10May` (clicks, avg CPC thật) TRƯỚC 
 |---|---|---|---|---|
 | 00 | [Pre-flight verification in the Ads/GTM UI](phase-00-preflight-account-verification.md) | pending | — | read-only |
 | 01 | [Account & campaign structure](phase-01-account-and-campaign-structure.md) | pending | 00 | — |
+| 01b | [**Runbook: sửa + bật campaign escape có sẵn**](phase-01b-escape-existing-campaign-fix-and-enable-runbook.md) | **ready** | — | Minh duyệt 260814 |
 | 02 | [Campaign→LP→keyword→URL mapping + UTM](phase-02-campaign-lp-keyword-url-mapping.md) | pending | 01 | — |
 | 03 | [Double-counting audit of conversion actions](phase-03-conversion-double-counting-audit.md) | pending | 00 | **must pass before launch** |
 | 04 | [Budget / bid / geo proposals (ranges)](phase-04-budget-bid-geo-proposals.md) | pending | 00, 02 | **MINH APPROVES MONEY** |

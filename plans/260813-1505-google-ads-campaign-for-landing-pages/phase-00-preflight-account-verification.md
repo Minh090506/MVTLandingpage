@@ -70,6 +70,29 @@ that silently invert an entire campaign's economics.
       `AW-16765482840` firing on `happytours.myvivatour.com` with no such ID in the LP source, i.e. it
       arrives via a link, not via code. Unknown account = unknown party receiving LP conversion signal.
 
+## Kết quả đo 260813-1840 (read-only, 0 thay đổi)
+
+Chi tiết + bằng chứng: `plans/reports/from-nt1-promptZ1-260813-1840-ads-phase00-preflight-findings-report.md`
+
+- **A1 ✅** `806-163-1566` là tài khoản chi tiền. **A2 ✅ auto-tagging BẬT** (mục chặn — pass).
+  **A3 ✅** GMT+07:00, tiền tệ VND. A4 ⏸️ (phụ thuộc C1).
+- **B2 ✅** `AU_10May` 30 ngày: 3.038 nhấp · **CPC TB 43.524 ₫** · 59,98 conv · **2.204.340 ₫/conv** ·
+  tỷ lệ conv 1,97% · giá trị conv 0. B1/B3 ⏸️.
+- **C1 + C2 🔴 chưa đóng** — trang Mục tiêu → Lượt chuyển đổi treo spinner ở cả `806-163-1566` lẫn MCC
+  (5 lần thử, 2 tab, ~40s/lần); `/aw/conversions/summary` = 404. C2 vẫn là **cổng chặn** trước khi bật.
+- D, E ⏸️ chưa làm.
+
+**Tiền đề của plan đã đổi:** đã tồn tại campaign `MVT - Escape - High Intent` (ID `23734444078`,
+dựng 7/4/2026, 900.000 ₫/ngày, **tạm dừng**, chưa từng chi). Đúng sẵn: Search-only · Úc · tiếng Anh ·
+khớp mở rộng Tắt · **Final URL = `https://escape.myvivatour.com/`** (root chuẩn) · 3 nhóm quảng cáo có
+từ khoá thật. **Phải sửa trước khi bật:** (1) **Mở rộng URL cuối cùng đang BẬT** ⇒ Google tự đổi trang
+đích, rơi vào path 301 là mất `gclid`; (2) mục tiêu chuyển đổi đang dùng **bộ mặc định tài khoản 6 mục**
+thay vì chỉ `MVT Landing Form Submit`; (3) giá thầu **Tối đa hoá giá trị chuyển đổi** trong khi giá trị
+conv = 0; (4) không loại brand ⇒ tự cạnh tranh với `AU_10May`.
+
+**Rủi ro mới:** cấp tài khoản đang bật **"Tự động áp dụng đề xuất"** (xoá từ khoá thừa + 6 loại khác)
+⇒ Google được sửa campaign sau lưng; phải xử lý trước khi bật bất kỳ campaign nào.
+
 ## Exit criteria
 
 Every box above ticked with a written answer. A1–A2 and C1–C2 are blocking; the rest can be recorded as

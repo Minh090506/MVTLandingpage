@@ -24,6 +24,10 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'AW-17709107883');
+    // Second Ads account: the conversion action a campaign can actually select.
+    // AW-17709107883 lives in the manager account, so campaigns in the spending
+    // account cannot target it; AW-16765482840 is that account's own ID.
+    gtag('config', 'AW-16765482840');
     </script>
 
     <!-- Facebook Pixel -->
@@ -4592,9 +4596,15 @@
                     // Tracking: form_success
                     window.dataLayer.push({ event: 'form_success', form_id: 'bookingForm' });
 
-                    // Google Ads conversion (generate_lead)
+                    // Google Ads conversion (generate_lead). Reported to both Ads
+                    // accounts: the manager-level action kept for history, and the
+                    // spending account's own action that campaigns can select.
                     gtag('event', 'conversion', {
                         send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
+                        event_callback: function() {}
+                    });
+                    gtag('event', 'conversion', {
+                        send_to: 'AW-16765482840/MLW2CNnjnuEcENjus7o-',
                         event_callback: function() {}
                     });
 
@@ -4773,6 +4783,10 @@
                     if (typeof gtag === 'function') {
                         gtag('event', 'conversion', {
                             send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
+                            event_callback: function() {}
+                        });
+                        gtag('event', 'conversion', {
+                            send_to: 'AW-16765482840/MLW2CNnjnuEcENjus7o-',
                             event_callback: function() {}
                         });
                     }
