@@ -103,6 +103,9 @@
     return url.indexOf('api.web3forms.com') !== -1;
   }
 
+  // Parse the form POST and fold in attribution. Returns the merged OBJECT (not a
+  // string) so the caller can build two shapes from it: the full record for the CRM
+  // and a stripped-down record for the seller's email inbox.
   function mergeAttribution(bodyText) {
     var payload;
     try {
@@ -119,7 +122,60 @@
     // Normalise the field names the pages already use into the ingest schema.
     if (!payload.full_name && payload.name) payload.full_name = payload.name;
     if (!payload.form_id && payload.formId) payload.form_id = payload.formId;
-    return JSON.stringify(payload);
+    return payload;
+  }
+
+  // --- Email shaping ---------------------------------------------------------
+  //
+  // Web3Forms emails EVERY key in the payload, one row per key, in insertion order,
+  // using the key itself as the label. Left unshaped, the seller's inbox fills with
+  // ad-attribution noise (page path with gclid, referrer, first-seen, a duplicate
+  // name) that does nothing to help close the booking. So the email gets a curated,
+  // ordered, noise-free copy — while the CRM (below) still receives the full record.
+
+  // Tracking / internal keys that must never reach the email inbox.
+  var EMAIL_EXCLUDE = {
+    landing_page: 1, page_path: 1, referrer: 1, landing_first_seen: 1,
+    full_name: 1, form_id: 1, formId: 1, popup_id: 1, page_id: 1,
+    gclid: 1, fbclid: 1, msclkid: 1, gbraid: 1, wbraid: 1, dclid: 1,
+    ttclid: 1, twclid: 1, li_fat_id: 1,
+  };
+
+  function isEmailNoise(key) {
+    return EMAIL_EXCLUDE[key] === 1 || key.indexOf('utm_') === 0 || key.indexOf('gad_') === 0;
+  }
+
+  // Web3Forms reserved fields — kept but never rendered as visible rows.
+  var EMAIL_CONTROL = ['access_key', 'subject', 'from_name', 'redirect', 'ccemail', 'replyto', 'botcheck'];
+  // Human fields the seller actually reads, in reading order. Any other non-noise
+  // field a page adds still passes through after these.
+  var EMAIL_ORDER = [
+    'name', 'email', 'phone', 'whatsapp', 'departure_city',
+    'travel_dates', 'group_size', 'budget', 'interests_summary', 'message', 'note',
+  ];
+
+  function buildEmailPayload(obj) {
+    var out = {};
+    // 1) Control fields first (hidden from the rendered email).
+    for (var i = 0; i < EMAIL_CONTROL.length; i++) {
+      var c = EMAIL_CONTROL[i];
+      if (obj[c] != null && obj[c] !== '') out[c] = obj[c];
+    }
+    // Keep "Reply" pointed at the customer even though attribution is gone.
+    if (!out.replyto && obj.email) out.replyto = obj.email;
+    if (!out.from_name) out.from_name = 'MyVivaTour Website';
+    // 2) Known human fields in a sensible order.
+    for (var j = 0; j < EMAIL_ORDER.length; j++) {
+      var k = EMAIL_ORDER[j];
+      if (obj[k] != null && obj[k] !== '' && !(k in out)) out[k] = obj[k];
+    }
+    // 3) Any remaining page-specific human field (not tracking, not control).
+    for (var key in obj) {
+      if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+      if (key in out || isEmailNoise(key) || EMAIL_CONTROL.indexOf(key) !== -1) continue;
+      if (obj[key] != null && obj[key] !== '') out[key] = obj[key];
+    }
+    return out;
   }
 
   function postLeadQuietly(mergedBody) {
@@ -145,13 +201,15 @@
     var merged = mergeAttribution(init.body);
     if (!merged) return nativeFetch(input, init);
 
-    postLeadQuietly(merged);
+    // CRM gets the FULL record — attribution stays intact for reporting.
+    postLeadQuietly(JSON.stringify(merged));
 
+    // The email inbox gets only what a seller needs to reply — tracking stripped.
     // Page handlers must see the Web3Forms response (success/error UX unchanged).
     var w3fInit = {
       method: 'POST',
       headers: init.headers || { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: merged,
+      body: JSON.stringify(buildEmailPayload(merged)),
     };
     return nativeFetch(input, w3fInit);
   };
