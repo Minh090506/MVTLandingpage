@@ -3693,10 +3693,10 @@
     <section class="hero">
         <div class="hero-parallax-layer">
             <img class="hero-bg-img" src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg" alt="" fetchpriority="high" decoding="sync" width="1920" height="1080" aria-hidden="true">
-            <video class="hero-bg-video" autoplay muted loop playsinline preload="auto"
+            <video class="hero-bg-video" muted loop playsinline preload="none"
                    poster="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg"
                    aria-hidden="true" onplaying="this.parentElement.classList.add('hero-video-on')">
-                <source src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/hero-vietnam-montage.mp4" type="video/mp4">
+                <source data-src="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/happytours/hero-vietnam-montage.mp4" type="video/mp4">
             </video>
         </div>
         <div class="hero-content">
@@ -3722,10 +3722,36 @@
                 <span class="tag">🏨 Hotels Included</span>
                 <span class="tag">🍽️ Most Meals</span>
             </div>
-            <button class="cta-button cta-button-hero" onclick="smoothScroll('tour-selector')">Choose My Vietnam Holiday →</button>
+            <button class="cta-button cta-button-hero" onclick="smoothScroll('booking')">Get My Free Vietnam Quote →</button>
             <p class="hero-cta-reassurance">🇦🇺 Free, no obligation · Reply within 2 hours · Trusted by 500+ Australian travellers</p>
+            <a href="#tour-selector" onclick="event.preventDefault();smoothScroll('tour-selector');" style="display:inline-block;margin-top:14px;color:#fff;opacity:.92;text-decoration:underline;font-weight:600;font-size:.95rem;">or compare all 3 Vietnam holidays ↓</a>
         </div>
     </section>
+
+    <script>
+    // Hero video is decorative. Never let it compete with the LCP hero image on the
+    // ad-traffic mobile path (measured LCP ~10.8s when the MP4 preloaded eagerly). Load
+    // it only on wide viewports, with motion allowed and no data-saver, after the page
+    // is idle — so LCP stays the poster image on mobile, where the paid clicks land.
+    (function () {
+        var v = document.querySelector('.hero-bg-video');
+        if (!v) return;
+        var src = v.querySelector('source[data-src]');
+        if (!src) return;
+        var wideEnough = window.matchMedia('(min-width: 768px)').matches;
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var saveData = navigator.connection && navigator.connection.saveData;
+        if (!wideEnough || reduced || saveData) return; // poster image is enough
+        function load() {
+            src.src = src.getAttribute('data-src');
+            v.load();
+            var p = v.play();
+            if (p && p.catch) p.catch(function () {});
+        }
+        if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 3000 });
+        else window.addEventListener('load', function () { setTimeout(load, 1200); });
+    })();
+    </script>
 
     <!-- Tour Selector Strip — 3 large cards, click jumps to the matching deep section -->
     <section class="tour-selector" id="tour-selector">
