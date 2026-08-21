@@ -126,7 +126,7 @@ ${cardsHtml}
   // Inline token substitution: <!--TA_COUNT-->old<!--/TA_COUNT--> → new
   const tokens = {
     TA_RATING: data.rating?.value ?? '5.0',
-    TA_COUNT: String(data.rating?.count ?? 230),
+    TA_COUNT: String(data.rating?.count ?? 250),
     TA_AWARD_YEAR: String(data.award?.year ?? 2026),
     TA_RANK_POS: String(data.ranking?.position ?? 47),
     TA_RANK_TOTAL: String(data.ranking?.outOf ?? 852),
@@ -334,7 +334,7 @@ function build() {
   // Facts (prices, ratings) are duplicated from page copy — update here when tour prices change.
   workerCode += `const LLMS_MVT = \`# MyVivaTour — Vietnam Tours for Australian Travellers
 
-> Australian-focused Vietnam tour operator (myvivatour.com). All prices in AUD, land-only unless stated (international airfare excluded, domestic Vietnam flights included where listed). Rated 5.0/5 from 230+ TripAdvisor reviews — Travellers' Choice 2026, Top 6% of Hanoi tour operators. Contact: info@myvivatour.com · WhatsApp +84 974 036 614.
+> Australian-focused Vietnam tour operator (myvivatour.com). All prices in AUD, land-only unless stated (international airfare excluded, domestic Vietnam flights included where listed). Rated 5.0/5 from 250+ TripAdvisor reviews — Travellers' Choice 2026, Top 6% of Hanoi tour operators. Contact: info@myvivatour.com · WhatsApp +84 974 036 614.
 
 ## Landing Pages
 
