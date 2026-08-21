@@ -144,12 +144,18 @@ console.log('lead-attribution-client');
 
   const w3fPayload = JSON.parse(w3f[0].init.body);
   const leadPayload = JSON.parse(lead[0].init.body);
-  check('Web3Forms payload gets utm_campaign', w3fPayload.utm_campaign === 'escape-core-au');
-  check('Web3Forms payload gets gclid', w3fPayload.gclid === 'Cj0KTest');
-  check('maps name to full_name on both paths',
-    w3fPayload.full_name === 'Jane' && leadPayload.full_name === 'Jane');
-  check('keeps original fields', w3fPayload.email === 'jane@example.com');
-  check('/api/lead gets same attribution merge', leadPayload.gclid === 'Cj0KTest');
+  // The CRM record (/api/lead) keeps the full attribution for reporting.
+  check('/api/lead payload gets utm_campaign', leadPayload.utm_campaign === 'escape-core-au');
+  check('/api/lead payload gets gclid', leadPayload.gclid === 'Cj0KTest');
+  check('/api/lead maps name to full_name', leadPayload.full_name === 'Jane');
+  // The Web3Forms email inbox is stripped of ad-attribution noise (see buildEmailPayload):
+  // utm_*, click IDs and the duplicate full_name never reach the seller's email.
+  check('Web3Forms email drops utm_campaign', w3fPayload.utm_campaign === undefined);
+  check('Web3Forms email drops gclid', w3fPayload.gclid === undefined);
+  check('Web3Forms email drops the duplicate full_name', w3fPayload.full_name === undefined);
+  // The human fields the seller actually reads still pass through.
+  check('Web3Forms email keeps name', w3fPayload.name === 'Jane');
+  check('Web3Forms email keeps email', w3fPayload.email === 'jane@example.com');
 }
 
 {
@@ -225,8 +231,10 @@ console.log('lead-attribution-client');
 }
 
 {
-  // form_id from the page body must reach BOTH Web3Forms and /api/lead (T8).
-  // The monkey-patch only sees the body — pages must put form_id in FormData/JSON.
+  // form_id from the page body must reach /api/lead (the CRM keys the source form
+  // off it). It is internal routing, not a field the seller reads, so it is stripped
+  // from the Web3Forms email (EMAIL_EXCLUDE). The monkey-patch only sees the body —
+  // pages must put form_id in FormData/JSON for it to reach /api/lead at all.
   const { win, calls } = boot({ search: AD_CLICK });
   await win.fetch('https://api.web3forms.com/submit', {
     method: 'POST',
@@ -243,8 +251,8 @@ console.log('lead-attribution-client');
   const lead = calls.filter((c) => c.url === '/api/lead');
   const w3fPayload = JSON.parse(w3f[0].init.body);
   const leadPayload = JSON.parse(lead[0].init.body);
-  check('forwards form_id on Web3Forms body', w3fPayload.form_id === 'bookingForm');
   check('forwards form_id on /api/lead body', leadPayload.form_id === 'bookingForm');
+  check('strips form_id from the Web3Forms email body', w3fPayload.form_id === undefined);
 }
 
 {
