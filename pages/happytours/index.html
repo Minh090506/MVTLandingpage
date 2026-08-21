@@ -5299,6 +5299,22 @@
             submitBtn.textContent = 'Sending...';
             formStatus.style.display = 'none';
 
+            // Fire the lead conversion exactly once per submission, decoupled from the
+            // Web3Forms email result. The CRM dual-send (window.fetch -> /api/lead) captures
+            // the lead independently, so a Web3Forms email failure must NOT suppress the
+            // Google Ads conversion — otherwise Smart Bidding under-counts and mis-optimises.
+            let conversionFired = false;
+            function fireLeadConversion() {
+                if (conversionFired) return;
+                conversionFired = true;
+                window.dataLayer.push({ event: 'form_success', form_id: 'bookingForm' });
+                gtag('event', 'conversion', {
+                    send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
+                    event_callback: function() {}
+                });
+                if (typeof fbq === 'function') fbq('track', 'Lead');
+            }
+
             const formData = new FormData(form);
             // Add JSON format
             const object = Object.fromEntries(formData);
@@ -5313,41 +5329,34 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // Tracking: form_success
-                    window.dataLayer.push({ event: 'form_success', form_id: 'bookingForm' });
-
-                    // Google Ads conversion (generate_lead)
-                    gtag('event', 'conversion', {
-                        send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
-                        event_callback: function() {}
-                    });
-
-                    // Facebook Lead event
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
-
-                    // Success: show message + open WhatsApp
-                    formStatus.style.display = 'block';
-                    formStatus.style.color = '#10B981';
-                    formStatus.innerHTML = '✓ Thank you! Your inquiry has been sent to our team. We will contact you within 24 hours.';
+                    fireLeadConversion();
 
                     // Read form values before reset
                     const name = document.getElementById('name').value;
-                    form.reset();
 
-                    // Delay confirm() to let tracking beacons flush first
-                    setTimeout(function() {
-                        const whatsappMsg = `Hello MyVivaTour! I just submitted an inquiry for a Vietnam holiday package.\nName: ${name}\nTour interest: ${tourInterest}`;
-                        const openWhatsApp = confirm('Your inquiry was sent! Would you also like to message us on WhatsApp for faster response?');
-                        if (openWhatsApp) {
-                            window.open(`https://wa.me/84974036614?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
-                        }
-                    }, 500);
+                    // Success: show message + a non-blocking WhatsApp button. A native confirm()
+                    // dialog blocks the whole page on the exact "just converted" moment and drives
+                    // drop-off — an inline button lets the visitor choose without interruption.
+                    const waMsg = encodeURIComponent(`Hello MyVivaTour! I just submitted an inquiry for a Vietnam holiday package.\nName: ${name}\nTour interest: ${tourInterest}`);
+                    formStatus.style.display = 'block';
+                    formStatus.style.color = '#10B981';
+                    formStatus.innerHTML =
+                        '✓ Thank you! Your inquiry has been sent to our team. We will contact you within 24 hours.'
+                        + `<a href="https://wa.me/84974036614?text=${waMsg}" target="_blank" rel="noopener"`
+                        + ' style="display:inline-block;margin-top:12px;padding:10px 18px;background:#25D366;color:#fff;'
+                        + 'border-radius:8px;font-weight:600;text-decoration:none;">💬 Message us on WhatsApp for a faster reply</a>';
+
+                    form.reset();
                 } else {
                     throw new Error(result.message || 'Submission failed');
                 }
             } catch (error) {
-                // Tracking: form_error
+                // Tracking: form_error (Web3Forms email path failed)
                 window.dataLayer.push({ event: 'form_error', form_id: 'bookingForm', error_message: String(error.message || '').slice(0, 200) });
+
+                // The lead was still dual-sent to the CRM (/api/lead) when this fetch fired, so
+                // count the Google Ads conversion even though the email path failed.
+                fireLeadConversion();
 
                 // Fallback: open mailto + WhatsApp
                 formStatus.style.display = 'block';
@@ -5636,6 +5645,22 @@
             btn.disabled = true;
             btn.textContent = 'Sending...';
             status.textContent = '';
+            // Count the conversion once, independent of the Web3Forms email result — the lead
+            // is dual-sent to the CRM (/api/lead) regardless, so an email failure must not lose it.
+            var exitConversionFired = false;
+            function fireExitConversion() {
+                if (exitConversionFired) return;
+                exitConversionFired = true;
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({ event: 'form_success', form_id: 'exitForm' });
+                if (typeof gtag === 'function') {
+                    gtag('event', 'conversion', {
+                        send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
+                        event_callback: function() {}
+                    });
+                }
+                if (typeof fbq === 'function') fbq('track', 'Lead');
+            }
             try {
                 var data = Object.fromEntries(new FormData(form));
                 var res = await fetch('https://api.web3forms.com/submit', {
@@ -5654,22 +5679,15 @@
                         popup_id: 'exit_popup',
                         form_id: 'exitForm'
                     });
-                    // Also push form_success so GTM tags fire for popup too
-                    window.dataLayer.push({ event: 'form_success', form_id: 'exitForm' });
-                    // Google Ads conversion tracking
-                    if (typeof gtag === 'function') {
-                        gtag('event', 'conversion', {
-                            send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
-                            event_callback: function() {}
-                        });
-                    }
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
+                    fireExitConversion();
                     form.reset();
                     setTimeout(closeExitPopup, 2500);
                 } else {
                     throw new Error(result.message || 'Failed');
                 }
             } catch (err) {
+                // Web3Forms email failed, but /api/lead still captured the lead — count it.
+                fireExitConversion();
                 status.style.color = '#EF4444';
                 status.textContent = 'Something went wrong. Please try again.';
             } finally {
