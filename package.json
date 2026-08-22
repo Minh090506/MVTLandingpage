@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/Minh090506/MVTLandingpage/issues"
   },
-  "homepage": "https://github.com/Minh090506/MVTLandingpage#readme"
+  "homepage": "https://github.com/Minh090506/MVTLandingpage#readme",
+  "dependencies": {
+    "pg": "^8.23.0"
+  }
 }
