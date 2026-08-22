@@ -23,7 +23,10 @@ const {
   injectContentTokens,
   injectSentinelTokens,
 } = require('./scripts/lib/content-token-injector');
-const { assertJsonLdConsistency } = require('./scripts/lib/jsonld-price-drift');
+const {
+  assertJsonLdConsistency,
+  assertJsonLdProseConsistency,
+} = require('./scripts/lib/jsonld-price-drift');
 
 const PAGES_DIR = path.join(__dirname, 'pages');
 const DATA_DIR = path.join(__dirname, 'data');
@@ -57,21 +60,74 @@ function parsePriceNumber(display) {
   return n;
 }
 
-// Tracked-tour price guard config: JSON-LD tour name -> the data field whose
-// numeric value that tour's Offer.price literal must equal. One data price recurs
-// under several JSON-LD tour names (OfferCatalog / Product offers / comparison
-// ItemList), so every name mapping below is checked. Un-listed offers (derived
-// upgrade packages, other tours) are intentionally not guarded.
-const JSONLD_GUARD_TOURS = {
+// JSON-LD structured-data guard config, per landing page. Returns the full
+// `expected` object for assertJsonLdConsistency:
+//   tourPrices  - JSON-LD tour name -> the data field whose numeric value that
+//                 tour's Offer.price literal must equal. One data price recurs
+//                 under several JSON-LD tour names (OfferCatalog / Product offers /
+//                 comparison ItemList), so every name mapping is checked. Un-listed
+//                 offers (derived upgrade packages, other tours) are not guarded.
+//   reviewCount - expected aggregateRating ratingCount/reviewCount.
+//   ratingValue - expected aggregateRating ratingValue (optional; only dental
+//                 carries its OWN rating, so only dental pins the value).
+// escape/happytours quote myvivatour's shared TripAdvisor facts (TA_DATA); dental
+// carries VietnamDentalTravel's OWN Google rating from its own data file — the two
+// are deliberately never merged.
+const JSONLD_GUARD = {
   escape: (lp) => ({
-    'Escape Australia - 10 Day Vietnam Tour': parsePriceNumber(lp.price),
-    'Escape Australia - 10 Day All-Inclusive Vietnam Journey': parsePriceNumber(lp.price),
-    'Base Package': parsePriceNumber(lp.price),
+    tourPrices: {
+      'Escape Australia - 10 Day Vietnam Tour': parsePriceNumber(lp.price),
+      'Escape Australia - 10 Day All-Inclusive Vietnam Journey': parsePriceNumber(lp.price),
+      'Base Package': parsePriceNumber(lp.price),
+    },
+    reviewCount: TA_DATA && TA_DATA.rating ? TA_DATA.rating.count : undefined,
   }),
   happytours: (lp) => ({
-    'Vietnam Honeymoon Trip — 10 Days': parsePriceNumber(lp.honeymoonPrice),
-    'Overlook Vietnam Family Tour — 7 Days': parsePriceNumber(lp.familyPrice),
-    'Luxury & Unique Vietnam — 10 Days': parsePriceNumber(lp.cruisePrice),
+    tourPrices: {
+      'Vietnam Honeymoon Trip — 10 Days': parsePriceNumber(lp.honeymoonPrice),
+      'Overlook Vietnam Family Tour — 7 Days': parsePriceNumber(lp.familyPrice),
+      'Luxury & Unique Vietnam — 10 Days': parsePriceNumber(lp.cruisePrice),
+    },
+    reviewCount: TA_DATA && TA_DATA.rating ? TA_DATA.rating.count : undefined,
+  }),
+  'dental-implants-vietnam': (lp) => ({
+    tourPrices: {
+      'Dental Implants Vietnam': parsePriceNumber(lp.fromPrice),
+    },
+    reviewCount: lp.ratingCount,
+    ratingValue: lp.ratingValue,
+  }),
+};
+
+// Current-price PROSE guard config, per landing page. The JSON-LD Offer.price is
+// only one place a price literal lurks; the same current price is repeated as prose
+// inside FAQPage question/answer text and `description` fields. Each anchor is a
+// tight literal-context regex whose captured number MUST equal the data current
+// price, so a stale price sentence fails the build even when Offer.price is correct.
+// Anchors are deliberately specific so secondary prices in the same prose (e.g.
+// dental's 1,510 / 2,090 / 8,240) never false-match. `price` is the numeric current
+// price ("from" price); happytours quotes its cheapest (family) tour as the "from".
+const JSONLD_PROSE_GUARD = {
+  escape: (lp) => ({
+    price: parsePriceNumber(lp.price),
+    anchors: [
+      { label: 'FAQ "What\'s included in the … price?"', regex: /included in the \$?([\d.,]+) price/g },
+      { label: 'meta description "Vietnam Tour from … AUD"', regex: /Vietnam Tour from \$?([\d.,]+) AUD/g },
+    ],
+  }),
+  happytours: (lp) => ({
+    price: parsePriceNumber(lp.familyPrice),
+    anchors: [
+      { label: 'meta description "holiday packages from … AUD"', regex: /holiday packages from \$?([\d.,]+) AUD/g },
+    ],
+  }),
+  'dental-implants-vietnam': (lp) => ({
+    price: parsePriceNumber(lp.fromPrice),
+    anchors: [
+      { label: 'FAQ "Single implants start from AUD …"', regex: /Single implants start from AUD ([\d.,]+)/g },
+      { label: 'FAQ "…value tier from AUD …"', regex: /value tier from AUD ([\d.,]+)/g },
+      { label: 'service description "…from AUD … all-inclusive"', regex: /DIO systems, from AUD ([\d.,]+) all-inclusive/g },
+    ],
   }),
 };
 
@@ -125,6 +181,17 @@ function tokenSpecsFor(slug) {
       required: true,
       value: lp && lp.cruisePrice ? `${lp.cruisePrice} AUD` : undefined,
     };
+  } else if (slug === 'dental-implants-vietnam') {
+    const lp = loadJson(path.join(DATA_DIR, 'dental-implants-vietnam.json'));
+    // DENTAL_FROM_PRICE renders as sentinels (title/meta/og/twitter) AND comment
+    // spans (hero, stats, comparison table, brand card, visible FAQ, sticky bar).
+    // DENTAL_RATING_VALUE / DENTAL_RATING_COUNT are VietnamDentalTravel's OWN Google
+    // rating (comment spans in the social-proof + clinic + safety sections); they are
+    // NOT myvivatour's TripAdvisor facts and never touch shared.json. The JSON-LD
+    // aggregateRating/Offer.price literals stay hand-authored (guarded, not tokenized).
+    specs.DENTAL_FROM_PRICE = { type: 'text', required: true, value: lp && lp.fromPrice };
+    specs.DENTAL_RATING_VALUE = { type: 'text', required: true, value: lp && lp.ratingValue };
+    specs.DENTAL_RATING_COUNT = { type: 'number', required: true, value: lp && lp.ratingCount };
   }
 
   return specs;
@@ -275,19 +342,22 @@ function readPageHTML(folderName) {
   content = injectContentTokens(content, specs, sourceLabel);
 
   // JSON-LD drift guard (approach C): the structured-data blocks are left literal
-  // (never tokenized); instead the build FAILS if a JSON-LD Offer.price / review
-  // count diverges from the data source of truth. Runs on the still-literal
-  // hand-authored JSON-LD (tokenization never touches ld+json blocks).
-  const guardBuilder = JSONLD_GUARD_TOURS[folderName];
+  // (never tokenized); instead the build FAILS if a JSON-LD value diverges from the
+  // data source of truth. Runs on the still-literal hand-authored JSON-LD
+  // (tokenization never touches ld+json blocks). The PROSE guard runs first so a
+  // stale current-price sentence in FAQ/description text is reported specifically,
+  // before the Offer.price/rating literal check.
+  const guardBuilder = JSONLD_GUARD[folderName];
   if (guardBuilder) {
     const lp = loadJson(path.join(DATA_DIR, `${folderName}.json`));
     if (!lp) {
       throw new Error(`JSON-LD drift guard: data/${folderName}.json missing or malformed`);
     }
-    assertJsonLdConsistency(content, folderName, {
-      tourPrices: guardBuilder(lp),
-      reviewCount: TA_DATA && TA_DATA.rating ? TA_DATA.rating.count : undefined,
-    });
+    const proseBuilder = JSONLD_PROSE_GUARD[folderName];
+    if (proseBuilder) {
+      assertJsonLdProseConsistency(content, folderName, proseBuilder(lp));
+    }
+    assertJsonLdConsistency(content, folderName, guardBuilder(lp));
   }
 
   console.log(`  ✓ ${folderName} (${(content.length / 1024).toFixed(1)} KB)`);
@@ -438,9 +508,10 @@ function build() {
   // tripadvisor-reviews.json), so a price/count edit updates both surfaces.
   const escapeContent = loadJson(path.join(DATA_DIR, 'escape.json'));
   const happytoursContent = loadJson(path.join(DATA_DIR, 'happytours.json'));
-  if (!SHARED_DATA || !TA_DATA || !escapeContent || !happytoursContent) {
+  const dentalContent = loadJson(path.join(DATA_DIR, 'dental-implants-vietnam.json'));
+  if (!SHARED_DATA || !TA_DATA || !escapeContent || !happytoursContent || !dentalContent) {
     throw new Error(
-      'LLMS_MVT render requires data/{shared,tripadvisor-reviews,escape,happytours}.json'
+      'llms.txt render requires data/{shared,tripadvisor-reviews,escape,happytours,dental-implants-vietnam}.json'
     );
   }
   const llmsReviewCount = TA_DATA.rating.count;
@@ -464,11 +535,11 @@ function build() {
 
 const LLMS_DENTAL = \`# VietnamDentalTravel — Dental Implants in Hanoi for Australians
 
-> Dental tourism service in Hanoi, Vietnam. Genuine Straumann, Dentium & DIO implants from AUD 1,220 all-inclusive (consultation, 3D CBCT scan, fixture, abutment, crown) — 65-80% below Australian prices. Surgeons are Associate Professors from Hanoi Medical University; partner clinic certified by the Vietnamese Ministry of Health. Lifetime implant warranty. Contact: info@myvivatour.com · WhatsApp +84 974 036 614.
+> Dental tourism service in Hanoi, Vietnam. Genuine Straumann, Dentium & DIO implants from ${dentalContent.fromPrice} all-inclusive (consultation, 3D CBCT scan, fixture, abutment, crown) — 65-80% below Australian prices. Surgeons are Associate Professors from Hanoi Medical University; partner clinic certified by the Vietnamese Ministry of Health. Lifetime implant warranty. Contact: info@myvivatour.com · WhatsApp +84 974 036 614.
 
 ## Landing Pages
 
-- [Dental Implants Vietnam — prices, brands, safety, FAQ](https://implant.vietnamdentaltravel.com/): Single implants from AUD 1,220 · All-on-4 from AUD 8,240 per jaw · All-on-6 from AUD 11,480 per jaw. Free treatment plan within 24 hours.
+- [Dental Implants Vietnam — prices, brands, safety, FAQ](https://implant.vietnamdentaltravel.com/): Single implants from ${dentalContent.fromPrice} · All-on-4 from AUD 8,240 per jaw · All-on-6 from AUD 11,480 per jaw. Free treatment plan within 24 hours.
 
 ## Company
 

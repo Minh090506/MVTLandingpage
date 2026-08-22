@@ -16,7 +16,10 @@ const {
   injectContentTokens,
   injectSentinelTokens,
 } = require('./lib/content-token-injector');
-const { assertJsonLdConsistency } = require('./lib/jsonld-price-drift');
+const {
+  assertJsonLdConsistency,
+  assertJsonLdProseConsistency,
+} = require('./lib/jsonld-price-drift');
 
 let passed = 0;
 function ok(name, fn) {
@@ -200,5 +203,109 @@ ok('resolves a nested Offer via inherited enclosing name (comparison ItemList)',
 throws('THROWS on an unparseable ld+json block (cannot verify → fail-closed)', () => {
   assertJsonLdConsistency('<script type="application/ld+json">{ bad json }</script>', 'escape', { reviewCount: 230 });
 }, /not valid JSON/);
+
+console.log('dental content tokens (from-price + own rating)');
+ok('injects DENTAL_FROM_PRICE as both a meta sentinel and a body comment span', () => {
+  const html =
+    '<title>From @@DENTAL_FROM_PRICE@@</title><div><!--DENTAL_FROM_PRICE-->AUD 1,220<!--/DENTAL_FROM_PRICE--></div>';
+  const specs = { DENTAL_FROM_PRICE: { type: 'text', required: true, value: 'AUD 1,220' } };
+  let out = injectSentinelTokens(html, specs, 'data/dental-implants-vietnam.json');
+  out = injectContentTokens(out, specs, 'data/dental-implants-vietnam.json');
+  assert.strictEqual(out, '<title>From AUD 1,220</title><div>AUD 1,220</div>');
+});
+ok('injects dental OWN rating value + count (own aggregateRating, not TA)', () => {
+  const html =
+    '<span><!--DENTAL_RATING_VALUE-->4.9<!--/DENTAL_RATING_VALUE-->/5</span><b><!--DENTAL_RATING_COUNT-->500<!--/DENTAL_RATING_COUNT-->+</b>';
+  const specs = {
+    DENTAL_RATING_VALUE: { type: 'text', required: true, value: '4.9' },
+    DENTAL_RATING_COUNT: { type: 'number', required: true, value: 500 },
+  };
+  const out = injectContentTokens(html, specs, 'data/dental-implants-vietnam.json');
+  assert.strictEqual(out, '<span>4.9/5</span><b>500+</b>');
+});
+throws('dental from-price required + missing fails closed naming file+token', () => {
+  injectSentinelTokens(
+    '@@DENTAL_FROM_PRICE@@',
+    { DENTAL_FROM_PRICE: { type: 'text', required: true, value: undefined } },
+    'data/dental-implants-vietnam.json'
+  );
+}, /Required sentinel token DENTAL_FROM_PRICE has no value in data\/dental-implants-vietnam\.json/);
+
+console.log('JSON-LD ratingValue guard (dental carries its own Google rating)');
+const dentalLd = LD({
+  '@type': 'Product',
+  name: 'Dental Implants Vietnam',
+  offers: { '@type': 'Offer', price: '1220' },
+  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', ratingCount: '500' },
+});
+ok('passes when dental Offer.price + ratingValue + ratingCount all match', () => {
+  assertJsonLdConsistency(dentalLd, 'dental-implants-vietnam', {
+    tourPrices: { 'Dental Implants Vietnam': 1220 },
+    reviewCount: 500,
+    ratingValue: '4.9',
+  });
+});
+throws('THROWS when dental ratingValue diverges from data', () => {
+  assertJsonLdConsistency(dentalLd, 'dental-implants-vietnam', {
+    tourPrices: { 'Dental Implants Vietnam': 1220 },
+    reviewCount: 500,
+    ratingValue: '4.8',
+  });
+}, /ratingValue "4.9"[\s\S]*diverges from data value 4\.8/);
+
+console.log('JSON-LD prose drift guard (stale current-price sentences)');
+const proseLd =
+  LD({
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: "What's included in the $2,099 price?",
+        acceptedAnswer: { '@type': 'Answer', text: 'All hotels, meals and guides.' },
+      },
+    ],
+  }) +
+  LD({ '@type': 'WebPage', description: '10-Day All-Inclusive Vietnam Tour from $2,099 AUD.' });
+const escapeAnchors = [
+  { label: 'FAQ "…included in the … price?"', regex: /included in the \$?([\d.,]+) price/g },
+  { label: 'description "Vietnam Tour from … AUD"', regex: /Vietnam Tour from \$?([\d.,]+) AUD/g },
+];
+ok('passes when the current-price prose matches the data value', () => {
+  assertJsonLdProseConsistency(proseLd, 'escape', { price: 2099, anchors: escapeAnchors });
+});
+throws('THROWS naming the anchor + value when a FAQ/description price is stale', () => {
+  assertJsonLdProseConsistency(proseLd, 'escape', { price: 2199, anchors: escapeAnchors });
+}, /prose drift guard \[escape\][\s\S]*2,099[\s\S]*2199/);
+throws('fail-closed when NO current-price anchor matches (prose reworded away)', () => {
+  assertJsonLdProseConsistency(
+    LD({ '@type': 'WebPage', description: 'No price mentioned here at all.' }),
+    'escape',
+    { price: 2099, anchors: escapeAnchors }
+  );
+}, /none of the current-price prose anchors matched/);
+ok('dental anchors ignore secondary prices in the same prose blob', () => {
+  const dLd = LD({
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'How much do dental implants cost in Vietnam?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Single implants start from AUD 1,220 (USD 800). Straumann from AUD 2,200. All-on-4 from AUD 8,240 per jaw.',
+        },
+      },
+    ],
+  });
+  const dAnchors = [
+    { label: 'FAQ single-implant from-price', regex: /Single implants start from AUD ([\d.,]+)/g },
+  ];
+  // 2,200 and 8,240 in the same blob must NOT trip the guard.
+  assertJsonLdProseConsistency(dLd, 'dental-implants-vietnam', { price: 1220, anchors: dAnchors });
+  assert.throws(
+    () => assertJsonLdProseConsistency(dLd, 'dental-implants-vietnam', { price: 1300, anchors: dAnchors }),
+    /1,220[\s\S]*1300/
+  );
+});
 
 console.log(`\n${passed} assertions passed`);

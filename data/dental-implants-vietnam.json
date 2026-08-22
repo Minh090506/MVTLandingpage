@@ -1,0 +1,6 @@
+{
+  "_comment": "Editable marketing content for pages/dental-implants-vietnam (implant.vietnamdentaltravel.com). fromPrice is a display-ready string (currency + thousands separator) injected verbatim - no runtime formatting; the numeric form for the JSON-LD drift guard is derived from it. ratingValue/ratingCount are VietnamDentalTravel's OWN Google aggregateRating and are deliberately kept separate from myvivatour's TripAdvisor facts (data/tripadvisor-reviews.json / shared.json).",
+  "fromPrice": "AUD 1,220",
+  "ratingValue": "4.9",
+  "ratingCount": 500
+}

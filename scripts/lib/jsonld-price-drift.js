@@ -69,6 +69,48 @@ function collectRatingCounts(node, out) {
   for (const value of Object.values(node)) collectRatingCounts(value, out);
 }
 
+// Recursively collect every aggregateRating ratingValue literal. Only checked when
+// the caller pins an expected ratingValue (dental carries its own Google rating; the
+// travel LPs quote TripAdvisor and pin only the count, so their ratingValue is left
+// unguarded here — no behaviour change for them).
+function collectRatingValues(node, out) {
+  if (Array.isArray(node)) {
+    for (const n of node) collectRatingValues(n, out);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
+
+  if (Object.prototype.hasOwnProperty.call(node, 'ratingValue')) {
+    out.push({ field: 'ratingValue', value: node.ratingValue });
+  }
+
+  for (const value of Object.values(node)) collectRatingValues(value, out);
+}
+
+// Recursively collect current-price PROSE: FAQPage question text, answer text, and
+// every `description` field. The JSON-LD Offer.price is only one place a price
+// literal lives; the same current price is repeated in human-readable copy that
+// search engines and answer engines quote. This gathers exactly the fields the prose
+// guard inspects (nothing else, so tour/brand names never get scanned for prices).
+function collectProse(node, out) {
+  if (Array.isArray(node)) {
+    for (const n of node) collectProse(n, out);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
+
+  if (typeof node.description === 'string') out.push(node.description);
+  if (node['@type'] === 'Question' && typeof node.name === 'string') out.push(node.name);
+  if (typeof node.text === 'string') out.push(node.text);
+
+  for (const value of Object.values(node)) collectProse(value, out);
+}
+
+// Parse a price-shaped prose fragment ("$2,099", "1,220") to a number.
+function proseNumber(fragment) {
+  return Number(String(fragment).replace(/[^0-9.]/g, ''));
+}
+
 // Parse every <script type="application/ld+json"> block into an object.
 // A block that is not valid JSON is itself a build failure (fail-closed): the
 // guard cannot verify structured data it cannot parse.
@@ -144,11 +186,94 @@ function assertJsonLdConsistency(html, pageLabel, expected) {
       }
     }
   }
+
+  if (expected && expected.ratingValue !== undefined && expected.ratingValue !== null) {
+    const ratingValues = [];
+    for (const block of blocks) collectRatingValues(block, ratingValues);
+    if (ratingValues.length === 0) {
+      throw new Error(
+        `JSON-LD drift guard [${pageLabel}]: no aggregateRating ratingValue found ` +
+          `(expected ${expected.ratingValue} from data/${pageLabel}.json)`
+      );
+    }
+    for (const r of ratingValues) {
+      if (Number(r.value) !== Number(expected.ratingValue)) {
+        throw new Error(
+          `JSON-LD drift guard [${pageLabel}]: aggregateRating ratingValue "${r.value}" ` +
+            `diverges from data value ${expected.ratingValue} — update the JSON-LD literal or data/${pageLabel}.json`
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Assert the CURRENT price rendered as prose (FAQPage question/answer text and
+ * `description` fields) matches the data source of truth.
+ * ======================================================================
+ * The JSON-LD Offer.price literal is guarded by assertJsonLdConsistency, but the
+ * same current price is repeated in human-readable copy — e.g. a FAQ "What's
+ * included in the $2,099 price?" or "Single implants start from AUD 1,220". A price
+ * bump that updates Offer.price but forgets the prose ships stale structured data.
+ *
+ * Each anchor is a tight literal-context regex with ONE numeric capture group; the
+ * captured number must equal the data current price. Anchors are deliberately
+ * specific so unrelated prices in the same prose (dental's 1,510 / 8,240, comparison
+ * ranges) never match. Fail-closed: if NOT ONE anchor matches, the current-price
+ * sentence was reworded/removed and the guard would silently pass — that also throws.
+ * The JSON-LD stays literal; this only prevents shipping drift.
+ *
+ * @param {string} html       Page HTML (JSON-LD blocks still literal).
+ * @param {string} pageLabel  Page slug, used in error messages.
+ * @param {Object} expected
+ * @param {number} expected.price                       numeric current price
+ * @param {Array<{label:string, regex:RegExp}>} expected.anchors
+ * @throws {Error} naming page + anchor + value on any divergence (fail-closed).
+ */
+function assertJsonLdProseConsistency(html, pageLabel, expected) {
+  if (!expected || !Array.isArray(expected.anchors) || expected.anchors.length === 0) {
+    return;
+  }
+  const blocks = extractJsonLdBlocks(html, pageLabel);
+  const proseParts = [];
+  for (const block of blocks) collectProse(block, proseParts);
+  const prose = proseParts.join('\n');
+
+  const expectedPrice = Number(expected.price);
+  let totalMatches = 0;
+
+  for (const anchor of expected.anchors) {
+    // Force a fresh global regex per call so lastIndex state never leaks between
+    // anchors or builds.
+    const flags = anchor.regex.flags.includes('g') ? anchor.regex.flags : anchor.regex.flags + 'g';
+    const re = new RegExp(anchor.regex.source, flags);
+    let match;
+    while ((match = re.exec(prose)) !== null) {
+      totalMatches += 1;
+      const found = proseNumber(match[1]);
+      if (found !== expectedPrice) {
+        throw new Error(
+          `JSON-LD prose drift guard [${pageLabel}]: ${anchor.label} shows current price "${match[1]}" ` +
+            `but data/${pageLabel}.json current price is ${expectedPrice} — update the JSON-LD prose literal or the data file`
+        );
+      }
+    }
+  }
+
+  if (totalMatches === 0) {
+    throw new Error(
+      `JSON-LD prose drift guard [${pageLabel}]: none of the current-price prose anchors matched — ` +
+        `the FAQ/description current-price sentence was reworded or removed; update JSONLD_PROSE_GUARD anchors so drift stays caught`
+    );
+  }
 }
 
 module.exports = {
   collectOfferPrices,
   collectRatingCounts,
+  collectRatingValues,
+  collectProse,
   extractJsonLdBlocks,
   assertJsonLdConsistency,
+  assertJsonLdProseConsistency,
 };
