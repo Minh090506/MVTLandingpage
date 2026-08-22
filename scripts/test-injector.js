@@ -14,7 +14,9 @@ const {
   encodeNumber,
   encodeJson,
   injectContentTokens,
+  injectSentinelTokens,
 } = require('./lib/content-token-injector');
+const { assertJsonLdConsistency } = require('./lib/jsonld-price-drift');
 
 let passed = 0;
 function ok(name, fn) {
@@ -112,5 +114,91 @@ ok('optional token with no value leaves HTML untouched', () => {
   const html = '<p><!--O-->old<!--/O--></p>';
   assert.strictEqual(injectContentTokens(html, { O: { type: 'text', required: false, value: undefined } }, 'd'), html);
 });
+
+console.log('sentinel pass (@@TOKEN@@) + fail-closed');
+ok('replaces a @@TOKEN@@ sentinel in a meta/attribute context, $ verbatim', () => {
+  const html = '<meta content="from @@ESCAPE_PRICE@@ AUD">';
+  const out = injectSentinelTokens(html, { ESCAPE_PRICE: { type: 'text', required: true, value: '$2,099' } }, 'data/escape.json');
+  assert.strictEqual(out, '<meta content="from $2,099 AUD">');
+});
+ok('replaces EVERY occurrence of a sentinel (meta + title + JS)', () => {
+  const html = '<title>@@P@@</title><script>const x="@@P@@ AUD";</script>';
+  const out = injectSentinelTokens(html, { P: { type: 'text', required: true, value: '$676' } }, 'd');
+  assert.strictEqual(out, '<title>$676</title><script>const x="$676 AUD";</script>');
+});
+ok('number sentinel emits a bare numeric (JS price counter)', () => {
+  const out = injectSentinelTokens('const c = @@N@@;', { N: { type: 'number', required: true, value: 2099 } }, 'd');
+  assert.strictEqual(out, 'const c = 2099;');
+});
+ok('preserves a form value string structure, substituting only the price', () => {
+  const html = '<input value="VHM10 - Honeymoon (10 days · @@HP@@ AUD)">';
+  const out = injectSentinelTokens(html, { HP: { type: 'text', required: true, value: '$2,070' } }, 'd');
+  assert.strictEqual(out, '<input value="VHM10 - Honeymoon (10 days · $2,070 AUD)">');
+});
+ok('attribute-encodes a sentinel value so it cannot break out of the attribute', () => {
+  const out = injectSentinelTokens('<meta content="@@X@@">', { X: { type: 'attribute', required: true, value: '" onload="alert(1)' } }, 'd');
+  assert.strictEqual(out.includes('" onload='), false);
+  assert.ok(out.includes('&quot; onload='));
+});
+throws('required sentinel with no value fails closed, naming file+token', () => {
+  injectSentinelTokens('x @@ESCAPE_PRICE_NUM@@', { ESCAPE_PRICE_NUM: { type: 'number', required: true, value: undefined } }, 'data/escape.json');
+}, /Required sentinel token ESCAPE_PRICE_NUM has no value in data\/escape\.json/);
+ok('optional sentinel with no value leaves HTML untouched', () => {
+  const html = 'keep @@O@@ literal';
+  assert.strictEqual(injectSentinelTokens(html, { O: { type: 'text', required: false, value: undefined } }, 'd'), html);
+});
+ok('a token whose sentinel is absent is a no-op (value present)', () => {
+  const html = '<p>no marker here</p>';
+  assert.strictEqual(injectSentinelTokens(html, { P: { type: 'text', required: true, value: '$1' } }, 'd'), html);
+});
+
+console.log('JSON-LD price/count drift guard');
+const LD = (obj) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;
+const goodLd =
+  LD({
+    '@type': 'TravelAgency',
+    hasOfferCatalog: {
+      itemListElement: [
+        { '@type': 'Offer', itemOffered: { name: 'Base Package' }, price: '2099' },
+      ],
+    },
+  }) +
+  LD({
+    '@type': 'TouristTrip',
+    name: 'Escape Australia - 10 Day All-Inclusive Vietnam Journey',
+    offers: { '@type': 'Offer', price: '2099' },
+    aggregateRating: { '@type': 'AggregateRating', ratingCount: '230', reviewCount: '230' },
+  });
+ok('passes when JSON-LD prices + counts match the data values', () => {
+  assertJsonLdConsistency(goodLd, 'escape', {
+    tourPrices: { 'Base Package': 2099, 'Escape Australia - 10 Day All-Inclusive Vietnam Journey': 2099 },
+    reviewCount: 230,
+  });
+});
+throws('THROWS naming page+value when an Offer.price diverges from data', () => {
+  assertJsonLdConsistency(goodLd, 'escape', { tourPrices: { 'Base Package': 3000 } });
+}, /drift guard \[escape\][\s\S]*Base Package[\s\S]*3000/);
+throws('THROWS when a guarded tour is missing/renamed in the JSON-LD', () => {
+  assertJsonLdConsistency(goodLd, 'escape', { tourPrices: { 'Ghost Tour': 2099 } });
+}, /no Offer\.price found for guarded tour "Ghost Tour"/);
+throws('THROWS when ratingCount/reviewCount diverges from data', () => {
+  assertJsonLdConsistency(goodLd, 'escape', { reviewCount: 231 });
+}, /aggregateRating[\s\S]*diverges from data value 231/);
+ok('resolves a nested Offer via inherited enclosing name (comparison ItemList)', () => {
+  const nested = LD({
+    '@type': 'ItemList',
+    itemListElement: [
+      { '@type': 'ListItem', item: { '@type': 'TouristTrip', name: 'Overlook Vietnam Family Tour — 7 Days', offers: { '@type': 'Offer', price: '676' } } },
+    ],
+  });
+  assertJsonLdConsistency(nested, 'happytours', { tourPrices: { 'Overlook Vietnam Family Tour — 7 Days': 676 } });
+  assert.throws(
+    () => assertJsonLdConsistency(nested, 'happytours', { tourPrices: { 'Overlook Vietnam Family Tour — 7 Days': 999 } }),
+    /diverges from data value 999/
+  );
+});
+throws('THROWS on an unparseable ld+json block (cannot verify → fail-closed)', () => {
+  assertJsonLdConsistency('<script type="application/ld+json">{ bad json }</script>', 'escape', { reviewCount: 230 });
+}, /not valid JSON/);
 
 console.log(`\n${passed} assertions passed`);

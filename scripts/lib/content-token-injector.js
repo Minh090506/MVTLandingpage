@@ -95,6 +95,57 @@ function encodeToken(type, value) {
 }
 
 /**
+ * Sentinel-token pass.
+ * ====================
+ * Some render surfaces have no room for an HTML comment pair: `<meta content>`
+ * attribute values, `<title>` text, inline `<script>` JS literals, and form
+ * `<input value>` / `<label>` strings. For those we use a context-safe SENTINEL
+ * token `@@TOKEN_NAME@@` — a plain-string marker replaced by the data value,
+ * encoded per the token's declared type (same encoders + fail-closed rules as
+ * the comment-span pass). Sentinels are matched by literal string, not regex, so
+ * a value containing "$" or regex metacharacters cannot corrupt the output and
+ * the marker never accidentally spans HTML structure.
+ *
+ * The `@@...@@` form was chosen because it is not valid HTML, not valid JS, and
+ * not a currency/price fragment, so an un-replaced sentinel is obvious in review
+ * and cannot be mistaken for real content.
+ *
+ * Same specs object as injectContentTokens: a token unused as a sentinel (its
+ * `@@NAME@@` marker absent from the HTML) is a no-op here, exactly as a token
+ * unused as a comment span is a no-op there. A required token with no value
+ * throws, naming file + token (fail-closed), regardless of marker presence — so
+ * running this pass first surfaces missing data with a sentinel-specific message.
+ *
+ * @param {string} html
+ * @param {Object<string, {type:string, required?:boolean, value:*}>} tokens
+ * @param {string} sourceLabel Human-readable data source (for fail-closed errors).
+ * @returns {string}
+ */
+function injectSentinelTokens(html, tokens, sourceLabel) {
+  let result = html;
+  for (const [name, spec] of Object.entries(tokens)) {
+    const { type, required = false, value } = spec;
+
+    if (value === undefined || value === null || value === '') {
+      if (required) {
+        throw new Error(
+          `Required sentinel token ${name} has no value in ${sourceLabel} - build aborted (fail-closed)`
+        );
+      }
+      continue; // optional: leave the sentinel/HTML untouched
+    }
+
+    const sentinel = `@@${name}@@`;
+    if (!result.includes(sentinel)) continue; // token not used as a sentinel here
+    const encoded = encodeToken(type, value);
+    // split/join is a pure literal replace: token values contain "$" (e.g.
+    // $2,099) which String.replace would treat as capture-group refs.
+    result = result.split(sentinel).join(encoded);
+  }
+  return result;
+}
+
+/**
  * Replace every declared token span in `html`.
  * @param {string} html
  * @param {Object<string, {type:string, required?:boolean, render?:string, value:*}>} tokens
@@ -136,5 +187,6 @@ module.exports = {
   encodeJson,
   encodeToken,
   injectContentTokens,
+  injectSentinelTokens,
   ENCODERS,
 };

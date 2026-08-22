@@ -51,7 +51,7 @@
     <!-- Mark JS as loaded synchronously so CSS scroll-reveal rules can safely hide content until observer fires.
          Without this, the .section-reveal / card opacity:0 baseline would persist if JS failed or was slow. -->
     <script>document.documentElement.classList.add('js');</script>
-    <meta name="description" content="10-day Vietnam tour from Australia — $2,099 AUD. Hanoi, Ha Long Bay, Hoi An, Saigon, Mekong. Flights, hotels, meals & guides included.">
+    <meta name="description" content="10-day Vietnam tour from Australia — @@ESCAPE_PRICE@@ AUD. Hanoi, Ha Long Bay, Hoi An, Saigon, Mekong. Flights, hotels, meals & guides included.">
     <meta name="keywords" content="Vietnam tour from Australia, Vietnam holiday package, Vietnam tours 2026, 10 day Vietnam tour, all inclusive Vietnam tour, Vietnam tour package Australia, Ha Long Bay tour, Hanoi tour, Ho Chi Minh City tour, Hoi An tour, Mekong Delta tour, Vietnam guided tour, small group Vietnam tour, Vietnam travel deal, cheap Vietnam tour Australia, budget Vietnam holiday, luxury Vietnam tour, Vietnam flights included, Vietnam hotel package, Vietnamese food tour, Vietnam culture tour, Southeast Asia tour from Australia, Vietnam adventure tour, Vietnam sightseeing, book Vietnam tour online, best Vietnam tour operator, affordable Vietnam holiday, Vietnam family tour, Vietnam honeymoon package, MyVivaTour, Vietnam holiday 2026, Vietnam travel package, Vietnam group tour, Ha Long Bay cruise, Cu Chi Tunnels tour, Vietnam all inclusive holiday, Australian Vietnam tour, Saigon tour, Vietnam beach holiday, Hue Imperial City tour, Vietnam and Cambodia tour, Vietnam tour with meals included, guided Vietnam holiday, Vietnam tour deals 2026, best time visit Vietnam, Vietnam tour operator Australia, Escape Australia">
 
     <!-- Geo & Audience Targeting -->
@@ -73,8 +73,8 @@
     <link rel="dns-prefetch" href="https://api.web3forms.com">
 
     <!-- Open Graph Tags -->
-    <meta property="og:title" content="10-Day Vietnam Tour from $2,099 AUD | MyVivaTour 2026">
-    <meta property="og:description" content="Vietnam holiday from Australia — $2,099 AUD all-inclusive. Hanoi, Ha Long Bay, Hoi An, Saigon, Mekong. Flights + hotels + guides.">
+    <meta property="og:title" content="10-Day Vietnam Tour from @@ESCAPE_PRICE@@ AUD | MyVivaTour 2026">
+    <meta property="og:description" content="Vietnam holiday from Australia — @@ESCAPE_PRICE@@ AUD all-inclusive. Hanoi, Ha Long Bay, Hoi An, Saigon, Mekong. Flights + hotels + guides.">
     <meta property="og:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -85,8 +85,8 @@
 
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="10-Day Vietnam Tour from $2,099 AUD | MyVivaTour">
-    <meta name="twitter:description" content="Vietnam holiday from Australia — $2,099 AUD all-inclusive. Hanoi, Ha Long Bay, Hoi An, Saigon. Flights + hotels + guides.">
+    <meta name="twitter:title" content="10-Day Vietnam Tour from @@ESCAPE_PRICE@@ AUD | MyVivaTour">
+    <meta name="twitter:description" content="Vietnam holiday from Australia — @@ESCAPE_PRICE@@ AUD all-inclusive. Hanoi, Ha Long Bay, Hoi An, Saigon. Flights + hotels + guides.">
     <meta name="twitter:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg">
 
     <!-- Geo & Language -->
@@ -106,7 +106,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <title>10-Day Vietnam Tour from $2,099 AUD | MyVivaTour 2026</title>
+    <title>10-Day Vietnam Tour from @@ESCAPE_PRICE@@ AUD | MyVivaTour 2026</title>
 
     <style>
         * {
@@ -4199,7 +4199,7 @@
         const PRICE_CONFIG = {
             currency: 'AUD',
             base: {
-                current: 2099,
+                current: @@ESCAPE_PRICE_NUM@@,
                 original: 2350,
             },
             upgrades: {

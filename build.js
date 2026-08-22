@@ -19,7 +19,11 @@
 const fs = require('fs');
 const path = require('path');
 const { loadRegistry } = require('./scripts/lib/load-registry');
-const { injectContentTokens } = require('./scripts/lib/content-token-injector');
+const {
+  injectContentTokens,
+  injectSentinelTokens,
+} = require('./scripts/lib/content-token-injector');
+const { assertJsonLdConsistency } = require('./scripts/lib/jsonld-price-drift');
 
 const PAGES_DIR = path.join(__dirname, 'pages');
 const DATA_DIR = path.join(__dirname, 'data');
@@ -40,6 +44,37 @@ function loadJson(file) {
 const SHARED_DATA = loadJson(path.join(DATA_DIR, 'shared.json'));
 const TA_DATA = loadJson(path.join(DATA_DIR, 'tripadvisor-reviews.json'));
 
+// Derive the bare numeric price (e.g. 2099) from a display string ("$2,099").
+// The display string in data/*.json stays the single source of truth for a
+// price; the sentinel number tokens (JS counter) and the JSON-LD drift guard
+// derive their numeric form from it, so there is one value to edit per price.
+function parsePriceNumber(display) {
+  const digits = String(display).replace(/[^0-9.]/g, '');
+  const n = Number(digits);
+  if (digits === '' || !Number.isFinite(n)) {
+    throw new Error(`Cannot derive a numeric price from ${JSON.stringify(display)}`);
+  }
+  return n;
+}
+
+// Tracked-tour price guard config: JSON-LD tour name -> the data field whose
+// numeric value that tour's Offer.price literal must equal. One data price recurs
+// under several JSON-LD tour names (OfferCatalog / Product offers / comparison
+// ItemList), so every name mapping below is checked. Un-listed offers (derived
+// upgrade packages, other tours) are intentionally not guarded.
+const JSONLD_GUARD_TOURS = {
+  escape: (lp) => ({
+    'Escape Australia - 10 Day Vietnam Tour': parsePriceNumber(lp.price),
+    'Escape Australia - 10 Day All-Inclusive Vietnam Journey': parsePriceNumber(lp.price),
+    'Base Package': parsePriceNumber(lp.price),
+  }),
+  happytours: (lp) => ({
+    'Vietnam Honeymoon Trip — 10 Days': parsePriceNumber(lp.honeymoonPrice),
+    'Overlook Vietnam Family Tour — 7 Days': parsePriceNumber(lp.familyPrice),
+    'Luxury & Unique Vietnam — 10 Days': parsePriceNumber(lp.cruisePrice),
+  }),
+};
+
 // Build the typed content-render token map for a landing page. TripAdvisor facts
 // come from tripadvisor-reviews.json (auto-updated weekly), per-LP content from
 // data/<slug>.json. TA_COUNT keeps its comment markers (legacy: they already ship
@@ -55,14 +90,41 @@ function tokenSpecsFor(slug) {
 
   if (slug === 'escape') {
     const lp = loadJson(path.join(DATA_DIR, 'escape.json'));
+    // ESCAPE_PRICE / ESCAPE_PRICE_OLD render both as comment spans (visible body)
+    // and as sentinels (meta/title/og/twitter). ESCAPE_PRICE_NUM is sentinel-only:
+    // the inline JS price counter needs the bare number derived from the display.
     specs.ESCAPE_HEADLINE = { type: 'text', required: true, value: lp && lp.headline };
     specs.ESCAPE_PRICE = { type: 'text', required: true, value: lp && lp.price };
     specs.ESCAPE_PRICE_OLD = { type: 'text', required: false, value: lp && lp.priceOld };
+    specs.ESCAPE_PRICE_NUM = {
+      type: 'number',
+      required: true,
+      value: lp && lp.price ? parsePriceNumber(lp.price) : undefined,
+    };
   } else if (slug === 'happytours') {
     const lp = loadJson(path.join(DATA_DIR, 'happytours.json'));
+    // HT_*_PRICE render as comment spans (visible body) and sentinels
+    // (meta/title/form value+label). HT_*_PRICE_AUD are sentinel-only display
+    // strings ("$676 AUD") for the JS price map, mobile bar and hero badge,
+    // derived from the same display value so a price is edited once.
     specs.HT_HONEYMOON_PRICE = { type: 'text', required: true, value: lp && lp.honeymoonPrice };
     specs.HT_FAMILY_PRICE = { type: 'text', required: true, value: lp && lp.familyPrice };
     specs.HT_CRUISE_PRICE = { type: 'text', required: true, value: lp && lp.cruisePrice };
+    specs.HT_HONEYMOON_PRICE_AUD = {
+      type: 'text',
+      required: true,
+      value: lp && lp.honeymoonPrice ? `${lp.honeymoonPrice} AUD` : undefined,
+    };
+    specs.HT_FAMILY_PRICE_AUD = {
+      type: 'text',
+      required: true,
+      value: lp && lp.familyPrice ? `${lp.familyPrice} AUD` : undefined,
+    };
+    specs.HT_CRUISE_PRICE_AUD = {
+      type: 'text',
+      required: true,
+      value: lp && lp.cruisePrice ? `${lp.cruisePrice} AUD` : undefined,
+    };
   }
 
   return specs;
@@ -201,8 +263,32 @@ function readPageHTML(folderName) {
 
   // Typed content-render tokens run for EVERY page by data presence (NOT gated on
   // the TA marker), so prices/headlines/review-count stay data-driven and a
-  // marker-less page (e.g. dental) can still be injected.
-  content = injectContentTokens(content, tokenSpecsFor(folderName), `data/${folderName}.json`);
+  // marker-less page (e.g. dental) can still be injected. Two passes share one
+  // spec map: the sentinel pass (@@TOKEN@@ in meta/title/JS/form) runs first so a
+  // missing required value fails with a sentinel-specific message, then the
+  // comment-span pass (<!--TOKEN-->…) handles visible-body spans. Tokenization
+  // runs BEFORE the drift guard so missing data (completeness) fails fast with a
+  // token-named error, before the JSON-LD consistency check.
+  const specs = tokenSpecsFor(folderName);
+  const sourceLabel = `data/${folderName}.json`;
+  content = injectSentinelTokens(content, specs, sourceLabel);
+  content = injectContentTokens(content, specs, sourceLabel);
+
+  // JSON-LD drift guard (approach C): the structured-data blocks are left literal
+  // (never tokenized); instead the build FAILS if a JSON-LD Offer.price / review
+  // count diverges from the data source of truth. Runs on the still-literal
+  // hand-authored JSON-LD (tokenization never touches ld+json blocks).
+  const guardBuilder = JSONLD_GUARD_TOURS[folderName];
+  if (guardBuilder) {
+    const lp = loadJson(path.join(DATA_DIR, `${folderName}.json`));
+    if (!lp) {
+      throw new Error(`JSON-LD drift guard: data/${folderName}.json missing or malformed`);
+    }
+    assertJsonLdConsistency(content, folderName, {
+      tourPrices: guardBuilder(lp),
+      reviewCount: TA_DATA && TA_DATA.rating ? TA_DATA.rating.count : undefined,
+    });
+  }
 
   console.log(`  ✓ ${folderName} (${(content.length / 1024).toFixed(1)} KB)`);
   return content;

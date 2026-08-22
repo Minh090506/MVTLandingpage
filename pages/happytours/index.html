@@ -47,7 +47,7 @@
     <!-- Mark JS as loaded synchronously so CSS scroll-reveal rules can safely hide content until observer fires.
          Without this, the .section-reveal / card opacity:0 baseline would persist if JS failed or was slow. -->
     <script>document.documentElement.classList.add('js');</script>
-    <meta name="description" content="Vietnam holiday from Australia — Honeymoon $2,070, Family $676, Luxury $1,379 AUD. Hotels, meals & domestic flights included. ★5.0/<!--REVIEW_COUNT-->230<!--/REVIEW_COUNT--> TripAdvisor reviews.">
+    <meta name="description" content="Vietnam holiday from Australia — Honeymoon @@HT_HONEYMOON_PRICE@@, Family @@HT_FAMILY_PRICE@@, Luxury @@HT_CRUISE_PRICE@@ AUD. Hotels, meals & domestic flights included. ★5.0/<!--REVIEW_COUNT-->230<!--/REVIEW_COUNT--> TripAdvisor reviews.">
     <meta name="keywords" content="Vietnam tour packages from Australia, Vietnam holiday packages 2026, Vietnam tours by interest, Vietnam honeymoon package from Australia, Vietnam family tour from Australia, luxury Vietnam cruise tour, romantic Vietnam tour for couples, kid-friendly Vietnam holiday, 5-star Halong Bay cruise, private Vietnam honeymoon, multi-generation Vietnam tour, premium Vietnam cruise from Australia, all inclusive Vietnam holiday, Vietnam tour with flights included, Ha Long Bay tour, Hanoi tour, Hoi An tour, Phu Quoc tour, Sapa tour, Mekong Delta tour, MyVivaTour, Vietnam holiday packages, best Vietnam tour operator Australia, Vietnam tour deals 2026, Vietnam tour packages Australia 2026, happy tours Vietnam, multi-tour Vietnam package">
 
     <!-- Geo & Audience Targeting -->
@@ -69,7 +69,7 @@
     <link rel="dns-prefetch" href="https://api.web3forms.com">
 
     <!-- Open Graph Tags -->
-    <meta property="og:title" content="Vietnam Tour Packages from $676 AUD | MyVivaTour 2026">
+    <meta property="og:title" content="Vietnam Tour Packages from @@HT_FAMILY_PRICE@@ AUD | MyVivaTour 2026">
     <meta property="og:description" content="Honeymoon, Family, or Luxury Cruise — pick your Vietnam holiday from Australia. All-inclusive, ★5.0/<!--REVIEW_COUNT-->230<!--/REVIEW_COUNT--> TripAdvisor reviews.">
     <meta property="og:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg">
     <meta property="og:image:width" content="1200">
@@ -81,7 +81,7 @@
 
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Vietnam Tour Packages from $676 AUD | MyVivaTour">
+    <meta name="twitter:title" content="Vietnam Tour Packages from @@HT_FAMILY_PRICE@@ AUD | MyVivaTour">
     <meta name="twitter:description" content="Honeymoon, Family, or Luxury Cruise — Vietnam holidays from Australia. All-inclusive, ★5.0/<!--REVIEW_COUNT-->230<!--/REVIEW_COUNT--> reviews.">
     <meta name="twitter:image" content="https://tnwelgvypmhhksqwnfmr.supabase.co/storage/v1/object/public/landing-images/escape/hero-halong-cruise.jpg">
 
@@ -102,7 +102,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <title>Vietnam Tour Packages from $676 AUD | MyVivaTour 2026</title>
+    <title>Vietnam Tour Packages from @@HT_FAMILY_PRICE@@ AUD | MyVivaTour 2026</title>
 
     <style>
         * {
@@ -3703,7 +3703,7 @@
             <h1>3 Ways to Discover Vietnam from Australia</h1>
             <p class="hero-subtitle">💕 Honeymoon · 👨‍👩‍👧 Family · ✨ Luxury Cruise — choose the holiday that fits your story</p>
             <a href="#tour-selector" class="price-badge" onclick="event.preventDefault();smoothScroll('tour-selector');">
-                From <strong>$676 AUD</strong> →
+                From <strong>@@HT_FAMILY_PRICE_AUD@@</strong> →
             </a>
 
             <!-- Trust Bar -->
@@ -4578,12 +4578,12 @@
                             <span class="form-group-legend">Which Vietnam holiday are you interested in?</span>
                             <p class="field-hint">Tap your preferred package — we'll tailor the quote</p>
                             <div class="booking-tour-selector" role="radiogroup" aria-label="Tour interest">
-                                <input type="radio" id="tour_honeymoon" name="tour_interest" value="VHM10 - Honeymoon (10 days · $2,070 AUD)" data-tour-code="VHM10" data-tour-name="Vietnam Honeymoon Trip — 10 Days">
-                                <label for="tour_honeymoon"><span class="tour-radio-icon" aria-hidden="true">💕</span> Honeymoon · 10d · $2,070 <span class="tour-code-badge">VHM10</span></label>
-                                <input type="radio" id="tour_family" name="tour_interest" value="V7 - Overlook Vietnam Family (7 days · $676 AUD)" data-tour-code="V7" data-tour-name="Overlook Vietnam Family Tour — 7 Days">
-                                <label for="tour_family"><span class="tour-radio-icon" aria-hidden="true">👨‍👩‍👧</span> Family · 7d · $676 <span class="tour-code-badge">V7</span></label>
-                                <input type="radio" id="tour_luxury" name="tour_interest" value="VLU10 - Luxury & Unique Vietnam (10 days · $1,379 AUD)" data-tour-code="VLU10" data-tour-name="Luxury &amp; Unique Vietnam — 10 Days">
-                                <label for="tour_luxury"><span class="tour-radio-icon" aria-hidden="true">✨</span> Luxury Cruise · 10d · $1,379 <span class="tour-code-badge">VLU10</span></label>
+                                <input type="radio" id="tour_honeymoon" name="tour_interest" value="VHM10 - Honeymoon (10 days · @@HT_HONEYMOON_PRICE@@ AUD)" data-tour-code="VHM10" data-tour-name="Vietnam Honeymoon Trip — 10 Days">
+                                <label for="tour_honeymoon"><span class="tour-radio-icon" aria-hidden="true">💕</span> Honeymoon · 10d · @@HT_HONEYMOON_PRICE@@ <span class="tour-code-badge">VHM10</span></label>
+                                <input type="radio" id="tour_family" name="tour_interest" value="V7 - Overlook Vietnam Family (7 days · @@HT_FAMILY_PRICE@@ AUD)" data-tour-code="V7" data-tour-name="Overlook Vietnam Family Tour — 7 Days">
+                                <label for="tour_family"><span class="tour-radio-icon" aria-hidden="true">👨‍👩‍👧</span> Family · 7d · @@HT_FAMILY_PRICE@@ <span class="tour-code-badge">V7</span></label>
+                                <input type="radio" id="tour_luxury" name="tour_interest" value="VLU10 - Luxury & Unique Vietnam (10 days · @@HT_CRUISE_PRICE@@ AUD)" data-tour-code="VLU10" data-tour-name="Luxury &amp; Unique Vietnam — 10 Days">
+                                <label for="tour_luxury"><span class="tour-radio-icon" aria-hidden="true">✨</span> Luxury Cruise · 10d · @@HT_CRUISE_PRICE@@ <span class="tour-code-badge">VLU10</span></label>
                                 <input type="radio" id="tour_notsure" name="tour_interest" value="Not sure - help me choose" data-tour-code="" data-tour-name="Not sure — help me choose">
                                 <label for="tour_notsure"><span class="tour-radio-icon" aria-hidden="true">🤔</span> Not sure — help me choose</label>
                             </div>
@@ -4875,7 +4875,7 @@
 
     <!-- Mobile Sticky Book Now Bar -->
     <div class="mobile-book-bar" id="mobileBookBar">
-        <div class="bar-price">From <span id="mobileBarPrice">$676 AUD</span></div>
+        <div class="bar-price">From <span id="mobileBarPrice">@@HT_FAMILY_PRICE_AUD@@</span></div>
         <a class="bar-btn" href="#booking" onclick="event.preventDefault();smoothScroll('booking');">Book Now →</a>
     </div>
 
@@ -5538,11 +5538,11 @@
 
             // Map tour section id -> { price, tourKey }
             const TOUR_PRICES = {
-                'tour-honeymoon': { price: '$2,070 AUD', key: 'honeymoon', label: 'Book Honeymoon' },
-                'tour-family':    { price: '$676 AUD', key: 'family',    label: 'Book Family Tour' },
-                'tour-luxury':    { price: '$1,379 AUD', key: 'luxury',    label: 'Book Luxury Cruise' },
+                'tour-honeymoon': { price: '@@HT_HONEYMOON_PRICE_AUD@@', key: 'honeymoon', label: 'Book Honeymoon' },
+                'tour-family':    { price: '@@HT_FAMILY_PRICE_AUD@@', key: 'family',    label: 'Book Family Tour' },
+                'tour-luxury':    { price: '@@HT_CRUISE_PRICE_AUD@@', key: 'luxury',    label: 'Book Luxury Cruise' },
             };
-            const DEFAULT_PRICE = '$676 AUD';
+            const DEFAULT_PRICE = '@@HT_FAMILY_PRICE_AUD@@';
             const DEFAULT_LABEL = 'Book Now →';
 
             // IntersectionObserver tracks which tour section is mostly in view
