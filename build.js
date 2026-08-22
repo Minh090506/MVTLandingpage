@@ -19,10 +19,54 @@
 const fs = require('fs');
 const path = require('path');
 const { loadRegistry } = require('./scripts/lib/load-registry');
+const { injectContentTokens } = require('./scripts/lib/content-token-injector');
 
 const PAGES_DIR = path.join(__dirname, 'pages');
 const DATA_DIR = path.join(__dirname, 'data');
 const OUTPUT_FILE = path.join(__dirname, 'worker.js');
+
+// Read a JSON data file, returning null if it is missing or malformed.
+function loadJson(file) {
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf-8'));
+  } catch (e) {
+    console.warn(`  ⚠ ${path.basename(file)} malformed: ${e.message}`);
+    return null;
+  }
+}
+
+// Cross-LP content (brand/NAP) and TripAdvisor facts (n8n-owned). Loaded once.
+const SHARED_DATA = loadJson(path.join(DATA_DIR, 'shared.json'));
+const TA_DATA = loadJson(path.join(DATA_DIR, 'tripadvisor-reviews.json'));
+
+// Build the typed content-render token map for a landing page. TripAdvisor facts
+// come from tripadvisor-reviews.json (auto-updated weekly), per-LP content from
+// data/<slug>.json. TA_COUNT keeps its comment markers (legacy: they already ship
+// in worker.js); every other token strips its markers. Required tokens with no
+// value make the build fail-closed (see content-token-injector.js).
+function tokenSpecsFor(slug) {
+  const specs = {};
+
+  if (TA_DATA && TA_DATA.rating) {
+    specs.TA_COUNT = { type: 'number', render: 'keep-markers', value: TA_DATA.rating.count };
+    specs.REVIEW_COUNT = { type: 'number', required: true, value: TA_DATA.rating.count };
+  }
+
+  if (slug === 'escape') {
+    const lp = loadJson(path.join(DATA_DIR, 'escape.json'));
+    specs.ESCAPE_HEADLINE = { type: 'text', required: true, value: lp && lp.headline };
+    specs.ESCAPE_PRICE = { type: 'text', required: true, value: lp && lp.price };
+    specs.ESCAPE_PRICE_OLD = { type: 'text', required: false, value: lp && lp.priceOld };
+  } else if (slug === 'happytours') {
+    const lp = loadJson(path.join(DATA_DIR, 'happytours.json'));
+    specs.HT_HONEYMOON_PRICE = { type: 'text', required: true, value: lp && lp.honeymoonPrice };
+    specs.HT_FAMILY_PRICE = { type: 'text', required: true, value: lp && lp.familyPrice };
+    specs.HT_CRUISE_PRICE = { type: 'text', required: true, value: lp && lp.cruisePrice };
+  }
+
+  return specs;
+}
 
 /**
  * Load TripAdvisor data and inject into HTML.
@@ -119,27 +163,14 @@ ${cardsHtml}
             </div>
             <!-- TA-REVIEWS-END -->`;
 
-  let result = html.replace(
+  const result = html.replace(
     /<!-- TA-REVIEWS-START[\s\S]*?<!-- TA-REVIEWS-END -->/,
     reviewsBlock
   );
 
-  // Inline token substitution: <!--TA_COUNT-->old<!--/TA_COUNT--> → new
-  const tokens = {
-    TA_RATING: data.rating?.value ?? '5.0',
-    TA_COUNT: String(data.rating?.count ?? 230),
-    TA_AWARD_YEAR: String(data.award?.year ?? 2026),
-    TA_RANK_POS: String(data.ranking?.position ?? 47),
-    TA_RANK_TOTAL: String(data.ranking?.outOf ?? 852),
-    TA_RANK_PERCENT: String(data.ranking?.topPercent ?? 6),
-  };
-
-  for (const [token, value] of Object.entries(tokens)) {
-    const regex = new RegExp(`<!--${token}-->[\\s\\S]*?<!--/${token}-->`, 'g');
-    result = result.replace(regex, `<!--${token}-->${value}<!--/${token}-->`);
-  }
-
-  console.log(`  📊 TripAdvisor data: ${data.rating?.value}/5 · ${data.rating?.count} reviews · ${data.reviews.length} cards rendered`);
+  // Inline TA fact tokens (TA_COUNT etc.) are now handled by the typed content
+  // injector via tokenSpecsFor(), sourced from the same tripadvisor-reviews.json.
+  console.log(`  📊 TripAdvisor reviews: ${data.reviews.length} cards rendered`);
   return result;
 }
 
@@ -163,10 +194,15 @@ function readPageHTML(folderName) {
   }
   let content = fs.readFileSync(htmlPath, 'utf-8');
 
-  // Inject TripAdvisor reviews + data only into pages that have the marker
+  // Inject the TripAdvisor reviews block only into pages that have the marker.
   if (content.includes('TA-REVIEWS-START')) {
     content = injectTripAdvisorData(content);
   }
+
+  // Typed content-render tokens run for EVERY page by data presence (NOT gated on
+  // the TA marker), so prices/headlines/review-count stay data-driven and a
+  // marker-less page (e.g. dental) can still be injected.
+  content = injectContentTokens(content, tokenSpecsFor(folderName), `data/${folderName}.json`);
 
   console.log(`  ✓ ${folderName} (${(content.length / 1024).toFixed(1)} KB)`);
   return content;
@@ -312,15 +348,27 @@ function build() {
 }\n\n`;
 
   // llms.txt (llmstxt.org) — LLM-friendly brand index for generative engines.
-  // Facts (prices, ratings) are duplicated from page copy — update here when tour prices change.
+  // Facts render from the SAME data as the landing-page HTML (data/*.json +
+  // tripadvisor-reviews.json), so a price/count edit updates both surfaces.
+  const escapeContent = loadJson(path.join(DATA_DIR, 'escape.json'));
+  const happytoursContent = loadJson(path.join(DATA_DIR, 'happytours.json'));
+  if (!SHARED_DATA || !TA_DATA || !escapeContent || !happytoursContent) {
+    throw new Error(
+      'LLMS_MVT render requires data/{shared,tripadvisor-reviews,escape,happytours}.json'
+    );
+  }
+  const llmsReviewCount = TA_DATA.rating.count;
+  const llmsRating = `${TA_DATA.rating.value}/${TA_DATA.rating.scale}`;
+  const llmsAward = `${TA_DATA.award.name} ${TA_DATA.award.year}`;
+  const llmsTopPercent = TA_DATA.ranking.topPercent;
   workerCode += `const LLMS_MVT = \`# MyVivaTour — Vietnam Tours for Australian Travellers
 
-> Australian-focused Vietnam tour operator (myvivatour.com). All prices in AUD, land-only unless stated (international airfare excluded, domestic Vietnam flights included where listed). Rated 5.0/5 from 230+ TripAdvisor reviews — Travellers' Choice 2026, Top 6% of Hanoi tour operators. Contact: info@myvivatour.com · WhatsApp +84 974 036 614.
+> Australian-focused Vietnam tour operator (myvivatour.com). All prices in AUD, land-only unless stated (international airfare excluded, domestic Vietnam flights included where listed). Rated ${llmsRating} from ${llmsReviewCount}+ TripAdvisor reviews — ${llmsAward}, Top ${llmsTopPercent}% of Hanoi tour operators. Contact: ${SHARED_DATA.contactEmail} · WhatsApp ${SHARED_DATA.whatsapp}.
 
 ## Landing Pages
 
-- [10-Day All-Inclusive Vietnam Holiday from Australia](https://escape.myvivatour.com/): Hanoi, Ha Long Bay, Hoi An, Ho Chi Minh City & Mekong Delta. From $2,099 AUD including hotels, meals, guides and domestic flights.
-- [Vietnam Holiday Packages — Honeymoon, Family, Luxury Cruise](https://happytours.myvivatour.com/): Three curated tours — Honeymoon from $2,070, Family from $676, Luxury Cruise from $1,379 AUD. Hotels, meals & domestic flights included.
+- [${escapeContent.headline}](https://escape.myvivatour.com/): Hanoi, Ha Long Bay, Hoi An, Ho Chi Minh City & Mekong Delta. From ${escapeContent.price} AUD including hotels, meals, guides and domestic flights.
+- [Vietnam Holiday Packages — Honeymoon, Family, Luxury Cruise](https://happytours.myvivatour.com/): Three curated tours — Honeymoon from ${happytoursContent.honeymoonPrice}, Family from ${happytoursContent.familyPrice}, Luxury Cruise from ${happytoursContent.cruisePrice} AUD. Hotels, meals & domestic flights included.
 
 ## Company
 

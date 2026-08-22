@@ -1,0 +1,6 @@
+{
+  "_comment": "Editable marketing content for pages/happytours (happytours.myvivatour.com). Three sub-tour prices as display-ready strings injected verbatim - no runtime formatting.",
+  "honeymoonPrice": "$2,070",
+  "familyPrice": "$676",
+  "cruisePrice": "$1,379"
+}

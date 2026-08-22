@@ -1,0 +1,6 @@
+{
+  "_comment": "Manual cross-landing-page content: brand + NAP only. Edited by hand. TripAdvisor facts (count/rating/award/ranking) are NOT here - they live in tripadvisor-reviews.json, which n8n auto-updates weekly.",
+  "brand": "MyVivaTour",
+  "contactEmail": "info@myvivatour.com",
+  "whatsapp": "+84 974 036 614"
+}

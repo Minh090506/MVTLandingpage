@@ -78,14 +78,14 @@ function listDiskPages() {
 function copyBuildInputs(tempRoot, diskPages) {
   fs.copyFileSync(BUILD_FILE, path.join(tempRoot, 'build.js'));
 
-  // build.js requires ./scripts/lib/load-registry to read data/landing-pages.json.
-  // Without this copy the sandbox build fails MODULE_NOT_FOUND and the gate breaks.
-  const loaderDir = path.join(tempRoot, 'scripts', 'lib');
-  fs.mkdirSync(loaderDir, { recursive: true });
-  fs.copyFileSync(
-    path.join(REPO_ROOT, 'scripts', 'lib', 'load-registry.js'),
-    path.join(loaderDir, 'load-registry.js')
-  );
+  // build.js requires modules under scripts/lib/ (load-registry.js reads the
+  // registry; content-token-injector.js renders typed content tokens). Copy the
+  // whole dir so the sandbox build never fails MODULE_NOT_FOUND — adding a new
+  // lib module must not silently break the gate.
+  const libSrc = path.join(REPO_ROOT, 'scripts', 'lib');
+  if (fs.existsSync(libSrc)) {
+    fs.cpSync(libSrc, path.join(tempRoot, 'scripts', 'lib'), { recursive: true });
+  }
 
   for (const pageName of diskPages) {
     const targetDir = path.join(tempRoot, 'pages', pageName);
