@@ -18,6 +18,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadRegistry } = require('./scripts/lib/load-registry');
 
 const PAGES_DIR = path.join(__dirname, 'pages');
 const DATA_DIR = path.join(__dirname, 'data');
@@ -142,20 +143,17 @@ ${cardsHtml}
   return result;
 }
 
-// Landing page config: folder name → route path
-// The first entry with isDefault:true is the homepage (/)
+// Landing page registry: folder name (slug) → route config.
+// Loaded from data/landing-pages.json via the shared loader so build.js and the
+// CI validator read the exact same source (no drift).
+// The first entry with isDefault:true is the homepage (/).
 // `redirectTo` entries emit a 301 redirect instead of serving HTML — used to
 // consolidate placeholder paths onto the fully-built happytours sections.
 // `canonicalHost` marks the one hostname a page should index under — drives the
 // host-scoped sitemap and the cross-host 301 guard in the worker.
-const PAGES_CONFIG = {
-  'escape':                   { path: '/', isDefault: true,  name: 'Escape Australia 10-Day Tour',              canonicalHost: 'escape.myvivatour.com' },
-  'happytours':               { path: '/happytours',                  name: 'Vietnam Holiday Packages - Multi-Tour',      canonicalHost: 'happytours.myvivatour.com' },
-  'dental-implants-vietnam':  { path: '/dental-implants-vietnam',     name: 'Dental Implants Vietnam — VietnamDentalTravel', canonicalHost: 'implant.vietnamdentaltravel.com' },
-  'honeymoon':                { path: '/honeymoon',                   name: 'Vietnam Honeymoon (301 → happytours)',     redirectTo: 'https://happytours.myvivatour.com/#tour-honeymoon' },
-  'family-tour':              { path: '/family-tour',                 name: 'Vietnam Family Tour (301 → happytours)',    redirectTo: 'https://happytours.myvivatour.com/#tour-family' },
-  'luxury-cruise':            { path: '/luxury-cruise',               name: 'Luxury Vietnam Cruise (301 → happytours)',  redirectTo: 'https://happytours.myvivatour.com/#tour-luxury' },
-};
+// A folder is served ONLY if it is registered here (fail-closed): an unregistered
+// pages/<dir> is ignored by the build and rejected by the validator.
+const PAGES_CONFIG = loadRegistry();
 
 function readPageHTML(folderName) {
   const htmlPath = path.join(PAGES_DIR, folderName, 'index.html');
@@ -198,23 +196,6 @@ function build() {
     if (html) {
       pages[folder] = { ...config, html };
       if (config.isDefault) defaultPage = folder;
-    }
-  }
-
-  // Also scan for any new folders not in config
-  if (fs.existsSync(PAGES_DIR)) {
-    const dirs = fs.readdirSync(PAGES_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => d.name);
-
-    for (const dir of dirs) {
-      if (!PAGES_CONFIG[dir]) {
-        const html = readPageHTML(dir);
-        if (html) {
-          pages[dir] = { path: `/${dir}`, name: dir, html };
-          console.log(`  + Auto-discovered: ${dir} → /${dir}`);
-        }
-      }
     }
   }
 

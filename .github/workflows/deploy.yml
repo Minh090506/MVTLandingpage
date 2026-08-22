@@ -6,6 +6,8 @@ on:
     paths:
       - 'pages/**'
       - 'build.js'
+      # build.js reads the landing-page registry, so editing it changes what ships
+      - 'data/**'
       # build.js inlines these into worker.js, so editing one changes what ships
       - 'worker-modules/**'
       - 'wrangler.toml'

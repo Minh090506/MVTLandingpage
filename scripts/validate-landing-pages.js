@@ -13,8 +13,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const vm = require('vm');
 const { spawnSync } = require('child_process');
+const { loadRegistry } = require('./lib/load-registry');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const PAGES_DIR = path.join(REPO_ROOT, 'pages');
@@ -65,101 +65,6 @@ function printHelp() {
   ].join('\n'));
 }
 
-function extractObjectLiteral(source, variableName) {
-  const declaration = new RegExp(`\\bconst\\s+${variableName}\\s*=`).exec(source);
-  if (!declaration) {
-    throw new Error(`Could not find const ${variableName} in build.js`);
-  }
-
-  const start = source.indexOf('{', declaration.index + declaration[0].length);
-  if (start === -1) {
-    throw new Error(`Could not find the opening brace for ${variableName}`);
-  }
-
-  let depth = 0;
-  let state = 'code';
-  let escaped = false;
-
-  for (let index = start; index < source.length; index += 1) {
-    const char = source[index];
-    const next = source[index + 1];
-
-    if (state === 'line-comment') {
-      if (char === '\n') state = 'code';
-      continue;
-    }
-
-    if (state === 'block-comment') {
-      if (char === '*' && next === '/') {
-        state = 'code';
-        index += 1;
-      }
-      continue;
-    }
-
-    if (state === 'single-quote' || state === 'double-quote' || state === 'template') {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (char === '\\') {
-        escaped = true;
-        continue;
-      }
-      if (
-        (state === 'single-quote' && char === "'") ||
-        (state === 'double-quote' && char === '"') ||
-        (state === 'template' && char === '`')
-      ) {
-        state = 'code';
-      }
-      continue;
-    }
-
-    if (char === '/' && next === '/') {
-      state = 'line-comment';
-      index += 1;
-      continue;
-    }
-    if (char === '/' && next === '*') {
-      state = 'block-comment';
-      index += 1;
-      continue;
-    }
-    if (char === "'") {
-      state = 'single-quote';
-      continue;
-    }
-    if (char === '"') {
-      state = 'double-quote';
-      continue;
-    }
-    if (char === '`') {
-      state = 'template';
-      continue;
-    }
-
-    if (char === '{') depth += 1;
-    if (char === '}') {
-      depth -= 1;
-      if (depth === 0) return source.slice(start, index + 1);
-    }
-  }
-
-  throw new Error(`Could not find the closing brace for ${variableName}`);
-}
-
-function loadPagesConfig(buildSource) {
-  const literal = extractObjectLiteral(buildSource, 'PAGES_CONFIG');
-  const config = vm.runInNewContext(`(${literal})`, Object.create(null), { timeout: 1_000 });
-
-  if (!config || typeof config !== 'object' || Array.isArray(config)) {
-    throw new Error('PAGES_CONFIG did not evaluate to an object');
-  }
-
-  return config;
-}
-
 function listDiskPages() {
   if (!fs.existsSync(PAGES_DIR)) return [];
 
@@ -172,6 +77,15 @@ function listDiskPages() {
 
 function copyBuildInputs(tempRoot, diskPages) {
   fs.copyFileSync(BUILD_FILE, path.join(tempRoot, 'build.js'));
+
+  // build.js requires ./scripts/lib/load-registry to read data/landing-pages.json.
+  // Without this copy the sandbox build fails MODULE_NOT_FOUND and the gate breaks.
+  const loaderDir = path.join(tempRoot, 'scripts', 'lib');
+  fs.mkdirSync(loaderDir, { recursive: true });
+  fs.copyFileSync(
+    path.join(REPO_ROOT, 'scripts', 'lib', 'load-registry.js'),
+    path.join(loaderDir, 'load-registry.js')
+  );
 
   for (const pageName of diskPages) {
     const targetDir = path.join(tempRoot, 'pages', pageName);
@@ -484,10 +398,9 @@ async function validate(options) {
     errors: [],
   };
 
-  const buildSource = fs.readFileSync(BUILD_FILE, 'utf8');
   let pagesConfig = {};
   try {
-    pagesConfig = loadPagesConfig(buildSource);
+    pagesConfig = loadRegistry();
   } catch (error) {
     addError(report, 'Registration', error.message);
   }

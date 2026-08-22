@@ -1,0 +1,69 @@
+{
+  "escape": {
+    "path": "/",
+    "isDefault": true,
+    "name": "Escape Australia 10-Day Tour",
+    "canonicalHost": "escape.myvivatour.com",
+    "status": "live",
+    "adAccount": "MVT Google Ads (MCC 572-470-7852)",
+    "campaign": null,
+    "offerSummary": "10-day all-inclusive Vietnam tour from AUD 2,099 (hotels, meals, guides, domestic flights).",
+    "owner": "marketing",
+    "notes": "Homepage of escape.myvivatour.com; TripAdvisor social-proof block injected from data/tripadvisor-reviews.json."
+  },
+  "happytours": {
+    "path": "/happytours",
+    "name": "Vietnam Holiday Packages - Multi-Tour",
+    "canonicalHost": "happytours.myvivatour.com",
+    "status": "live",
+    "adAccount": "MVT Google Ads (MCC 572-470-7852)",
+    "campaign": null,
+    "offerSummary": "Three curated tours — Honeymoon from AUD 2,070, Family from AUD 676, Luxury Cruise from AUD 1,379 (hotels, meals, domestic flights included).",
+    "owner": "marketing",
+    "notes": "Multi-tour hub; low conversion under review (see happytours lead-pipeline diagnosis). Honeymoon/family/luxury-cruise stubs 301 into its anchors."
+  },
+  "dental-implants-vietnam": {
+    "path": "/dental-implants-vietnam",
+    "name": "Dental Implants Vietnam — VietnamDentalTravel",
+    "canonicalHost": "implant.vietnamdentaltravel.com",
+    "status": "live",
+    "adAccount": null,
+    "campaign": null,
+    "offerSummary": "Dental implants in Hanoi from AUD 1,220 all-inclusive; All-on-4 from AUD 8,240 per jaw, All-on-6 from AUD 11,480 per jaw.",
+    "owner": "vietnamdentaltravel",
+    "notes": "Serves the same unified worker.js under the vietnamdentaltravel worker name (wrangler-dental.toml)."
+  },
+  "honeymoon": {
+    "path": "/honeymoon",
+    "name": "Vietnam Honeymoon (301 → happytours)",
+    "redirectTo": "https://happytours.myvivatour.com/#tour-honeymoon",
+    "status": "redirect",
+    "adAccount": null,
+    "campaign": null,
+    "offerSummary": null,
+    "owner": "marketing",
+    "notes": "Placeholder path; 301 → happytours honeymoon anchor. No standalone HTML."
+  },
+  "family-tour": {
+    "path": "/family-tour",
+    "name": "Vietnam Family Tour (301 → happytours)",
+    "redirectTo": "https://happytours.myvivatour.com/#tour-family",
+    "status": "redirect",
+    "adAccount": null,
+    "campaign": null,
+    "offerSummary": null,
+    "owner": "marketing",
+    "notes": "Placeholder path; 301 → happytours family anchor. No standalone HTML."
+  },
+  "luxury-cruise": {
+    "path": "/luxury-cruise",
+    "name": "Luxury Vietnam Cruise (301 → happytours)",
+    "redirectTo": "https://happytours.myvivatour.com/#tour-luxury",
+    "status": "redirect",
+    "adAccount": null,
+    "campaign": null,
+    "offerSummary": null,
+    "owner": "marketing",
+    "notes": "Placeholder path; 301 → happytours luxury-cruise anchor. No standalone HTML."
+  }
+}

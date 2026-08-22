@@ -9,6 +9,7 @@ on:
     paths:
       - 'pages/dental-implants-vietnam/**'
       - 'build.js'
+      - 'data/**'
       - 'worker-modules/**'
       - 'wrangler-dental.toml'
 
