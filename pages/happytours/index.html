@@ -100,7 +100,10 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fonts load off the critical path: display=swap already avoids invisible text, and the
+         stylesheet request itself was ~1s of render-blocking on throttled mobile. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
     <title>Vietnam Tour Packages from $676 AUD | MyVivaTour 2026</title>
 
@@ -311,52 +314,6 @@
             padding: 2rem 0;
         }
 
-        /* Mobile: compact hero so CTA lands above the fold on iPhone 13 (~774px viewport).
-           Tightens H1, subtitle, price badge spacing. Hides decorative tags + tertiary trust pill. */
-        @media (max-width: 768px) {
-            .hero {
-                min-height: auto;
-                height: auto;
-                padding: 1.5rem 0 2rem;
-            }
-            .hero-content {
-                padding: 0.5rem 1rem;
-            }
-            .hero h1 {
-                font-size: clamp(1.6rem, 6.5vw, 2.2rem);
-                line-height: 1.15;
-                margin-bottom: 0.5rem;
-                overflow-wrap: break-word;
-                word-break: break-word;
-                hyphens: auto;
-            }
-            .hero-subtitle {
-                font-size: 0.9rem;
-                margin-bottom: 0.75rem;
-                padding: 0 0.5rem;
-            }
-            .price-badge {
-                font-size: 0.95rem;
-                padding: 0.65rem 1.2rem;
-                margin-bottom: 0.85rem;
-                animation: none;            /* free up vertical space — bounce pushes CTA below fold */
-                white-space: nowrap;        /* keep "From $676 AUD · All-Inclusive →" on single line */
-                max-width: calc(100% - 1rem);
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .hero-trust-bar {
-                gap: 0.35rem;
-                margin: 0.5rem auto 0.85rem;
-            }
-            .hero-trust-bar .trust-pill {
-                font-size: 0.72rem;
-                padding: 0.3rem 0.65rem;
-            }
-            /* Hide tertiary signals on small screens so CTA reaches above-the-fold */
-            .hero-trust-bar .trust-pill:nth-child(3) { display: none; }
-            .hero-tags { display: none; }
-        }
 
         .hero-bg-img {
             position: absolute;
@@ -586,6 +543,55 @@
             transform: translateY(-3px);
             box-shadow: 0 16px 42px var(--accent-glow);
             filter: brightness(1.05);
+        }
+
+        /* Placed AFTER the base .hero-subtitle/.price-badge/.hero-tags rules on purpose: equal
+           specificity means source order decides, and an earlier @media block silently lost. */
+        /* Mobile: compact hero so CTA lands above the fold on iPhone 13 (~774px viewport).
+           Tightens H1, subtitle, price badge spacing. Hides decorative tags + tertiary trust pill. */
+        @media (max-width: 768px) {
+            .hero {
+                min-height: auto;
+                height: auto;
+                padding: 1.5rem 0 2rem;
+            }
+            .hero-content {
+                padding: 0.5rem 1rem;
+            }
+            .hero h1 {
+                font-size: clamp(1.6rem, 6.5vw, 2.2rem);
+                line-height: 1.15;
+                margin-bottom: 0.5rem;
+                overflow-wrap: break-word;
+                word-break: break-word;
+                hyphens: auto;
+            }
+            .hero-subtitle {
+                font-size: 0.9rem;
+                margin-bottom: 0.75rem;
+                padding: 0 0.5rem;
+            }
+            .price-badge {
+                font-size: 0.95rem;
+                padding: 0.65rem 1.2rem;
+                margin-bottom: 0.85rem;
+                animation: none;            /* free up vertical space — bounce pushes CTA below fold */
+                white-space: nowrap;        /* keep "From $676 AUD · All-Inclusive →" on single line */
+                max-width: calc(100% - 1rem);
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .hero-trust-bar {
+                gap: 0.35rem;
+                margin: 0.5rem auto 0.85rem;
+            }
+            .hero-trust-bar .trust-pill {
+                font-size: 0.72rem;
+                padding: 0.3rem 0.65rem;
+            }
+            /* Hide tertiary signals on small screens so CTA reaches above-the-fold */
+            .hero-trust-bar .trust-pill:nth-child(3) { display: none; }
+            .hero-tags { display: none; }
         }
 
         /* Nav "Book Now" — outlined variant so hero CTA stays the visual hero */
@@ -3380,6 +3386,30 @@
             .compare-scroll-hint { display: block; }
             .tour-highlights-grid { grid-template-columns: 1fr; }
         }
+
+        /* Mobile lead form: the optional preference chips + free-text box collapse behind one
+           toggle so name/email/phone + submit fit in about one screen where paid clicks land.
+           Desktop is unchanged; without JS (no html.js) every field stays visible. */
+        .form-optional-toggle { display: none; }
+        @media (max-width: 768px) {
+            html.js .form-optional-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                margin: 0 0 1.25rem;
+                padding: 0.55rem 0.9rem;
+                background: transparent;
+                border: 1px dashed var(--accent);
+                border-radius: 10px;
+                color: var(--accent);
+                font: inherit;
+                font-weight: 600;
+                font-size: 0.92rem;
+                cursor: pointer;
+            }
+            html.js .form-optional-toggle .toggle-sub { font-weight: 400; opacity: 0.8; }
+            html.js .form-optional:not(.open) { display: none; }
+        }
     </style>
 
     <!-- JSON-LD: Organization -->
@@ -4672,6 +4702,12 @@
                                 <option value="Other / Not sure yet">Other / Not sure yet</option>
                             </select>
                         </div>
+                        <button type="button" class="form-optional-toggle" aria-expanded="false" aria-controls="tripDetails"
+                                onclick="var d=document.getElementById('tripDetails');var o=d.classList.toggle('open');this.setAttribute('aria-expanded',o?'true':'false');this.querySelector('.toggle-label').textContent=o?'\u2212 Hide trip details':'+ Add trip details';">
+                            <span class="toggle-label">+ Add trip details</span>
+                            <span class="toggle-sub">(optional: travel month, preferences)</span>
+                        </button>
+                        <div id="tripDetails" class="form-optional">
                         <div class="form-group">
                             <span class="form-group-legend">What matters most to you?</span>
                             <p class="field-hint">Tick all that apply — helps us tailor your quote</p>
@@ -4701,6 +4737,7 @@
 
 → Or just tell us: travel month, number of travellers & ages, and anything special we should know."></textarea>
                         </div>
+                        </div><!-- /tripDetails -->
                         <button type="submit" class="cta-button" id="submitBtn">Get Free Quote →</button>
                         <div id="formStatus" style="margin-top:1rem;text-align:center;display:none;"></div>
                     </form>
@@ -5367,7 +5404,7 @@
                     formStatus.style.display = 'block';
                     formStatus.style.color = '#10B981';
                     formStatus.innerHTML =
-                        '✓ Thank you! Your inquiry has been sent to our team. We will contact you within 24 hours.'
+                        '✓ Thank you! Your inquiry has been sent to our team. A travel expert will reply within 2 hours, 7 days a week.'
                         + `<a href="https://wa.me/84974036614?text=${waMsg}" target="_blank" rel="noopener"`
                         + ' style="display:inline-block;margin-top:12px;padding:10px 18px;background:#25D366;color:#fff;'
                         + 'border-radius:8px;font-weight:600;text-decoration:none;">💬 Message us on WhatsApp for a faster reply</a>';
