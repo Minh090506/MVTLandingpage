@@ -488,6 +488,13 @@ export default {
       },
     });
   },
+
+  // Cron (see [triggers] in wrangler tomls): replays unacknowledged edge-inbox rows
+  // to the mvt-saas gateway and deletes lead rows ACKed more than 90 days ago.
+  // Both live in lead-ingest-handler.js so they stay testable next to the ingest path.
+  async scheduled(event, env, ctx) {
+    await handleLeadScheduled(env, ctx);
+  },
 };
 `;
 

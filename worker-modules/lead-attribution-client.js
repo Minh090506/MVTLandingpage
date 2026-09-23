@@ -1,17 +1,20 @@
-// Client-side attribution capture + lead dual-send.
+// Client-side attribution capture + lead dual-send with edge-inbox ACK.
 //
 // build.js injects this into the <head> of every landing page, with
 // __MVT_LANDING_PAGE__ replaced by the page folder name.
 //
-// Two jobs:
+// Three jobs:
 //   1. Remember where the visitor came from (first touch survives later navigation,
 //      so a lead that converts on a second visit is still credited to the ad).
-//   2. On Web3Forms POST: send the form to Web3Forms (email path) AND fire-and-forget
-//      the same payload to same-origin /api/lead (DB path). Page handlers always see the
-//      Web3Forms response so existing success/error branches stay unchanged.
+//   2. On Web3Forms POST: send the email copy to Web3Forms in parallel (unchanged,
+//      never blocked) AND post the full record to same-origin /api/lead — but now
+//      the page only sees "success" once /api/lead ACKs the edge inbox.
+//   3. Run Cloudflare Turnstile (invisible) for /api/lead: one fresh single-use
+//      token per attempt; on 503 retry:'new_token' reset the widget, keep the same
+//      requestId + payload, retry with backoff (max 3 attempts).
 //
 // Web3Forms free plan blocks server-side calls (no static Worker IP). Email must leave
-// the browser. /api/lead is best-effort observability — never blocks or fails the UX.
+// the browser. /api/lead is the durable CRM path — the ACK gates the page's success UX.
 (function () {
   'use strict';
 
@@ -20,7 +23,7 @@
   var MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days — matches the Google Ads window
   var PARAMS = [
     'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-    'gclid', 'fbclid', 'msclkid',
+    'gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid',
   ];
 
   function readStore() {
@@ -78,6 +81,7 @@
     var out = {
       landing_page: LANDING_PAGE,
       page_path: window.location.pathname + window.location.search,
+      landing_url: window.location.href,
       referrer: (stored && stored.referrer) || document.referrer || '',
     };
     var params = (stored && stored.params) || {};
@@ -92,7 +96,7 @@
 
   window.mvtAttribution = attribution;
 
-  // --- Dual-send: Web3Forms (email) + fire-and-forget /api/lead (DB) ---------
+  // --- Dual-send: Web3Forms (email, parallel) + ACK-gated /api/lead (CRM) ------
 
   var LEAD_ENDPOINT = '/api/lead';
   var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
@@ -133,10 +137,11 @@
   // name) that does nothing to help close the booking. So the email gets a curated,
   // ordered, noise-free copy — while the CRM (below) still receives the full record.
 
-  // Tracking / internal keys that must never reach the email inbox.
+  // Tracking / internal / protocol keys that must never reach the email inbox.
   var EMAIL_EXCLUDE = {
-    landing_page: 1, page_path: 1, referrer: 1, landing_first_seen: 1,
+    landing_page: 1, page_path: 1, referrer: 1, landing_first_seen: 1, landing_url: 1,
     full_name: 1, form_id: 1, formId: 1, popup_id: 1, page_id: 1,
+    requestId: 1, turnstileToken: 1,
     gclid: 1, fbclid: 1, msclkid: 1, gbraid: 1, wbraid: 1, dclid: 1,
     ttclid: 1, twclid: 1, li_fat_id: 1,
   };
@@ -178,20 +183,198 @@
     return out;
   }
 
-  function postLeadQuietly(mergedBody) {
-    // Fire-and-forget: never throw, never delay the Web3Forms response path.
-    try {
-      var p = nativeFetch(LEAD_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: mergedBody,
-      });
-      if (p && typeof p.then === 'function') {
-        p.then(function () {}, function () {});
+  // --- Turnstile (invisible, on-demand) ---------------------------------------
+  //
+  // Mirrors the WP main-site pattern: one hidden widget per page, script loaded
+  // lazily at the first form submit, execution deferred until we call execute().
+  // Tokens are single-use — every attempt resets the widget for a fresh one.
+
+  var TURNSTILE_SITE_KEY = '0x4AAAAAADtJJZkl7Qik4UNn';
+  var TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+  var TURNSTILE_TOKEN_TIMEOUT_MS = 9000;
+  // Test hooks: unit tests shorten the waits so no real delays hit the suite.
+  var TURNSTILE_LOAD_TIMEOUT_MS = window.__MVT_TURNSTILE_TIMEOUT_MS || 8000;
+  var TURNSTILE_POLL_MS = window.__MVT_TURNSTILE_POLL_MS || 100;
+  var ACK_BACKOFF_MS = window.__MVT_ACK_BACKOFF_MS || [400, 800];
+  var ACK_MAX_ATTEMPTS = 3;
+
+  var turnstileScriptRequested = false;
+  var turnstileWidgetId = null;
+  var turnstilePending = null; // { resolve, timer }
+
+  function loadTurnstileApi(cb) {
+    if (window.turnstile && typeof window.turnstile.render === 'function') return cb(true);
+    if (!turnstileScriptRequested) {
+      turnstileScriptRequested = true;
+      try {
+        var script = document.createElement('script');
+        script.src = TURNSTILE_SRC;
+        script.async = true;
+        (document.head || document.body).appendChild(script);
+      } catch (e) {
+        // Fall through to polling — some stubbed/embedded environments predefine
+        // window.turnstile without a loadable <script> path.
       }
-    } catch (e) {
-      // Ignore — DB path is best-effort.
     }
+    var waited = 0;
+    (function poll() {
+      if (window.turnstile && typeof window.turnstile.render === 'function') return cb(true);
+      if (waited >= TURNSTILE_LOAD_TIMEOUT_MS) return cb(false);
+      waited += TURNSTILE_POLL_MS;
+      setTimeout(poll, TURNSTILE_POLL_MS);
+    })();
+  }
+
+  function resolveTurnstileToken(token) {
+    var pending = turnstilePending;
+    turnstilePending = null;
+    if (pending) {
+      clearTimeout(pending.timer);
+      pending.resolve(token);
+    }
+  }
+
+  function ensureTurnstileWidget() {
+    if (turnstileWidgetId !== null) return turnstileWidgetId;
+    try {
+      var box = document.createElement('div');
+      box.style.cssText = 'position:absolute;left:-9999px;width:0;height:0;overflow:hidden;';
+      (document.body || document.head).appendChild(box);
+      turnstileWidgetId = window.turnstile.render(box, {
+        sitekey: TURNSTILE_SITE_KEY,
+        execution: 'execute',
+        appearance: 'interaction-only',
+        callback: function (token) { resolveTurnstileToken(token); },
+        'error-callback': function () { resolveTurnstileToken(null); },
+        'timeout-callback': function () { resolveTurnstileToken(null); },
+        'expired-callback': function () { resolveTurnstileToken(null); },
+      });
+    } catch (e) {
+      turnstileWidgetId = null;
+    }
+    return turnstileWidgetId;
+  }
+
+  // cb(token|null) — null means no token available (blocked script, timeout, error).
+  function getTurnstileToken(cb) {
+    loadTurnstileApi(function (ready) {
+      if (!ready || !window.turnstile) return cb(null);
+      var widgetId = ensureTurnstileWidget();
+      if (widgetId === null || widgetId === undefined) return cb(null);
+      if (turnstilePending) resolveTurnstileToken(null); // release any prior pending
+      try { window.turnstile.reset(widgetId); } catch (e) { /* stale widget state */ }
+      var timer = setTimeout(function () { resolveTurnstileToken(null); }, TURNSTILE_TOKEN_TIMEOUT_MS);
+      turnstilePending = { resolve: cb, timer: timer };
+      try { window.turnstile.execute(widgetId); } catch (e) { resolveTurnstileToken(null); }
+    });
+  }
+
+  function uuid() {
+    try {
+      if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    } catch (e) {}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      var v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  function ackBackoff(attempt, fn) {
+    var delay = ACK_BACKOFF_MS[Math.min(attempt, ACK_BACKOFF_MS.length - 1)] || 0;
+    setTimeout(fn, delay);
+  }
+
+  // Post the merged payload to /api/lead until the edge inbox ACKs it.
+  // Resolves { ok:boolean, requestId } — requestId survives every retry of the
+  // same submission (it keys the server-side receipt). A 503 retry:'new_token'
+  // means the token was spent without a receipt, so the next attempt uses a fresh
+  // Turnstile token over an identical business payload.
+  function postLeadForAck(merged) {
+    var requestId = uuid();
+    merged.requestId = requestId;
+
+    function attempt(n) {
+      return new Promise(function (resolveAttempt) {
+        getTurnstileToken(function (token) {
+          var bodyText;
+          if (token) {
+            var withToken = {};
+            for (var key in merged) {
+              if (Object.prototype.hasOwnProperty.call(merged, key)) withToken[key] = merged[key];
+            }
+            withToken.turnstileToken = token;
+            bodyText = JSON.stringify(withToken);
+          } else {
+            // No token (script blocked / timed out) — still try; the edge answers 403
+            // and the page falls back to WhatsApp. Never fake success.
+            bodyText = JSON.stringify(merged);
+          }
+          nativeFetch(LEAD_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: bodyText,
+          })
+            .then(function (res) {
+              return res.json().catch(function () { return {}; }).then(function (json) {
+                return { status: res.status, json: json };
+              });
+            })
+            .then(function (r) {
+              if (r.json && r.json.success) return resolveAttempt({ ok: true, receiptId: r.json.receiptId });
+              var retriable = (r.status === 503 && r.json && r.json.retry === 'new_token')
+                || r.status === 0; // network blip before/after the request landed
+              if (retriable && n + 1 < ACK_MAX_ATTEMPTS) {
+                return ackBackoff(n, function () { attempt(n + 1).then(resolveAttempt); });
+              }
+              resolveAttempt({ ok: false, status: r.status });
+            })
+            .catch(function () {
+              if (n + 1 < ACK_MAX_ATTEMPTS) {
+                return ackBackoff(n, function () { attempt(n + 1).then(resolveAttempt); });
+              }
+              resolveAttempt({ ok: false });
+            });
+        });
+      });
+    }
+
+    return attempt(0).then(function (result) {
+      result.requestId = requestId;
+      return result;
+    });
+  }
+
+  function ackFailureResponse() {
+    // Shape it like a Web3Forms failure so existing page error branches (retry hint +
+    // WhatsApp fallback) run unchanged. ok:true + success:false, exactly like
+    // Web3Forms' own validation failures.
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: 'We could not verify your submission. Please try again or message us on WhatsApp.',
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } },
+    );
+  }
+
+  // The lead is safely in the edge inbox, so the visitor must see success even if the
+  // parallel Web3Forms email copy failed — otherwise they resubmit and create a
+  // duplicate lead under a fresh requestId.
+  function ackSuccessResponse() {
+    return new Response(
+      JSON.stringify({ success: true, message: 'Thanks! We will be in touch shortly.' }),
+      { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } },
+    );
+  }
+
+  function emailOrAckSuccess(emailPromise) {
+    return emailPromise.then(function (res) {
+      if (!res || !res.ok) return ackSuccessResponse();
+      return res.clone().json().then(function (json) {
+        return json && json.success ? res : ackSuccessResponse();
+      }, function () { return ackSuccessResponse(); });
+    }, function () { return ackSuccessResponse(); });
   }
 
   window.fetch = function (input, init) {
@@ -201,16 +384,29 @@
     var merged = mergeAttribution(init.body);
     if (!merged) return nativeFetch(input, init);
 
-    // CRM gets the FULL record — attribution stays intact for reporting.
-    postLeadQuietly(JSON.stringify(merged));
-
     // The email inbox gets only what a seller needs to reply — tracking stripped.
-    // Page handlers must see the Web3Forms response (success/error UX unchanged).
+    // Sent in parallel; the ACK path below never blocks or cancels it.
     var w3fInit = {
       method: 'POST',
       headers: init.headers || { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(buildEmailPayload(merged)),
     };
-    return nativeFetch(input, w3fInit);
+    var emailPromise = nativeFetch(input, w3fInit);
+    // A pre-ACK email rejection must not fire the browser's unhandled-rejection
+    // warning; the page still sees the real rejection when the ACK path returns it.
+    emailPromise.catch(function () {});
+
+    // The page may only report success after the edge inbox ACKs. The ACK outcome is
+    // published on window.mvtLeadAck BEFORE the response resolves, so page-level
+    // conversion firing can gate on it synchronously.
+    return postLeadForAck(merged)
+      .then(function (ack) {
+        window.mvtLeadAck = ack;
+        if (ack && ack.ok) return emailOrAckSuccess(emailPromise);
+        return ackFailureResponse();
+      }, function () {
+        window.mvtLeadAck = { ok: false };
+        return ackFailureResponse();
+      });
   };
 })();
