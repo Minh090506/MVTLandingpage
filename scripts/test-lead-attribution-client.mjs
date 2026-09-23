@@ -49,6 +49,8 @@ function boot({
   tokenTimeoutMs = undefined,
   interactiveTimeoutMs = undefined,
   ackRequestTimeoutMs = undefined,
+  // Edge behaviour: a post without a Turnstile token is rejected 403, like the Worker.
+  leadRequiresToken = false,
 } = {}) {
   const store = { ...storage };
   const calls = [];
@@ -84,6 +86,9 @@ function boot({
         const step = leadResponses
           ? leadResponses[Math.min(leadCall - 1, leadResponses.length - 1)]
           : { status: leadStatus, json: { success: leadStatus < 400 } };
+        if (leadRequiresToken && !JSON.parse(init.body).turnstileToken) {
+          return new Response(JSON.stringify({ success: false, error: 'turnstile_rejected' }), { status: 403 });
+        }
         if (step.hang) {
           // Stalled edge: only an abort ends it (or nothing, if the stub ignores it).
           return new Promise((resolve, reject) => {
@@ -631,6 +636,40 @@ function isOffscreen(style) {
   const elapsed = Date.now() - t0;
   check('unfinished interactive challenge ends at the interactive timeout',
     json.success === false && elapsed >= 140 && leadCallsOf(calls).length === 1, `elapsed ${elapsed}ms`);
+}
+
+{
+  // Form 1 is mid-challenge (visitor has not clicked yet) when form 2 is submitted.
+  // Each form must keep its own pending token request and both leads must succeed.
+  const { win, calls, dispatchSubmit } = boot({
+    search: AD_CLICK,
+    tokenTimeoutMs: 30,
+    interactiveTimeoutMs: 2000,
+    leadRequiresToken: true,
+    onExecute: (opts, n) => {
+      if (n === 1) {
+        opts['before-interactive-callback']();
+        setTimeout(() => opts.callback('form1-tok'), 150); // human solves it later
+      } else {
+        opts.callback(`form2-tok-${n}`);
+      }
+    },
+  });
+  const a = fakeForm();
+  const b = fakeForm();
+  dispatchSubmit(a);
+  const first = submitLead(win, { form_id: 'bookingForm', email: 'a@example.com' });
+  await new Promise((r) => setTimeout(r, 40)); // form 1 now waiting on its challenge
+  dispatchSubmit(b);
+  const second = submitLead(win, { form_id: 'exitForm', email: 'b@example.com' });
+  const [j1, j2] = await Promise.all([first.then((r) => r.json()), second.then((r) => r.json())]);
+  const lead = leadCallsOf(calls).map((c) => JSON.parse(c.init.body));
+  const byForm = (id) => lead.find((p) => p.form_id === id) || {};
+  check('overlapping forms: both submits succeed', j1.success === true && j2.success === true);
+  check('overlapping forms: form 1 keeps its own challenge token',
+    byForm('bookingForm').turnstileToken === 'form1-tok', JSON.stringify(byForm('bookingForm').turnstileToken));
+  check('overlapping forms: form 2 gets its own token',
+    /^form2-tok-/.test(byForm('exitForm').turnstileToken || ''));
 }
 
 // ---- /api/lead request timeout ----------------------------------------------

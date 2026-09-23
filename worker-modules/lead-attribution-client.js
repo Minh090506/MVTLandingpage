@@ -209,7 +209,9 @@
   var ACK_REQUEST_TIMEOUT_MS = window.__MVT_ACK_REQUEST_TIMEOUT_MS || 15000;
 
   var turnstileScriptRequested = false;
-  var turnstilePending = null; // { widgetId, resolve, timer }
+  // Pending token requests keyed by widget id — one per form widget, so a second
+  // form's submit never cancels a challenge still running for the first form.
+  var turnstilePending = {}; // widgetId -> { resolve, timer }
   var fallbackWidgetId = null; // used only when no submitting form is known
   var lastSubmittedForm = null;
 
@@ -249,17 +251,19 @@
   }
 
   function resolveTurnstileToken(widgetId, token) {
-    var pending = turnstilePending;
-    if (!pending || (widgetId !== undefined && pending.widgetId !== widgetId)) return;
-    turnstilePending = null;
+    var key = String(widgetId);
+    var pending = Object.prototype.hasOwnProperty.call(turnstilePending, key) ? turnstilePending[key] : null;
+    if (!pending) return;
+    delete turnstilePending[key];
     clearTimeout(pending.timer);
     pending.resolve(token);
   }
 
   // Cloudflare is about to ask the visitor to interact: give a human time to act.
   function extendForInteraction(widgetId, box) {
-    var pending = turnstilePending;
-    if (!pending || pending.widgetId !== widgetId) return;
+    var key = String(widgetId);
+    var pending = Object.prototype.hasOwnProperty.call(turnstilePending, key) ? turnstilePending[key] : null;
+    if (!pending) return;
     clearTimeout(pending.timer);
     pending.timer = setTimeout(function () {
       resolveTurnstileToken(widgetId, null);
@@ -325,12 +329,13 @@
       if (!ready || !window.turnstile) return cb(null);
       var widgetId = ensureTurnstileWidget(form);
       if (widgetId === null) return cb(null);
-      if (turnstilePending) resolveTurnstileToken(undefined, null); // release any prior pending
+      // Release only a prior request on THIS widget (its reset voids that token).
+      resolveTurnstileToken(widgetId, null);
       try { window.turnstile.reset(widgetId); } catch (e) { /* stale widget state */ }
       var timer = setTimeout(function () {
         resolveTurnstileToken(widgetId, null);
       }, TURNSTILE_TOKEN_TIMEOUT_MS);
-      turnstilePending = { widgetId: widgetId, resolve: cb, timer: timer };
+      turnstilePending[String(widgetId)] = { resolve: cb, timer: timer };
       try { window.turnstile.execute(widgetId); } catch (e) { resolveTurnstileToken(widgetId, null); }
     });
   }
