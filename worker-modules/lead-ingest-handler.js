@@ -253,15 +253,63 @@ async function verifyTurnstile(env, token, remoteip) {
 //   transient (bump forward_attempts; replay retries) · other 4xx = permanent or
 //   config error (patch crm_error).
 
+// Keys of the raw form body that must NOT be copied into answers.note: fields the
+// gateway body already carries (contact + trip lines), attribution, and protocol /
+// anti-spam / Web3Forms control keys. Everything else is a page-specific answer
+// (dental treatment/timeline/referral, tour departure_city/interests_summary, ...).
+const LEAD_NOTE_EXCLUDE_KEYS = new Set([
+  'name', 'full_name', 'email', 'phone', 'whatsapp',
+  'travel_date', 'party_size', 'tour_interest', 'state', 'country', 'message',
+  'gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'dclid', 'ttclid', 'twclid', 'li_fat_id',
+  'referrer', 'form_id', 'formId', 'popup_id', 'page_id',
+  'requestId', 'turnstileToken', 'cf-turnstile-response', 'g-recaptcha-response',
+  'h-captcha-response', 'botcheck', 'access_key', 'subject', 'from_name', 'redirect',
+  'replyto', 'ccemail',
+]);
+const LEAD_NOTE_EXCLUDE_PREFIXES = ['utm_', 'gad_', 'landing_', 'page_', '_'];
+const LEAD_NOTE_VALUE_MAX = 1000;
+const LEAD_NOTE_MAX = 5000;
+
+function isLeadNoteKey(key) {
+  if (LEAD_NOTE_EXCLUDE_KEYS.has(key)) return false;
+  return !LEAD_NOTE_EXCLUDE_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
+function leadNoteValue(value) {
+  const scalar = (v) => (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+    ? String(v).trim() : '';
+  const text = Array.isArray(value) ? value.map(scalar).filter(Boolean).join(', ') : scalar(value);
+  return text.length > LEAD_NOTE_VALUE_MAX ? text.slice(0, LEAD_NOTE_VALUE_MAX) : text;
+}
+
+function leadNoteLabel(key) {
+  const words = key.replace(/_/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+// "Label: value" lines for every remaining answer in the raw form body, sorted by key.
+function extraAnswerLines(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  return Object.keys(raw).sort()
+    .filter(isLeadNoteKey)
+    .map((key) => {
+      const value = leadNoteValue(raw[key]);
+      return value ? `${leadNoteLabel(key)}: ${value}` : '';
+    })
+    .filter(Boolean);
+}
+
 function buildGatewayBody(row) {
-  const note = [
+  const fullNote = [
     row.travel_date ? `Travel date: ${row.travel_date}` : '',
     row.party_size ? `Party size: ${row.party_size}` : '',
     row.tour_interest ? `Tour: ${row.tour_interest}` : '',
     row.state ? `State: ${row.state}` : '',
     row.country ? `Country: ${row.country}` : '',
     row.message ? `Message: ${row.message}` : '',
+    ...extraAnswerLines(row.raw),
   ].filter(Boolean).join('\n');
+  const note = fullNote.length > LEAD_NOTE_MAX ? fullNote.slice(0, LEAD_NOTE_MAX) : fullNote;
   const pick = (key) => {
     const value = row[key];
     if (value === undefined || value === null) return null;
@@ -395,6 +443,7 @@ const LEAD_REPLAY_SELECT = [
   'tour_interest', 'message',
   'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
   'gclid', 'gbraid', 'wbraid', 'fbclid', 'landing_url',
+  'raw', // page-specific answers for answers.note
 ].join(',');
 
 // PostgREST `in.(...)` filter for the hosts this worker owns.

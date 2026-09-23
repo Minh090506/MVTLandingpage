@@ -760,6 +760,109 @@ async function forwardedBodyFor(payload) {
   }
 }
 
+// ---- Page-specific answers reach answers.note ---------------------------------
+
+// Shapes mirror what the client posts: the page's Web3Forms body (field names from
+// pages/*/index.html) merged with attribution by lead-attribution-client.js.
+const ATTRIBUTION = {
+  landing_page: 'x', page_path: '/?gclid=Cj0KTest', landing_url: 'https://h/?gclid=Cj0KTest',
+  landing_first_seen: '2026-09-01T00:00:00.000Z', referrer: 'https://www.google.com/',
+  utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'c', gclid: 'Cj0KTest', gad_source: '1',
+  msclkid: 'MS-1', fbclid: 'FB-1',
+};
+const DENTAL_PAYLOAD = {
+  access_key: 'cf0ca620-d064-4640-9454-afb27d588f67',
+  name: 'Sam Patient', full_name: 'Sam Patient', email: 'sam@example.com', phone: '0412345678',
+  state: 'VIC', treatment: 'Full arch (All-on-4)', timeline: 'Within 3 months',
+  referral: 'Google search', message: 'Missing two molars',
+  form_id: 'bookingForm', subject: 'New Dental Implant Inquiry — implant.vietnamdentaltravel.com',
+  from_name: 'VietnamDentalTravel Booking', replyto: 'sam@example.com',
+  ...ATTRIBUTION, landing_page: 'dental-implants-vietnam',
+  requestId: '22222222-2222-4333-8444-555555555555', turnstileToken: 'tok-dental',
+  'cf-turnstile-response': 'tok-dup', _gotcha: '',
+};
+const ESCAPE_PAYLOAD = {
+  access_key: 'cf0ca620-d064-4640-9454-afb27d588f67', subject: 'New escape enquiry',
+  from_name: 'MyVivaTour Escape', redirect: 'https://escape.myvivatour.com/thanks', botcheck: '',
+  name: 'Jane Traveller', full_name: 'Jane Traveller', email: 'jane@example.com', phone: '0400000000',
+  departure_city: 'Sydney', interests_summary: 'Food tours, Ha Long Bay cruise',
+  message: 'Two adults in November', form_id: 'bookingForm',
+  ...ATTRIBUTION, landing_page: 'escape',
+  requestId: '33333333-2222-4333-8444-555555555555', turnstileToken: 'tok-escape',
+};
+const NOTE_LEAKS = [
+  'cf0ca620', 'Cj0KTest', 'google', 'tok-', 'bookingForm', 'Booking', 'enquiry',
+  'Inquiry', 'thanks', 'MS-1', 'FB-1', 'sam@example.com', 'jane@example.com',
+  '0412345678', '0400000000', 'Sam Patient', 'Jane Traveller', '2026-09-01',
+];
+
+async function noteFor(payload, host) {
+  await run(payload, { host }, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(200)] });
+  await Promise.all(waitUntils);
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  return gw ? JSON.parse(gw.init.body).answers.note || '' : '';
+}
+
+{
+  const note = await noteFor(DENTAL_PAYLOAD, 'implant.vietnamdentaltravel.com');
+  check('dental note keeps state + message trip lines',
+    note.startsWith('State: VIC\nMessage: Missing two molars'), JSON.stringify(note));
+  check('dental note carries treatment/timeline/referral in sorted order',
+    note.endsWith('Referral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)'),
+    JSON.stringify(note));
+  const leaks = NOTE_LEAKS.filter((t) => note.includes(t));
+  check('dental note leaks no mapped/attribution/protocol field', leaks.length === 0, leaks.join(','));
+}
+
+{
+  const note = await noteFor(ESCAPE_PAYLOAD, 'escape.myvivatour.com');
+  check('escape note carries departure_city + interests_summary',
+    note === 'Message: Two adults in November\nDeparture city: Sydney\nInterests summary: Food tours, Ha Long Bay cruise',
+    JSON.stringify(note));
+  const leaks = NOTE_LEAKS.filter((t) => note.includes(t));
+  check('escape note leaks no mapped/attribution/protocol field', leaks.length === 0, leaks.join(','));
+}
+
+{
+  // Value types + caps: arrays joined, objects/null dropped, values ≤1000, note ≤5000.
+  const note = await noteFor({
+    ...VALID, message: 'm'.repeat(3000),
+    interests: ['Food', ' ', 'Culture'], nested: { a: 1 }, empty: '  ', nothing: null,
+    a_flag: true, b_count: 3, c_long: 'L'.repeat(1500), z_long: 'Z'.repeat(1500),
+  }, 'escape.myvivatour.com');
+  check('array answers are joined with ", "', note.includes('Interests: Food, Culture'));
+  check('boolean/number answers are kept', note.includes('A flag: true') && note.includes('B count: 3'));
+  check('object/null/blank answers are dropped',
+    !note.includes('Nested') && !note.includes('Nothing') && !note.includes('Empty'));
+  check('each answer value capped at 1000 chars', note.includes(`C long: ${'L'.repeat(1000)}\n`));
+  check('whole note capped at 5000 chars', note.length === 5000, `length ${note.length}`);
+}
+
+{
+  // Replay reads the answers from the stored raw jsonb.
+  const env = { ...GATEWAY_ENV, LEAD_REPLAY_HOSTS: 'implant.vietnamdentaltravel.com' };
+  const scalls = await runScheduled(env, [replayRow({
+    page_host: 'implant.vietnamdentaltravel.com', travel_date: null, party_size: null,
+    tour_interest: null, state: 'VIC', message: null,
+    raw: { ...DENTAL_PAYLOAD, turnstileToken: undefined },
+  })]);
+  const select = scalls.find((c) => c.method === 'GET' && c.url.includes('/marketing_leads?'));
+  check('replay select includes raw', select && decodeURIComponent(select.url).includes(',raw'));
+  const gw = scalls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  const note = gw ? JSON.parse(gw.init.body).answers.note : '';
+  check('replayed dental row forwards treatment/timeline/referral',
+    note === 'State: VIC\nReferral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)',
+    JSON.stringify(note));
+}
+
+{
+  // body_hash unchanged by the note work: still the client payload hash.
+  const { calls: c4 } = await run(ESCAPE_PAYLOAD);
+  const row = JSON.parse(c4.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads')).init.body);
+  check('body_hash still covers the original client payload',
+    row.body_hash === await mod.computeLeadBodyHash(ESCAPE_PAYLOAD));
+}
+
 // ---- Gateway ACK shape -------------------------------------------------------
 
 async function forwardPatchFor(route) {
