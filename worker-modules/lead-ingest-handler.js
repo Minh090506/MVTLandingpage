@@ -306,8 +306,10 @@ function buildGatewayBody(row) {
     row.tour_interest ? `Tour: ${row.tour_interest}` : '',
     row.state ? `State: ${row.state}` : '',
     row.country ? `Country: ${row.country}` : '',
-    row.message ? `Message: ${row.message}` : '',
     ...extraAnswerLines(row.raw),
+    // Free-text message goes last: if the note hits LEAD_NOTE_MAX, only the tail of
+    // the message is cut, never the structured answers above it.
+    row.message ? `Message: ${row.message}` : '',
   ].filter(Boolean).join('\n');
   const note = fullNote.length > LEAD_NOTE_MAX ? fullNote.slice(0, LEAD_NOTE_MAX) : fullNote;
   const pick = (key) => {

@@ -805,10 +805,8 @@ async function noteFor(payload, host) {
 
 {
   const note = await noteFor(DENTAL_PAYLOAD, 'implant.vietnamdentaltravel.com');
-  check('dental note keeps state + message trip lines',
-    note.startsWith('State: VIC\nMessage: Missing two molars'), JSON.stringify(note));
-  check('dental note carries treatment/timeline/referral in sorted order',
-    note.endsWith('Referral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)'),
+  check('dental note: trip lines, then sorted form answers, then the message last',
+    note === 'State: VIC\nReferral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)\nMessage: Missing two molars',
     JSON.stringify(note));
   const leaks = NOTE_LEAKS.filter((t) => note.includes(t));
   check('dental note leaks no mapped/attribution/protocol field', leaks.length === 0, leaks.join(','));
@@ -817,7 +815,7 @@ async function noteFor(payload, host) {
 {
   const note = await noteFor(ESCAPE_PAYLOAD, 'escape.myvivatour.com');
   check('escape note carries departure_city + interests_summary',
-    note === 'Message: Two adults in November\nDeparture city: Sydney\nInterests summary: Food tours, Ha Long Bay cruise',
+    note === 'Departure city: Sydney\nInterests summary: Food tours, Ha Long Bay cruise\nMessage: Two adults in November',
     JSON.stringify(note));
   const leaks = NOTE_LEAKS.filter((t) => note.includes(t));
   check('escape note leaks no mapped/attribution/protocol field', leaks.length === 0, leaks.join(','));
@@ -836,6 +834,16 @@ async function noteFor(payload, host) {
     !note.includes('Nested') && !note.includes('Nothing') && !note.includes('Empty'));
   check('each answer value capped at 1000 chars', note.includes(`C long: ${'L'.repeat(1000)}\n`));
   check('whole note capped at 5000 chars', note.length === 5000, `length ${note.length}`);
+}
+
+{
+  // A very long message is cut at the note cap — the structured answers survive.
+  const note = await noteFor({ ...DENTAL_PAYLOAD, message: 'q'.repeat(5000) }, 'implant.vietnamdentaltravel.com');
+  check('long message: every form answer survives the 5000 cap',
+    note.startsWith('State: VIC\nReferral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)\nMessage: q'),
+    JSON.stringify(note.slice(0, 120)));
+  check('long message: only the message tail is cut',
+    note.length === 5000 && note.endsWith('q') && !note.endsWith('q'.repeat(5000)), `length ${note.length}`);
 }
 
 {
