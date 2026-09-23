@@ -24,6 +24,10 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'AW-17709107883');
+    // Second Ads account: the conversion action a campaign can actually select.
+    // AW-17709107883 lives in the manager account, so campaigns in the spending
+    // account cannot target it; AW-16765482840 is that account's own ID.
+    gtag('config', 'AW-16765482840');
     </script>
 
     <!-- Facebook Pixel -->
@@ -5375,6 +5379,10 @@
                     send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
                     event_callback: function() {}
                 });
+                gtag('event', 'conversion', {
+                    send_to: 'AW-16765482840/MLW2CNnjnuEcENjus7o-',
+                    event_callback: function() {}
+                });
                 if (typeof fbq === 'function') fbq('track', 'Lead');
             }
 
@@ -5719,6 +5727,10 @@
                 if (typeof gtag === 'function') {
                     gtag('event', 'conversion', {
                         send_to: 'AW-17709107883/Wq0ECKXBmfsbEKuVrvxB',
+                        event_callback: function() {}
+                    });
+                    gtag('event', 'conversion', {
+                        send_to: 'AW-16765482840/MLW2CNnjnuEcENjus7o-',
                         event_callback: function() {}
                     });
                 }
