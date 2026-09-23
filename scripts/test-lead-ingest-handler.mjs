@@ -705,57 +705,59 @@ async function forwardedBodyFor(payload) {
 }
 
 {
-  // Winner inserts only after our rejection returns → the delayed re-check finds it.
-  const hash = await mod.computeLeadBodyHash(VALID);
+  // Token reported timeout-or-duplicate and the winner has not inserted yet →
+  // 503 new_token (client retries with the same requestId), never a hard 403.
   let lookups = 0;
-  const { res, json } = await run(VALID, {}, {
+  const { res, json, calls: c3 } = await run(VALID, {}, {
     routes: [
-      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false }) },
       {
-        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
-        respond: () => {
-          lookups += 1;
-          return jsonResponse(200, lookups <= 2 ? [] : [{ id: 'late-winner', body_hash: hash }]);
-        },
+        match: (u) => u.includes('siteverify'),
+        respond: () => jsonResponse(200, { success: false, 'error-codes': ['timeout-or-duplicate'] }),
       },
-    ],
-  });
-  check('rejected token + late winner receipt → ACK after re-check',
-    res.status === 200 && json.receiptId === 'late-winner' && lookups === 3, `lookups ${lookups}`);
-}
-
-{
-  // Rejected token + a receipt with a DIFFERENT hash → 409 (same rule as the first lookup).
-  let lookups = 0;
-  const { res, json } = await run(VALID, {}, {
-    routes: [
-      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false }) },
-      {
-        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
-        respond: () => {
-          lookups += 1;
-          return jsonResponse(200, lookups === 1 ? [] : [{ id: 'other', body_hash: 'deadbeef' }]);
-        },
-      },
-    ],
-  });
-  check('rejected token + different-hash receipt → 409', res.status === 409 && json.error === 'request_id_conflict');
-}
-
-{
-  // Rejected token and still no receipt after the re-check → 403 as before.
-  let lookups = 0;
-  const { res, json } = await run(VALID, {}, {
-    routes: [
-      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false }) },
       {
         match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
         respond: () => { lookups += 1; return jsonResponse(200, []); },
       },
     ],
   });
-  check('rejected token + no receipt → 403 turnstile_rejected',
-    res.status === 403 && json.error === 'turnstile_rejected' && lookups === 3, `lookups ${lookups}`);
+  check('duplicate token + no receipt yet → 503 retry new_token',
+    res.status === 503 && json.retry === 'new_token' && json.success === false, `status ${res.status}`);
+  check('duplicate token + no receipt → nothing inserted',
+    !c3.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+  check('duplicate token path does one receipt re-check (no fixed sleep)', lookups === 2, `lookups ${lookups}`);
+}
+
+{
+  // Same, but the re-check lookup itself fails → still 503 (retriable), not 403.
+  let lookups = 0;
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      {
+        match: (u) => u.includes('siteverify'),
+        respond: () => jsonResponse(200, { success: false, 'error-codes': ['timeout-or-duplicate'] }),
+      },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => { lookups += 1; return lookups === 1 ? jsonResponse(200, []) : jsonResponse(500, 'db down'); },
+      },
+    ],
+  });
+  check('duplicate token + re-check lookup error → 503 new_token',
+    res.status === 503 && json.retry === 'new_token');
+}
+
+{
+  // Other error codes (bad/forged token) stay a hard 403.
+  for (const code of ['invalid-input-response', 'missing-input-response']) {
+    const { res, json } = await run(VALID, {}, {
+      routes: [
+        { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false, 'error-codes': [code] }) },
+        { match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'), respond: () => jsonResponse(200, []) },
+      ],
+    });
+    check(`${code} + no receipt → 403 turnstile_rejected`,
+      res.status === 403 && json.error === 'turnstile_rejected');
+  }
 }
 
 // ---- Gateway ACK shape -------------------------------------------------------

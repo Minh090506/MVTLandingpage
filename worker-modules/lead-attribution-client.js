@@ -204,6 +204,9 @@
   var TURNSTILE_POLL_MS = window.__MVT_TURNSTILE_POLL_MS || 100;
   var ACK_BACKOFF_MS = window.__MVT_ACK_BACKOFF_MS || [400, 800];
   var ACK_MAX_ATTEMPTS = 3;
+  // One /api/lead attempt may not hang the page forever: abort it and treat it like
+  // a network error (retry with a fresh token, then the WhatsApp fallback).
+  var ACK_REQUEST_TIMEOUT_MS = window.__MVT_ACK_REQUEST_TIMEOUT_MS || 15000;
 
   var turnstileScriptRequested = false;
   var turnstilePending = null; // { widgetId, resolve, timer }
@@ -373,17 +376,31 @@
             // and the page falls back to WhatsApp. Never fake success.
             bodyText = JSON.stringify(merged);
           }
-          nativeFetch(LEAD_ENDPOINT, {
+          var controller = typeof AbortController === 'function' ? new AbortController() : null;
+          var timer = null;
+          // Rejects after ACK_REQUEST_TIMEOUT_MS; the race below also covers a fetch
+          // that ignores the abort signal.
+          var timeoutPromise = new Promise(function (resolveTimeout, rejectTimeout) {
+            timer = setTimeout(function () {
+              try { if (controller) controller.abort(); } catch (e) { /* already settled */ }
+              rejectTimeout(new Error('lead request timed out'));
+            }, ACK_REQUEST_TIMEOUT_MS);
+          });
+          timeoutPromise.catch(function () {}); // the race consumes it; avoid unhandled noise
+          var requestPromise = nativeFetch(LEAD_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: bodyText,
+            signal: controller ? controller.signal : undefined,
           })
             .then(function (res) {
               return res.json().catch(function () { return {}; }).then(function (json) {
                 return { status: res.status, json: json };
               });
-            })
+            });
+          Promise.race([requestPromise, timeoutPromise])
             .then(function (r) {
+              clearTimeout(timer);
               if (r.json && r.json.success) return resolveAttempt({ ok: true, receiptId: r.json.receiptId });
               var retriable = (r.status === 503 && r.json && r.json.retry === 'new_token')
                 || r.status === 0; // network blip before/after the request landed
@@ -393,6 +410,8 @@
               resolveAttempt({ ok: false, status: r.status });
             })
             .catch(function () {
+              // Network error or timeout — same retry path.
+              clearTimeout(timer);
               if (n + 1 < ACK_MAX_ATTEMPTS) {
                 return ackBackoff(n, function () { attempt(n + 1).then(resolveAttempt); });
               }

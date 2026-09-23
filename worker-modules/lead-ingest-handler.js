@@ -213,7 +213,9 @@ async function patchLeadRow(env, id, patch) {
 
 // ---- Turnstile verification at the edge --------------------------------------
 //
-// Returns {ok:true} | {status:403} (rejected/missing token) | {status:503} (fail-closed).
+// Returns {ok:true} | {status:403, duplicate?:true} (rejected/missing token;
+// duplicate = Cloudflare reported timeout-or-duplicate, i.e. the single-use token
+// was already spent or expired) | {status:503} (fail-closed).
 
 async function verifyTurnstile(env, token, remoteip) {
   if (!env || !env.TURNSTILE_SECRET) return { status: 503 };
@@ -231,7 +233,9 @@ async function verifyTurnstile(env, token, remoteip) {
     // siteverify itself failing (5xx) is infra, not a bad token — fail closed but retriable.
     if (res.status >= 500) return { status: 503 };
     const json = await res.json().catch(() => ({}));
-    return json && json.success ? { ok: true } : { status: 403 };
+    if (json && json.success) return { ok: true };
+    const codes = json && Array.isArray(json['error-codes']) ? json['error-codes'] : [];
+    return codes.includes('timeout-or-duplicate') ? { status: 403, duplicate: true } : { status: 403 };
   } catch (err) {
     console.log(`lead-ingest: siteverify threw ${err.message}`);
     return { status: 503 };
@@ -486,16 +490,17 @@ function leadReceiptResponse(receipt, requestId, bodyHash) {
   return leadJson(409, { success: false, error: 'request_id_conflict' });
 }
 
-// The winner may still be between its siteverify and its INSERT when our rejection
-// comes back, so look once more after a short pause before answering 403.
-const LEAD_REJECT_RECHECK_DELAY_MS = 500;
-
-async function reconcileRejectedToken(env, requestId, bodyHash) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, LEAD_REJECT_RECHECK_DELAY_MS));
-    const receipt = await lookupLeadReceipt(env, requestId);
-    if (receipt === 'error') return null; // cannot confirm a receipt — keep the 403
-    if (receipt) return leadReceiptResponse(receipt, requestId, bodyHash);
+// A rejected token may have been spent by a concurrent submit of the SAME requestId.
+// If that submit's receipt already exists, answer with it. If the token is reported
+// as timeout-or-duplicate and no receipt is visible yet, the winner may still be
+// mid-INSERT: answer 503 retry:'new_token' so the client retries with the same
+// requestId — its next receipt lookup returns the stored ACK (or, if the token had
+// merely expired, a fresh token goes through). Any other rejection stays 403.
+async function reconcileRejectedToken(env, requestId, bodyHash, duplicateToken) {
+  const receipt = await lookupLeadReceipt(env, requestId);
+  if (receipt && receipt !== 'error') return leadReceiptResponse(receipt, requestId, bodyHash);
+  if (duplicateToken) {
+    return leadJson(503, { success: false, retry: 'new_token', error: 'turnstile_token_spent' });
   }
   return null;
 }
@@ -564,9 +569,9 @@ async function handleLeadIngest(request, url, env, ctx) {
   }
   if (!verified.ok) {
     // Two concurrent submits with the same requestId share one single-use token: the
-    // winner's siteverify consumes it, ours reports timeout-or-duplicate. If the
-    // winner's receipt exists, both callers must get the same ACK.
-    const reconciled = await reconcileRejectedToken(env, requestId, bodyHash);
+    // winner's siteverify consumes it, ours reports timeout-or-duplicate. Both
+    // callers must end up with the same ACK.
+    const reconciled = await reconcileRejectedToken(env, requestId, bodyHash, verified.duplicate === true);
     if (reconciled) return reconciled;
     return leadJson(403, { success: false, error: 'turnstile_rejected' });
   }

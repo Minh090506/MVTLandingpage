@@ -48,6 +48,7 @@ function boot({
   onExecute = null,
   tokenTimeoutMs = undefined,
   interactiveTimeoutMs = undefined,
+  ackRequestTimeoutMs = undefined,
 } = {}) {
   const store = { ...storage };
   const calls = [];
@@ -69,6 +70,7 @@ function boot({
     __MVT_TURNSTILE_TIMEOUT_MS: withTurnstile ? 8000 : 30,
     __MVT_TURNSTILE_TOKEN_TIMEOUT_MS: tokenTimeoutMs,
     __MVT_TURNSTILE_INTERACTIVE_TIMEOUT_MS: interactiveTimeoutMs,
+    __MVT_ACK_REQUEST_TIMEOUT_MS: ackRequestTimeoutMs,
     localStorage: {
       getItem: (k) => (k in store ? store[k] : null),
       setItem: (k, v) => { store[k] = String(v); },
@@ -82,6 +84,15 @@ function boot({
         const step = leadResponses
           ? leadResponses[Math.min(leadCall - 1, leadResponses.length - 1)]
           : { status: leadStatus, json: { success: leadStatus < 400 } };
+        if (step.hang) {
+          // Stalled edge: only an abort ends it (or nothing, if the stub ignores it).
+          return new Promise((resolve, reject) => {
+            const signal = init && init.signal;
+            if (signal && !step.ignoreAbort) {
+              signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+            }
+          });
+        }
         const body = step.json !== undefined ? step.json : {};
         if (step.throw) throw new Error('lead network down');
         return new Response(JSON.stringify(body), { status: step.status });
@@ -620,6 +631,52 @@ function isOffscreen(style) {
   const elapsed = Date.now() - t0;
   check('unfinished interactive challenge ends at the interactive timeout',
     json.success === false && elapsed >= 140 && leadCallsOf(calls).length === 1, `elapsed ${elapsed}ms`);
+}
+
+// ---- /api/lead request timeout ----------------------------------------------
+
+{
+  // First attempt stalls → aborted at the timeout → retried → ACK.
+  const { win, calls } = boot({
+    search: AD_CLICK,
+    ackRequestTimeoutMs: 60,
+    leadResponses: [
+      { hang: true },
+      { status: 200, json: { success: true, requestId: 'r', receiptId: 'rec-t' } },
+    ],
+  });
+  // Race so a client without a timeout reports FAIL instead of hanging the suite.
+  const json = await Promise.race([
+    submitLead(win).then((res) => res.json()),
+    new Promise((resolve) => setTimeout(() => resolve({ success: 'timed-out' }), 2000)),
+  ]);
+  const lead = leadCallsOf(calls);
+  check('stalled /api/lead attempt times out and is retried to success',
+    json.success === true && lead.length === 2);
+  check('the stalled attempt was given an abort signal',
+    Boolean(lead[0].init.signal) && lead[0].init.signal.aborted === true);
+  const ids = lead.map((c) => JSON.parse(c.init.body).requestId);
+  check('timeout retry keeps the same requestId', ids[0] === ids[1]);
+}
+
+{
+  // Every attempt stalls (and the fetch ignores abort) → page failure + WhatsApp, bounded.
+  const { win, calls } = boot({
+    search: AD_CLICK,
+    ackRequestTimeoutMs: 40,
+    leadResponses: [{ hang: true, ignoreAbort: true }],
+  });
+  const t0 = Date.now();
+  const outcome = await Promise.race([
+    submitLead(win).then((res) => res.json()),
+    new Promise((resolve) => setTimeout(() => resolve('timed-out'), 2000)),
+  ]);
+  const elapsed = Date.now() - t0;
+  check('all attempts stalled → page failure (not stuck sending)',
+    outcome !== 'timed-out' && outcome.success === false, `elapsed ${elapsed}ms`);
+  check('stalled failure message points to WhatsApp', outcome !== 'timed-out' && /whatsapp/i.test(outcome.message || ''));
+  check('stalled submit made the max 3 attempts', leadCallsOf(calls).length === 3);
+  check('stalled submit → ack not ok', win.mvtLeadAck && win.mvtLeadAck.ok === false);
 }
 
 console.log(failures === 0 ? '\nAll attribution checks passed.' : `\n${failures} check(s) failed.`);
