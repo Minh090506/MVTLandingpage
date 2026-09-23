@@ -29,4 +29,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # [[ratelimits]] needs wrangler >= 4.36; the action's default can be 3.x, which silently drops it
+          wranglerVersion: '4'
           command: deploy --config wrangler-dental.toml
