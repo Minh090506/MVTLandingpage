@@ -42,6 +42,12 @@ function boot({
   web3Status = 200,
   web3Body = { success: true, message: 'OK' },
   withTurnstile = true,
+  web3Hang = false,
+  // (options, tokenCount) => void — custom Turnstile execute behaviour; default
+  // issues a token synchronously (the invisible pass).
+  onExecute = null,
+  tokenTimeoutMs = undefined,
+  interactiveTimeoutMs = undefined,
 } = {}) {
   const store = { ...storage };
   const calls = [];
@@ -51,6 +57,8 @@ function boot({
   let resets = 0;
   let executes = 0;
   let widgetOptions = null;
+  const rendered = []; // { el, options }
+  const submitListeners = [];
 
   const win = {
     location: { search, pathname: '/', href: `https://escape.myvivatour.com/${search}` },
@@ -59,6 +67,8 @@ function boot({
     __MVT_ACK_BACKOFF_MS: [0, 0],
     __MVT_TURNSTILE_POLL_MS: 5,
     __MVT_TURNSTILE_TIMEOUT_MS: withTurnstile ? 8000 : 30,
+    __MVT_TURNSTILE_TOKEN_TIMEOUT_MS: tokenTimeoutMs,
+    __MVT_TURNSTILE_INTERACTIVE_TIMEOUT_MS: interactiveTimeoutMs,
     localStorage: {
       getItem: (k) => (k in store ? store[k] : null),
       setItem: (k, v) => { store[k] = String(v); },
@@ -77,6 +87,7 @@ function boot({
         return new Response(JSON.stringify(body), { status: step.status });
       }
       if (url.includes('api.web3forms.com')) {
+        if (web3Hang) return new Promise(() => {}); // email request never settles
         return new Response(JSON.stringify(web3Body), { status: web3Status });
       }
       return new Response(JSON.stringify({}), { status: 200 });
@@ -87,22 +98,29 @@ function boot({
     win.turnstile = {
       render: (el, options) => {
         widgetOptions = options;
-        return 7;
+        rendered.push({ el, options });
+        return 7 + rendered.length - 1;
       },
       reset: () => { resets += 1; },
-      execute: () => {
+      execute: (id) => {
         executes += 1;
         tokenCount += 1;
-        widgetOptions.callback(`tok-${tokenCount}`);
+        const opts = rendered[id - 7] ? rendered[id - 7].options : widgetOptions;
+        if (onExecute) onExecute(opts, tokenCount);
+        else opts.callback(`tok-${tokenCount}`);
       },
     };
   }
 
+  const bodyChildren = [];
   const doc = {
     referrer,
-    createElement: () => ({ style: {} }),
+    createElement: (tag) => ({ tagName: String(tag).toUpperCase(), style: {}, className: '' }),
     head: { appendChild() {} },
-    body: { appendChild() {} },
+    body: { appendChild(el) { bodyChildren.push(el); } },
+    addEventListener: (type, fn, capture) => {
+      if (type === 'submit') submitListeners.push({ fn, capture });
+    },
   };
 
   const run = new Function(
@@ -112,7 +130,9 @@ function boot({
   run(win, doc, URLSearchParams, Date, JSON, Object);
 
   return {
-    win, store, calls,
+    win, store, calls, rendered, bodyChildren,
+    // Simulate the browser dispatching a submit event for `form` (capture phase).
+    dispatchSubmit: (form) => submitListeners.forEach((l) => l.fn({ target: form })),
     counts: {
       get leadCalls() { return leadCall; },
       get resets() { return resets; },
@@ -473,6 +493,133 @@ console.log('lead-attribution-client');
   // Dental exit popup builds an explicit object literal (no FormData) — assert the key is present.
   check('dental exit popup body includes form_id: exitPopup',
     /form_id:\s*['"]exitPopup['"]/.test(dentalHtml));
+}
+
+// ---- Page success never waits on the Web3Forms email ------------------------
+
+{
+  // Web3Forms stalls forever, /api/lead ACKs → page must report success right away.
+  const { win, calls } = boot({ search: AD_CLICK, web3Hang: true });
+  const outcome = await Promise.race([
+    submitLead(win).then((res) => res.json()),
+    new Promise((resolve) => setTimeout(() => resolve('timed-out'), 500)),
+  ]);
+  check('ACK ok + stalled Web3Forms → page success without waiting',
+    outcome !== 'timed-out' && outcome.success === true);
+  check('stalled Web3Forms request was still started',
+    calls.some((c) => c.url.includes('web3forms')));
+  check('stalled Web3Forms → ack flag ok', win.mvtLeadAck && win.mvtLeadAck.ok === true);
+}
+
+// ---- Turnstile container is reachable for interactive challenges -------------
+
+function fakeForm() {
+  const inserted = [];
+  const submit = {
+    parentNode: { insertBefore: (el, ref) => inserted.push({ el, ref }) },
+  };
+  return {
+    tagName: 'FORM',
+    inserted,
+    submit,
+    appended: [],
+    querySelector: (sel) => (sel === '[type="submit"]' ? submit : null),
+    appendChild(el) { this.appended.push(el); },
+  };
+}
+
+function isOffscreen(style) {
+  const css = String(style.cssText || '');
+  return /-9999px/.test(css) || /width:\s*0/.test(css) || /height:\s*0/.test(css)
+    || /overflow:\s*hidden/.test(css);
+}
+
+{
+  const { win, rendered, dispatchSubmit } = boot({ search: AD_CLICK });
+  const form = fakeForm();
+  dispatchSubmit(form);
+  await (await submitLead(win)).json();
+  const placed = form.inserted[0];
+  check('widget container is placed inside the submitted form, before the submit button',
+    Boolean(placed) && placed.ref === form.submit && rendered[0] && rendered[0].el === placed.el);
+  check('widget container is not off-screen or zero-sized', placed && !isOffscreen(placed.el.style),
+    placed ? placed.el.style.cssText : 'none');
+  check('widget uses interaction-only appearance with deferred execution',
+    rendered[0].options.appearance === 'interaction-only' && rendered[0].options.execution === 'execute');
+  check('widget listens for before-interactive-callback',
+    typeof rendered[0].options['before-interactive-callback'] === 'function');
+}
+
+{
+  // No known form (e.g. programmatic submit) → fixed, on-screen body-level box.
+  const { win, rendered, bodyChildren } = boot({ search: AD_CLICK });
+  await (await submitLead(win)).json();
+  const box = rendered[0] && rendered[0].el;
+  check('fallback container is on-screen (fixed, not off-screen)',
+    Boolean(box) && bodyChildren.includes(box) && /position:fixed/.test(box.style.cssText)
+      && !isOffscreen(box.style));
+}
+
+{
+  // A second form on the page gets its own widget inside that form.
+  const { win, rendered, dispatchSubmit } = boot({ search: AD_CLICK });
+  const a = fakeForm();
+  const b = fakeForm();
+  dispatchSubmit(a);
+  await (await submitLead(win)).json();
+  dispatchSubmit(b);
+  await (await submitLead(win)).json();
+  check('each form renders its own widget in place',
+    rendered.length === 2 && a.inserted.length === 1 && b.inserted.length === 1);
+}
+
+{
+  // Interactive challenge: token arrives after the short invisible timeout, but the
+  // before-interactive-callback extends the wait so the human can finish.
+  const { win, calls } = boot({
+    search: AD_CLICK,
+    tokenTimeoutMs: 30,
+    interactiveTimeoutMs: 2000,
+    onExecute: (opts, n) => {
+      opts['before-interactive-callback']();
+      setTimeout(() => opts.callback(`human-tok-${n}`), 120);
+    },
+  });
+  const json = await (await submitLead(win)).json();
+  const lead = leadCallsOf(calls);
+  check('interactive challenge solved after the invisible timeout still succeeds',
+    json.success === true && JSON.parse(lead[0].init.body).turnstileToken === 'human-tok-1');
+}
+
+{
+  // Control: without the interactive signal the short invisible timeout applies.
+  const { win, calls } = boot({
+    search: AD_CLICK,
+    tokenTimeoutMs: 30,
+    interactiveTimeoutMs: 2000,
+    leadResponses: [{ status: 403, json: { success: false, error: 'turnstile_rejected' } }],
+    onExecute: (opts, n) => { setTimeout(() => opts.callback(`late-tok-${n}`), 120); },
+  });
+  await (await submitLead(win)).json();
+  const lead = leadCallsOf(calls);
+  check('invisible pass keeps the short timeout (no token after it lapses)',
+    lead.length === 1 && !('turnstileToken' in JSON.parse(lead[0].init.body)));
+}
+
+{
+  // Interactive challenge the visitor never completes → released at the long timeout.
+  const { win, calls } = boot({
+    search: AD_CLICK,
+    tokenTimeoutMs: 30,
+    interactiveTimeoutMs: 150,
+    leadResponses: [{ status: 403, json: { success: false, error: 'turnstile_rejected' } }],
+    onExecute: (opts) => { opts['before-interactive-callback'](); },
+  });
+  const t0 = Date.now();
+  const json = await (await submitLead(win)).json();
+  const elapsed = Date.now() - t0;
+  check('unfinished interactive challenge ends at the interactive timeout',
+    json.success === false && elapsed >= 140 && leadCallsOf(calls).length === 1, `elapsed ${elapsed}ms`);
 }
 
 console.log(failures === 0 ? '\nAll attribution checks passed.' : `\n${failures} check(s) failed.`);

@@ -244,8 +244,10 @@ async function verifyTurnstile(env, token, remoteip) {
 //   POST {MVT_LEAD_GATEWAY_URL}/api/internal/lead-intake/{publicId}
 //   x-mvt-timestamp: unix seconds · x-mvt-signature: hex HMAC-SHA256 over
 //   "POST\n{path}\n{publicId}\n{sha256hex(rawBody)}\n{timestamp}"
-//   200 = ACK (patch crm_ack_at) · 4xx = permanent/config error (patch crm_error) ·
-//   5xx/timeout = transient (bump forward_attempts; replay retries).
+//   ACK = 200 + JSON + success===true + non-empty string receiptId (patch crm_ack_at).
+//   Any other 200 / 3xx (redirects are NOT followed) / 408 / 429 / 5xx / timeout =
+//   transient (bump forward_attempts; replay retries) · other 4xx = permanent or
+//   config error (patch crm_error).
 
 function buildGatewayBody(row) {
   const note = [
@@ -256,14 +258,22 @@ function buildGatewayBody(row) {
     row.country ? `Country: ${row.country}` : '',
     row.message ? `Message: ${row.message}` : '',
   ].filter(Boolean).join('\n');
-  const pick = (key) => (row[key] === undefined || row[key] === null || row[key] === '') ? null : row[key];
+  const pick = (key) => {
+    const value = row[key];
+    if (value === undefined || value === null) return null;
+    const text = String(value).trim();
+    return text ? text : null;
+  };
   return {
     requestId: row.request_id,
     edgeReceiptId: row.id,
     turnstileVerifiedAt: row.turnstile_verified_at,
     landingUrl: pick('landing_url'),
     answers: {
-      name: pick('full_name'),
+      // The gateway rejects a nameless lead with a permanent 422 missing_name, and the
+      // form's `required` still lets a whitespace-only name through. Never forward an
+      // empty name: fall back to the email, then the phone (one is always present).
+      name: pick('full_name') || pick('email') || pick('phone'),
       contact: pick('phone') || pick('email'),
       whatsapp: pick('phone'),
       email: pick('email'),
@@ -316,6 +326,7 @@ async function forwardToGateway(env, row) {
   );
 
   let status = 0;
+  let acked = false;
   let receiptId = null;
   let reason = '';
   const controller = new AbortController();
@@ -329,11 +340,19 @@ async function forwardToGateway(env, row) {
         'x-mvt-signature': signature,
       },
       body: rawBody,
+      // A redirect (e.g. login page, moved origin) must never be followed into a 200
+      // that looks like an ACK — treat any 3xx as transient instead.
+      redirect: 'manual',
       signal: controller.signal,
     });
     status = res.status;
-    const json = await res.json().catch(() => null);
-    receiptId = json && json.receiptId ? json.receiptId : null;
+    const contentType = (res.headers && res.headers.get('content-type')) || '';
+    const json = contentType.includes('application/json') ? await res.json().catch(() => null) : null;
+    if (status === 200 && json && json.success === true
+      && typeof json.receiptId === 'string' && json.receiptId.trim()) {
+      acked = true;
+      receiptId = json.receiptId;
+    }
     reason = (json && json.error) || res.statusText || '';
   } catch (err) {
     status = 0; // timeout / network — transient, replay will retry
@@ -341,7 +360,7 @@ async function forwardToGateway(env, row) {
     clearTimeout(timer);
   }
 
-  if (status === 200) {
+  if (acked) {
     await patchLeadRow(env, row.id, {
       crm_ack_at: new Date().toISOString(),
       crm_receipt_id: receiptId,
@@ -349,7 +368,8 @@ async function forwardToGateway(env, row) {
     });
     return;
   }
-  // 408/429 are throttling/timeouts on the gateway side — transient like 5xx.
+  // 408/429 are throttling/timeouts on the gateway side — transient like 5xx. A 200
+  // that is not a well-formed ACK also falls through to the transient branch below.
   if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
     // Permanent (409/400/404/410/422) or misconfigured secret (401): stop retrying.
     await patchLeadRow(env, row.id, {
@@ -458,6 +478,28 @@ async function checkLeadRateLimit(env, request) {
 
 // ---- Request handler -----------------------------------------------------------
 
+// Receipt answer for an existing row: same hash → the stored ACK, else 409.
+function leadReceiptResponse(receipt, requestId, bodyHash) {
+  if (receipt.body_hash === bodyHash) {
+    return leadJson(200, { success: true, requestId, receiptId: receipt.id, duplicate: true });
+  }
+  return leadJson(409, { success: false, error: 'request_id_conflict' });
+}
+
+// The winner may still be between its siteverify and its INSERT when our rejection
+// comes back, so look once more after a short pause before answering 403.
+const LEAD_REJECT_RECHECK_DELAY_MS = 500;
+
+async function reconcileRejectedToken(env, requestId, bodyHash) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, LEAD_REJECT_RECHECK_DELAY_MS));
+    const receipt = await lookupLeadReceipt(env, requestId);
+    if (receipt === 'error') return null; // cannot confirm a receipt — keep the 403
+    if (receipt) return leadReceiptResponse(receipt, requestId, bodyHash);
+  }
+  return null;
+}
+
 async function handleLeadIngest(request, url, env, ctx) {
   if (request.method !== 'POST') {
     return leadJson(405, { success: false, message: 'Method not allowed' });
@@ -513,12 +555,7 @@ async function handleLeadIngest(request, url, env, ctx) {
   if (receipt === 'error') {
     return leadJson(503, { success: false, retry: 'new_token' });
   }
-  if (receipt) {
-    if (receipt.body_hash === bodyHash) {
-      return leadJson(200, { success: true, requestId, receiptId: receipt.id, duplicate: true });
-    }
-    return leadJson(409, { success: false, error: 'request_id_conflict' });
-  }
+  if (receipt) return leadReceiptResponse(receipt, requestId, bodyHash);
 
   const turnstile = cleanLeadValue(body.turnstileToken, 4096);
   const verified = await verifyTurnstile(env, turnstile, request.headers.get('cf-connecting-ip') || '');
@@ -526,6 +563,11 @@ async function handleLeadIngest(request, url, env, ctx) {
     return leadJson(503, { success: false, retry: 'new_token', error: 'turnstile_unavailable' });
   }
   if (!verified.ok) {
+    // Two concurrent submits with the same requestId share one single-use token: the
+    // winner's siteverify consumes it, ours reports timeout-or-duplicate. If the
+    // winner's receipt exists, both callers must get the same ACK.
+    const reconciled = await reconcileRejectedToken(env, requestId, bodyHash);
+    if (reconciled) return reconciled;
     return leadJson(403, { success: false, error: 'turnstile_rejected' });
   }
 
@@ -564,12 +606,7 @@ async function handleLeadIngest(request, url, env, ctx) {
   if (inserted.conflict) {
     // Concurrent insert won the unique index — its receipt decides our answer.
     const winner = await lookupLeadReceipt(env, requestId);
-    if (winner && winner !== 'error') {
-      if (winner.body_hash === bodyHash) {
-        return leadJson(200, { success: true, requestId, receiptId: winner.id, duplicate: true });
-      }
-      return leadJson(409, { success: false, error: 'request_id_conflict' });
-    }
+    if (winner && winner !== 'error') return leadReceiptResponse(winner, requestId, bodyHash);
     return leadJson(503, { success: false, retry: 'new_token' });
   }
   if (!inserted.ok) {

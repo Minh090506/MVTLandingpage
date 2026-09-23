@@ -57,7 +57,10 @@ function defaultRoutes() {
 }
 
 function jsonResponse(status, body) {
-  return new Response(JSON.stringify(body), { status });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
 }
 
 function stubFetch(routes) {
@@ -625,6 +628,199 @@ async function runScheduled(env, rows) {
   }
   check('insert error log carries status + code only',
     logs.some((l) => l.includes('insert 400 22007')) && !logs.some((l) => l.includes('jane@example.com')));
+}
+
+// ---- Nameless leads: never forward an empty answers.name --------------------
+
+async function forwardedBodyFor(payload) {
+  await run(payload, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(200)] });
+  await Promise.all(waitUntils);
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  return gw ? JSON.parse(gw.init.body) : null;
+}
+
+{
+  const body = await forwardedBodyFor({ ...VALID, full_name: '   ' });
+  check('whitespace-only name → answers.name falls back to email',
+    body && body.answers.name === 'jane@example.com');
+}
+
+{
+  const body = await forwardedBodyFor({ ...VALID, full_name: undefined, email: '', phone: '0411111111' });
+  check('no name + no email → answers.name falls back to phone',
+    body && body.answers.name === '0411111111');
+}
+
+{
+  const body = await forwardedBodyFor({ ...VALID, full_name: '  Jane Traveller  ' });
+  check('real name is trimmed and kept', body && body.answers.name === 'Jane Traveller');
+}
+
+{
+  // A replayed legacy row with a blank name is also covered (fallback lives in the
+  // gateway body builder, not only on the ingest path).
+  const env = { ...GATEWAY_ENV, LEAD_REPLAY_HOSTS: 'escape.myvivatour.com' };
+  const scalls = await runScheduled(env, [replayRow({ full_name: ' ' })]);
+  const gw = scalls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  check('replayed blank-name row forwards email as name',
+    Boolean(gw) && JSON.parse(gw.init.body).answers.name === 'jane@example.com');
+}
+
+{
+  // Fallback must not change body_hash: it is computed on the client payload.
+  const { calls: c1 } = await run({ ...VALID, full_name: '' });
+  const row = JSON.parse(c1.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads')).init.body);
+  const expected = await mod.computeLeadBodyHash({ ...VALID, full_name: '' });
+  check('body_hash is over the original client payload (no name fallback)',
+    row.body_hash === expected && row.full_name === null);
+}
+
+// ---- Rejected token vs concurrent receipt ------------------------------------
+
+{
+  // Winner consumed the shared single-use token; our siteverify says duplicate, but
+  // the winner's receipt now exists with the same hash → same ACK, not 403.
+  const hash = await mod.computeLeadBodyHash(VALID);
+  let lookups = 0;
+  const { res, json, calls: c2 } = await run(VALID, {}, {
+    routes: [
+      {
+        match: (u) => u.includes('siteverify'),
+        respond: () => jsonResponse(200, { success: false, 'error-codes': ['timeout-or-duplicate'] }),
+      },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => {
+          lookups += 1;
+          return jsonResponse(200, lookups === 1 ? [] : [{ id: 'winner-receipt', body_hash: hash }]);
+        },
+      },
+    ],
+  });
+  check('rejected token + concurrent same-hash receipt → 200 winner ACK',
+    res.status === 200 && json.success === true && json.receiptId === 'winner-receipt'
+      && json.duplicate === true);
+  check('reconciled ACK inserts nothing',
+    !c2.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+}
+
+{
+  // Winner inserts only after our rejection returns → the delayed re-check finds it.
+  const hash = await mod.computeLeadBodyHash(VALID);
+  let lookups = 0;
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false }) },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => {
+          lookups += 1;
+          return jsonResponse(200, lookups <= 2 ? [] : [{ id: 'late-winner', body_hash: hash }]);
+        },
+      },
+    ],
+  });
+  check('rejected token + late winner receipt → ACK after re-check',
+    res.status === 200 && json.receiptId === 'late-winner' && lookups === 3, `lookups ${lookups}`);
+}
+
+{
+  // Rejected token + a receipt with a DIFFERENT hash → 409 (same rule as the first lookup).
+  let lookups = 0;
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false }) },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => {
+          lookups += 1;
+          return jsonResponse(200, lookups === 1 ? [] : [{ id: 'other', body_hash: 'deadbeef' }]);
+        },
+      },
+    ],
+  });
+  check('rejected token + different-hash receipt → 409', res.status === 409 && json.error === 'request_id_conflict');
+}
+
+{
+  // Rejected token and still no receipt after the re-check → 403 as before.
+  let lookups = 0;
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false }) },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => { lookups += 1; return jsonResponse(200, []); },
+      },
+    ],
+  });
+  check('rejected token + no receipt → 403 turnstile_rejected',
+    res.status === 403 && json.error === 'turnstile_rejected' && lookups === 3, `lookups ${lookups}`);
+}
+
+// ---- Gateway ACK shape -------------------------------------------------------
+
+async function forwardPatchFor(route) {
+  await run(VALID, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), route] });
+  await Promise.all(waitUntils);
+  const patch = patchCalls();
+  return { patch, body: patch.length ? JSON.parse(patch[0].init.body) : {} };
+}
+
+function isTransientPatch({ patch, body }) {
+  return patch.length === 1 && body.forward_attempts === 1
+    && body.crm_ack_at === undefined && body.crm_error === undefined;
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: false, receiptId: 'gw-1' }));
+  check('200 with success:false → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: true }));
+  check('200 without receiptId → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: true, receiptId: '  ' }));
+  check('200 with blank receiptId → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: true, receiptId: 42 }));
+  check('200 with non-string receiptId → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor({
+    match: (u) => u.includes('/api/internal/lead-intake/'),
+    respond: () => new Response('<html>ok</html>', { status: 200, headers: { 'content-type': 'text/html' } }),
+  });
+  check('200 HTML page → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor({
+    match: (u) => u.includes('/api/internal/lead-intake/'),
+    respond: () => new Response(JSON.stringify({ success: true, receiptId: 'gw-1' }), { status: 200 }),
+  });
+  check('200 JSON body without JSON content-type → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor({
+    match: (u) => u.includes('/api/internal/lead-intake/'),
+    respond: () => new Response(null, { status: 302, headers: { location: 'https://gw.example.test/login' } }),
+  });
+  check('302 redirect → transient, not ACKed', isTransientPatch(r));
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  check('gateway fetch does not follow redirects', gw && gw.init.redirect === 'manual');
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(408, { error: 'timeout' }));
+  check('forward 408 → transient', isTransientPatch(r));
 }
 
 // Source-level: the old CRM push path must be gone.

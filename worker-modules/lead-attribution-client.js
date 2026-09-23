@@ -183,24 +183,44 @@
     return out;
   }
 
-  // --- Turnstile (invisible, on-demand) ---------------------------------------
+  // --- Turnstile (interaction-only, on-demand) ---------------------------------
   //
-  // Mirrors the WP main-site pattern: one hidden widget per page, script loaded
-  // lazily at the first form submit, execution deferred until we call execute().
-  // Tokens are single-use — every attempt resets the widget for a fresh one.
+  // One widget per form, rendered lazily at the first submit, execution deferred
+  // until we call execute(). appearance:'interaction-only' keeps the widget
+  // collapsed for the usual invisible pass, and shows it when Cloudflare needs the
+  // visitor to click — so the container sits INSIDE the submitted form, right above
+  // the submit button, in normal flow (never off-screen / zero-sized, which would
+  // make an interactive challenge unreachable). Tokens are single-use — every
+  // attempt resets the widget for a fresh one.
 
   var TURNSTILE_SITE_KEY = '0x4AAAAAADtJJZkl7Qik4UNn';
   var TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-  var TURNSTILE_TOKEN_TIMEOUT_MS = 9000;
   // Test hooks: unit tests shorten the waits so no real delays hit the suite.
+  // Invisible pass: a token normally arrives in 1-3s; 9s means something is wrong.
+  var TURNSTILE_TOKEN_TIMEOUT_MS = window.__MVT_TURNSTILE_TOKEN_TIMEOUT_MS || 9000;
+  // Interactive challenge: a real person has to notice the widget and click it.
+  var TURNSTILE_INTERACTIVE_TIMEOUT_MS = window.__MVT_TURNSTILE_INTERACTIVE_TIMEOUT_MS || 60000;
   var TURNSTILE_LOAD_TIMEOUT_MS = window.__MVT_TURNSTILE_TIMEOUT_MS || 8000;
   var TURNSTILE_POLL_MS = window.__MVT_TURNSTILE_POLL_MS || 100;
   var ACK_BACKOFF_MS = window.__MVT_ACK_BACKOFF_MS || [400, 800];
   var ACK_MAX_ATTEMPTS = 3;
 
   var turnstileScriptRequested = false;
-  var turnstileWidgetId = null;
-  var turnstilePending = null; // { resolve, timer }
+  var turnstilePending = null; // { widgetId, resolve, timer }
+  var fallbackWidgetId = null; // used only when no submitting form is known
+  var lastSubmittedForm = null;
+
+  // Remember which form is being submitted so the widget can render inside it.
+  // Capture phase runs before the page's own onsubmit handler (which calls fetch).
+  try {
+    if (document.addEventListener) {
+      document.addEventListener('submit', function (event) {
+        if (event && event.target && event.target.tagName === 'FORM') lastSubmittedForm = event.target;
+      }, true);
+    }
+  } catch (e) {
+    // Non-browser stub — widget falls back to a body-level container.
+  }
 
   function loadTurnstileApi(cb) {
     if (window.turnstile && typeof window.turnstile.render === 'function') return cb(true);
@@ -225,47 +245,90 @@
     })();
   }
 
-  function resolveTurnstileToken(token) {
+  function resolveTurnstileToken(widgetId, token) {
     var pending = turnstilePending;
+    if (!pending || (widgetId !== undefined && pending.widgetId !== widgetId)) return;
     turnstilePending = null;
-    if (pending) {
-      clearTimeout(pending.timer);
-      pending.resolve(token);
-    }
+    clearTimeout(pending.timer);
+    pending.resolve(token);
   }
 
-  function ensureTurnstileWidget() {
-    if (turnstileWidgetId !== null) return turnstileWidgetId;
+  // Cloudflare is about to ask the visitor to interact: give a human time to act.
+  function extendForInteraction(widgetId, box) {
+    var pending = turnstilePending;
+    if (!pending || pending.widgetId !== widgetId) return;
+    clearTimeout(pending.timer);
+    pending.timer = setTimeout(function () {
+      resolveTurnstileToken(widgetId, null);
+    }, TURNSTILE_INTERACTIVE_TIMEOUT_MS);
     try {
-      var box = document.createElement('div');
-      box.style.cssText = 'position:absolute;left:-9999px;width:0;height:0;overflow:hidden;';
+      if (box && box.scrollIntoView) box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    } catch (e) { /* cosmetic only */ }
+  }
+
+  // Container in normal flow, right above the form's submit button (or at the end
+  // of the form). Without a form, a fixed bottom-centre box keeps it on-screen.
+  function createTurnstileBox(form) {
+    var box = document.createElement('div');
+    box.className = 'mvt-lead-turnstile';
+    if (form && form.appendChild) {
+      box.style.cssText = 'margin:12px 0;display:flex;justify-content:center;';
+      var submit = form.querySelector ? form.querySelector('[type="submit"]') : null;
+      if (submit && submit.parentNode && submit.parentNode.insertBefore) {
+        submit.parentNode.insertBefore(box, submit);
+      } else {
+        form.appendChild(box);
+      }
+    } else {
+      box.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2147483000;';
       (document.body || document.head).appendChild(box);
-      turnstileWidgetId = window.turnstile.render(box, {
+    }
+    return box;
+  }
+
+  function ensureTurnstileWidget(form) {
+    var owner = form || null;
+    if (owner && owner._mvtTurnstileId !== undefined && owner._mvtTurnstileId !== null) {
+      return owner._mvtTurnstileId;
+    }
+    if (!owner && fallbackWidgetId !== null) return fallbackWidgetId;
+    var widgetId = null;
+    try {
+      var box = createTurnstileBox(owner);
+      var idRef = { id: null };
+      widgetId = window.turnstile.render(box, {
         sitekey: TURNSTILE_SITE_KEY,
         execution: 'execute',
         appearance: 'interaction-only',
-        callback: function (token) { resolveTurnstileToken(token); },
-        'error-callback': function () { resolveTurnstileToken(null); },
-        'timeout-callback': function () { resolveTurnstileToken(null); },
-        'expired-callback': function () { resolveTurnstileToken(null); },
+        callback: function (token) { resolveTurnstileToken(idRef.id, token); },
+        'error-callback': function () { resolveTurnstileToken(idRef.id, null); },
+        'timeout-callback': function () { resolveTurnstileToken(idRef.id, null); },
+        'expired-callback': function () { resolveTurnstileToken(idRef.id, null); },
+        'before-interactive-callback': function () { extendForInteraction(idRef.id, box); },
       });
+      idRef.id = widgetId;
     } catch (e) {
-      turnstileWidgetId = null;
+      widgetId = null;
     }
-    return turnstileWidgetId;
+    if (widgetId === undefined) widgetId = null;
+    if (owner) owner._mvtTurnstileId = widgetId;
+    else fallbackWidgetId = widgetId;
+    return widgetId;
   }
 
   // cb(token|null) — null means no token available (blocked script, timeout, error).
-  function getTurnstileToken(cb) {
+  function getTurnstileToken(form, cb) {
     loadTurnstileApi(function (ready) {
       if (!ready || !window.turnstile) return cb(null);
-      var widgetId = ensureTurnstileWidget();
-      if (widgetId === null || widgetId === undefined) return cb(null);
-      if (turnstilePending) resolveTurnstileToken(null); // release any prior pending
+      var widgetId = ensureTurnstileWidget(form);
+      if (widgetId === null) return cb(null);
+      if (turnstilePending) resolveTurnstileToken(undefined, null); // release any prior pending
       try { window.turnstile.reset(widgetId); } catch (e) { /* stale widget state */ }
-      var timer = setTimeout(function () { resolveTurnstileToken(null); }, TURNSTILE_TOKEN_TIMEOUT_MS);
-      turnstilePending = { resolve: cb, timer: timer };
-      try { window.turnstile.execute(widgetId); } catch (e) { resolveTurnstileToken(null); }
+      var timer = setTimeout(function () {
+        resolveTurnstileToken(widgetId, null);
+      }, TURNSTILE_TOKEN_TIMEOUT_MS);
+      turnstilePending = { widgetId: widgetId, resolve: cb, timer: timer };
+      try { window.turnstile.execute(widgetId); } catch (e) { resolveTurnstileToken(widgetId, null); }
     });
   }
 
@@ -290,13 +353,13 @@
   // same submission (it keys the server-side receipt). A 503 retry:'new_token'
   // means the token was spent without a receipt, so the next attempt uses a fresh
   // Turnstile token over an identical business payload.
-  function postLeadForAck(merged) {
+  function postLeadForAck(merged, form) {
     var requestId = uuid();
     merged.requestId = requestId;
 
     function attempt(n) {
       return new Promise(function (resolveAttempt) {
-        getTurnstileToken(function (token) {
+        getTurnstileToken(form, function (token) {
           var bodyText;
           if (token) {
             var withToken = {};
@@ -358,23 +421,15 @@
     );
   }
 
-  // The lead is safely in the edge inbox, so the visitor must see success even if the
-  // parallel Web3Forms email copy failed — otherwise they resubmit and create a
-  // duplicate lead under a fresh requestId.
+  // The lead is safely in the edge inbox, so the visitor sees success on the ACK
+  // alone — never waiting on (or failing with) the parallel Web3Forms email copy.
+  // Otherwise a stalled email request keeps the page "sending" and the visitor
+  // resubmits, creating a duplicate lead under a fresh requestId.
   function ackSuccessResponse() {
     return new Response(
       JSON.stringify({ success: true, message: 'Thanks! We will be in touch shortly.' }),
       { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } },
     );
-  }
-
-  function emailOrAckSuccess(emailPromise) {
-    return emailPromise.then(function (res) {
-      if (!res || !res.ok) return ackSuccessResponse();
-      return res.clone().json().then(function (json) {
-        return json && json.success ? res : ackSuccessResponse();
-      }, function () { return ackSuccessResponse(); });
-    }, function () { return ackSuccessResponse(); });
   }
 
   window.fetch = function (input, init) {
@@ -391,18 +446,20 @@
       headers: init.headers || { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(buildEmailPayload(merged)),
     };
-    var emailPromise = nativeFetch(input, w3fInit);
-    // A pre-ACK email rejection must not fire the browser's unhandled-rejection
-    // warning; the page still sees the real rejection when the ACK path returns it.
-    emailPromise.catch(function () {});
+    // Fire-and-forget: the already-started request runs to completion on its own;
+    // the page response below never awaits it. Swallow rejection so it does not
+    // surface as an unhandled-rejection warning.
+    nativeFetch(input, w3fInit).catch(function () {});
+    var form = lastSubmittedForm;
+    lastSubmittedForm = null;
 
     // The page may only report success after the edge inbox ACKs. The ACK outcome is
     // published on window.mvtLeadAck BEFORE the response resolves, so page-level
     // conversion firing can gate on it synchronously.
-    return postLeadForAck(merged)
+    return postLeadForAck(merged, form)
       .then(function (ack) {
         window.mvtLeadAck = ack;
-        if (ack && ack.ok) return emailOrAckSuccess(emailPromise);
+        if (ack && ack.ok) return ackSuccessResponse();
         return ackFailureResponse();
       }, function () {
         window.mvtLeadAck = { ok: false };
