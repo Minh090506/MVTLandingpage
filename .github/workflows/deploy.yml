@@ -55,6 +55,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # [[ratelimits]] needs wrangler >= 4.36; the action's default can be 3.x, which silently drops it
+          wranglerVersion: '4'
           command: deploy
 
       - name: Build dashboard-worker.js
@@ -72,6 +74,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # [[ratelimits]] needs wrangler >= 4.36; the action's default can be 3.x, which silently drops it
+          wranglerVersion: '4'
           command: deploy -c wrangler-dental.toml
 
       - name: Deployment summary

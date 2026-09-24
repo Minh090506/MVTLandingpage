@@ -4648,6 +4648,9 @@
             let conversionFired = false;
             function fireLeadConversion() {
                 if (conversionFired) return;
+                // Edge inbox did not accept this submission (Turnstile/DB failure) — the lead
+                // was NOT captured, so the paid conversion must not fire either.
+                if (window.mvtLeadAck && window.mvtLeadAck.ok === false) return;
                 conversionFired = true;
                 window.dataLayer = window.dataLayer || [];
                 window.dataLayer.push({ event: 'form_success', form_id: 'bookingForm' });
@@ -4834,6 +4837,8 @@
             var exitConversionFired = false;
             function fireExitConversion() {
                 if (exitConversionFired) return;
+                // Edge inbox did not accept this submission — lead not captured, no conversion.
+                if (window.mvtLeadAck && window.mvtLeadAck.ok === false) return;
                 exitConversionFired = true;
                 window.dataLayer = window.dataLayer || [];
                 window.dataLayer.push({ event: 'form_success', form_id: 'exitForm' });

@@ -6,3 +6,21 @@ workers_dev = true
 [[routes]]
 pattern = "implant.vietnamdentaltravel.com"
 custom_domain = true
+
+# Edge-inbox replay + retention cron. LEAD_REPLAY_HOSTS keeps this worker from
+# replaying the escape worker's rows (and vice versa).
+[triggers]
+crons = ["*/10 * * * *"]
+
+[vars]
+LEAD_REPLAY_HOSTS = "implant.vietnamdentaltravel.com"
+
+# Per-IP rate limit for POST /api/lead (Workers Rate Limiting binding; needs
+# wrangler >= 4.36). The handler tolerates a missing binding (no limit enforced).
+[[ratelimits]]
+name = "LEAD_RATE_LIMITER"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60

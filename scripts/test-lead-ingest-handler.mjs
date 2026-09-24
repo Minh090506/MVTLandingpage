@@ -1,4 +1,4 @@
-// Tests for worker-modules/lead-ingest-handler.js
+// Tests for worker-modules/lead-ingest-handler.js (edge inbox: Turnstile + receipt)
 //
 // The handler is a plain script injected into the generated worker, so it has no
 // exports. We load the source and evaluate it with a shim that hands the functions
@@ -6,6 +6,7 @@
 //
 // Run: node scripts/test-lead-ingest-handler.mjs
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,24 +17,58 @@ const source = fs.readFileSync(
   'utf-8',
 );
 
-const load = new Function(`${source}\nreturn { handleLeadIngest };`);
-const { handleLeadIngest } = load();
+const load = new Function(
+  `${source}\nreturn { handleLeadIngest, forwardToGateway, handleLeadScheduled, computeLeadBodyHash };`,
+);
+const mod = load();
 
-const ENV = {
+const BASE_ENV = {
   SUPABASE_URL: 'https://db.example.test',
   SUPABASE_SERVICE_KEY: 'service-key',
+  TURNSTILE_SECRET: 'ts-test-secret',
+};
+const GATEWAY_ENV = {
+  ...BASE_ENV,
+  MVT_LEAD_GATEWAY_URL: 'https://gw.example.test',
+  LEAD_GATEWAY_HMAC_SECRET: 'test-hmac-secret',
 };
 
 let calls = [];
+let waitUntils = [];
 const realFetch = globalThis.fetch;
 
-// Route stubbed responses by destination; default everything to 200 OK.
-function stubFetch(routes = {}) {
-  globalThis.fetch = async (url, init) => {
+// Route stubs: list of { match(url, init), respond(url, init) → Response }.
+// Defaults below cover the happy path: siteverify OK, no receipt, insert succeeds.
+function defaultRoutes() {
+  return [
+    {
+      match: (url) => url.includes('challenges.cloudflare.com/turnstile'),
+      respond: () => jsonResponse(200, { success: true }),
+    },
+    {
+      match: (url, init) => (init.method || 'GET') === 'GET' && url.includes('request_id=eq.'),
+      respond: () => jsonResponse(200, []),
+    },
+    {
+      match: (url, init) => (init.method || 'GET') === 'POST' && url.includes('/marketing_leads'),
+      respond: (url, init) => jsonResponse(201, [{ ...JSON.parse(init.body), id: 'edge-receipt-1' }]),
+    },
+  ];
+}
+
+function jsonResponse(status, body) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+function stubFetch(routes) {
+  globalThis.fetch = async (url, init = {}) => {
     const target = String(url);
-    calls.push({ url: target, body: init && init.body ? JSON.parse(init.body) : null });
-    for (const [fragment, status] of Object.entries(routes)) {
-      if (target.includes(fragment)) return new Response('stub', { status });
+    calls.push({ url: target, method: init.method || 'GET', init });
+    for (const route of routes) {
+      if (route.match(target, init)) return route.respond(target, init);
     }
     return new Response('{}', { status: 200 });
   };
@@ -47,20 +82,23 @@ function makeRequest(body, { method = 'POST', host = 'escape.myvivatour.com', ra
       'content-type': 'application/json',
       'user-agent': 'test-agent',
       'cf-ipcountry': 'AU',
+      'cf-connecting-ip': '203.0.113.7',
       ...(typeof payload === 'string' ? { 'content-length': String(Buffer.byteLength(payload)) } : {}),
     },
     body: method === 'POST' ? payload : undefined,
   });
 }
 
-async function run(body, opts = {}, routes = {}) {
+async function run(body, opts = {}, { env = BASE_ENV, routes } = {}) {
   calls = [];
-  stubFetch(routes);
+  waitUntils = [];
+  stubFetch(routes || defaultRoutes());
   const req = makeRequest(body, opts);
   const url = new URL(req.url);
-  const ctx = { waitUntil: (p) => p };
-  const res = await handleLeadIngest(req, url, ENV, ctx);
-  return { res, json: await res.clone().json(), calls };
+  const ctx = { waitUntil: (p) => { waitUntils.push(p); return p; } };
+  const res = await mod.handleLeadIngest(req, url, env, ctx);
+  const json = await res.clone().json();
+  return { res, json, calls, env, ctx };
 }
 
 let failures = 0;
@@ -80,9 +118,17 @@ const VALID = {
   phone: '0400000000',
   state: 'NSW',
   message: 'Keen on the 10-day tour',
+  travel_date: '2026-11-02',
+  party_size: '2',
+  tour_interest: '10-day escape',
   utm_source: 'google',
   utm_campaign: 'escape-core-au',
   gclid: 'Cj0KTest',
+  gbraid: 'GB-Test',
+  wbraid: 'WB-Test',
+  landing_url: 'https://escape.myvivatour.com/?utm_source=google',
+  requestId: '11111111-2222-4333-8444-555555555555',
+  turnstileToken: 'tok-single-use',
   page_path: '/',
 };
 
@@ -90,17 +136,34 @@ console.log('lead-ingest-handler');
 
 {
   const { res, json, calls } = await run(VALID);
-  check('accepts a valid lead', res.status === 200 && json.success === true, `status ${res.status}`);
-  const supa = calls.find((c) => c.url.includes('marketing_leads'));
-  check('writes to marketing_leads', Boolean(supa));
-  check('persists utm_campaign', supa && supa.body.utm_campaign === 'escape-core-au');
-  check('persists gclid', supa && supa.body.gclid === 'Cj0KTest');
-  check('derives page_host from the request', supa && supa.body.page_host === 'escape.myvivatour.com');
-  check('records ip_country from CF header', supa && supa.body.ip_country === 'AU');
-  check('keeps the original payload in raw', supa && supa.body.raw.full_name === 'Jane Traveller');
+  check('accepts a verified lead', res.status === 200 && json.success === true, `status ${res.status}`);
+  check('returns the receipt id', json.receiptId === 'edge-receipt-1');
+  check('returns the requestId', json.requestId === VALID.requestId);
+  const insert = calls.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads'));
+  check('writes to marketing_leads', Boolean(insert));
+  const row = insert && insert.init.body ? JSON.parse(insert.init.body) : {};
+  check('persists utm_campaign', row.utm_campaign === 'escape-core-au');
+  check('persists gclid', row.gclid === 'Cj0KTest');
+  check('persists gbraid/wbraid', row.gbraid === 'GB-Test' && row.wbraid === 'WB-Test');
+  check('persists landing_url', row.landing_url === VALID.landing_url);
+  check('persists request_id + body_hash + turnstile_verified_at',
+    row.request_id === VALID.requestId && typeof row.body_hash === 'string' && row.body_hash.length === 64
+      && typeof row.turnstile_verified_at === 'string');
+  check('derives page_host from the request', row.page_host === 'escape.myvivatour.com');
+  check('records ip_country from CF header', row.ip_country === 'AU');
+  check('keeps the original payload in raw minus the turnstile token',
+    row.raw.full_name === 'Jane Traveller' && !('turnstileToken' in row.raw));
+  check('siteverify called with secret, token and remoteip', (() => {
+    const sv = calls.find((c) => c.url.includes('siteverify'));
+    if (!sv) return false;
+    const body = JSON.parse(sv.init.body);
+    return body.secret === 'ts-test-secret' && body.response === 'tok-single-use'
+      && body.remoteip === '203.0.113.7';
+  })());
   check('does not call Web3Forms', !calls.some((c) => c.url.includes('web3forms')));
   check('omits email_forwarded (browser owns email)',
-    supa && !Object.prototype.hasOwnProperty.call(supa.body, 'email_forwarded'));
+    !Object.prototype.hasOwnProperty.call(row, 'email_forwarded'));
+  check('leaves crm_synced_at unset', row.crm_synced_at === undefined);
 }
 
 {
@@ -110,7 +173,18 @@ console.log('lead-ingest-handler');
 }
 
 {
-  const { res } = await run({ landing_page: 'escape', full_name: 'No Contact' });
+  const { res, json } = await run({ ...VALID, requestId: undefined });
+  check('rejects a missing requestId with missing_request_id',
+    res.status === 400 && json.message === 'missing_request_id');
+}
+
+{
+  const { res, json } = await run({ ...VALID, requestId: 'not-a-uuid' });
+  check('rejects a non-UUID requestId', res.status === 400 && /request_id/.test(json.message));
+}
+
+{
+  const { res } = await run({ landing_page: 'escape', full_name: 'No Contact', requestId: VALID.requestId });
   check('rejects a lead with no email and no phone', res.status === 400);
 }
 
@@ -135,64 +209,190 @@ console.log('lead-ingest-handler');
 }
 
 {
-  // Database down — DB-only path reports failure (client ignores this; email is browser-side).
-  const { res, json, calls } = await run(VALID, {}, { marketing_leads: 500 });
-  check('reports failure when database is down', res.status === 502 && json.success === false);
-  check('still does not call Web3Forms when DB is down',
-    !calls.some((c) => c.url.includes('web3forms')));
+  // Bot with no Turnstile token → rejected before siteverify, nothing inserted.
+  const { res, json, calls } = await run({ ...VALID, turnstileToken: undefined });
+  check('missing turnstile token → 403 turnstile_rejected',
+    res.status === 403 && json.error === 'turnstile_rejected');
+  check('no INSERT without a token',
+    !calls.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+  check('siteverify skipped when token absent', !calls.some((c) => c.url.includes('siteverify')));
 }
 
 {
-  // Missing secrets — same as DB unavailable.
+  // Token rejected by Cloudflare → 403, nothing inserted.
+  const { res, json, calls } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false }) },
+      { match: (u, i) => (i.method || 'GET') === 'POST' && u.includes('/marketing_leads'), respond: () => jsonResponse(201, [{ id: 'x' }]) },
+    ],
+  });
+  check('rejected token → 403', res.status === 403 && json.error === 'turnstile_rejected');
+  check('no INSERT on rejected token',
+    !calls.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+}
+
+{
+  // Missing TURNSTILE_SECRET → fail-closed 503 with retry:new_token.
+  const { res, json, calls } = await run(VALID, {}, { env: { ...BASE_ENV, TURNSTILE_SECRET: undefined } });
+  check('missing turnstile secret → 503 fail-closed', res.status === 503);
+  check('503 body asks for a new token', json.retry === 'new_token');
+  check('fail-closed writes nothing',
+    !calls.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+}
+
+{
+  // Receipt exists with the same body hash → stored ACK, no Turnstile burn.
+  const hash = await mod.computeLeadBodyHash(VALID);
+  const { res, json, calls } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: true }) },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => jsonResponse(200, [{ id: 'existing-receipt', body_hash: hash }]),
+      },
+      { match: (u, i) => (i.method || 'GET') === 'POST' && u.includes('/marketing_leads'), respond: () => jsonResponse(201, [{ id: 'never' }]) },
+    ],
+  });
+  check('same-hash receipt → 200 ACK', res.status === 200 && json.success === true);
+  check('ACK marked duplicate with stored receipt id',
+    json.duplicate === true && json.receiptId === 'existing-receipt');
+  check('duplicate ACK skips siteverify', !calls.some((c) => c.url.includes('siteverify')));
+  check('duplicate ACK inserts nothing',
+    !calls.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+}
+
+{
+  // body_hash ignores protocol fields: a fresh token + same business payload hashes equal.
+  const a = await mod.computeLeadBodyHash({ ...VALID, turnstileToken: 'tok-1' });
+  const b = await mod.computeLeadBodyHash({ ...VALID, turnstileToken: 'tok-2', requestId: VALID.requestId });
+  check('hash stable across token/requestId changes', a === b);
+  const c = await mod.computeLeadBodyHash({ ...VALID, message: 'different' });
+  check('hash changes with business payload', a !== c);
+}
+
+{
+  // Receipt with a different hash → 409.
+  const { res, json } = await run({ ...VALID, message: 'different intent' }, {}, {
+    routes: [
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => jsonResponse(200, [{ id: 'existing-receipt', body_hash: 'deadbeef' }]),
+      },
+    ],
+  });
+  check('different-hash receipt → 409', res.status === 409 && json.error === 'request_id_conflict');
+}
+
+{
+  // Insert infra failure → 503 new_token (token spent, client must reset).
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: true }) },
+      { match: (u, i) => (i.method || 'GET') === 'POST' && u.includes('/marketing_leads'), respond: () => jsonResponse(500, 'db down') },
+    ],
+  });
+  check('insert 5xx → 503 new_token', res.status === 503 && json.retry === 'new_token');
+}
+
+{
+  // Concurrent insert hit the unique index → read the winner's receipt → ACK.
+  const hash = await mod.computeLeadBodyHash(VALID);
+  let insertTried = false;
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: true }) },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => jsonResponse(200, insertTried ? [{ id: 'winner-receipt', body_hash: hash }] : []),
+      },
+      {
+        match: (u, i) => (i.method || 'GET') === 'POST' && u.includes('/marketing_leads'),
+        respond: () => { insertTried = true; return jsonResponse(409, { code: '23505' }); },
+      },
+    ],
+  });
+  check('insert 409 → ACK from winner receipt',
+    res.status === 200 && json.success === true && json.receiptId === 'winner-receipt');
+}
+
+{
+  // Receipt lookup infra error → 503 new_token.
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      { match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'), respond: () => jsonResponse(500, 'db down') },
+    ],
+  });
+  check('lookup 5xx → 503 new_token', res.status === 503 && json.retry === 'new_token');
+}
+
+{
+  // Missing Supabase secrets — same as DB unavailable (now 503 new_token).
   calls = [];
-  stubFetch({});
+  stubFetch(defaultRoutes());
   const req = makeRequest(VALID);
   const url = new URL(req.url);
-  const res = await handleLeadIngest(req, url, {}, { waitUntil: () => {} });
+  const res = await mod.handleLeadIngest(req, url, { TURNSTILE_SECRET: 'x' }, { waitUntil: () => {} });
   const json = await res.json();
-  check('reports failure when Supabase secrets missing', res.status === 502 && json.success === false);
+  check('reports 503 new_token when Supabase secrets missing',
+    res.status === 503 && json.success === false && json.retry === 'new_token');
 }
 
 {
-  const { calls } = await run(VALID, {}, {});
-  const supa = calls.find((c) => c.url.includes('marketing_leads'));
-  check('does not push to CRM when MVT_CRM_LEAD_URL is unset',
-    !calls.some((c) => c.url.includes('crm')));
-  check('leaves crm_synced_at unset for later backfill', supa && supa.body.crm_synced_at === undefined);
+  // Rate limiter binding present and over limit → 429 before any DB call.
+  calls = [];
+  stubFetch(defaultRoutes());
+  const req = makeRequest(VALID);
+  const url = new URL(req.url);
+  const res = await mod.handleLeadIngest(req, url, {
+    ...BASE_ENV,
+    LEAD_RATE_LIMITER: { limit: async () => ({ success: false }) },
+  }, { waitUntil: () => {} });
+  check('rate limiter over limit → 429', res.status === 429);
+  check('429 makes no DB calls', calls.length === 0);
+}
+
+{
+  // A throwing limiter must fail open (Turnstile still gates the request).
+  const { res } = await run(VALID, {}, {
+    env: { ...BASE_ENV, LEAD_RATE_LIMITER: { limit: async () => { throw new Error('boom'); } } },
+  });
+  check('throwing rate limiter fails open', res.status === 200);
 }
 
 {
   const { calls } = await run({ ...VALID, landing_first_seen: '2026-08-01T10:00:00.000Z' });
-  const supa = calls.find((c) => c.url.includes('marketing_leads'));
-  check('stores landing_first_seen', supa && supa.body.landing_first_seen === '2026-08-01T10:00:00.000Z');
+  const insert = calls.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads'));
+  const row = JSON.parse(insert.init.body);
+  check('stores landing_first_seen', row.landing_first_seen === '2026-08-01T10:00:00.000Z');
 }
 
 {
   const { res, calls } = await run({ ...VALID, landing_first_seen: 'not-a-date' });
-  const supa = calls.find((c) => c.url.includes('marketing_leads'));
+  const insert = calls.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads'));
+  const row = JSON.parse(insert.init.body);
   check('nulls an unparseable landing_first_seen instead of failing the insert',
-    res.status === 200 && supa && supa.body.landing_first_seen === null);
+    res.status === 200 && row.landing_first_seen === null);
 }
 
 {
   const longMessage = 'x'.repeat(9000);
   const { calls } = await run({ ...VALID, message: longMessage });
-  const supa = calls.find((c) => c.url.includes('marketing_leads'));
-  check('caps oversized message at 5000 chars', supa && supa.body.message.length === 5000);
+  const insert = calls.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads'));
+  check('caps oversized message at 5000 chars', JSON.parse(insert.init.body).message.length === 5000);
 }
 
 {
   // Server-derived page_host must win over a client-spoofed value.
   const { calls } = await run({ ...VALID, page_host: 'evil.spoofed.com' });
-  const supa = calls.find((c) => c.url.includes('marketing_leads'));
+  const insert = calls.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads'));
   check('server page_host overwrites client spoof',
-    supa && supa.body.page_host === 'escape.myvivatour.com');
+    JSON.parse(insert.init.body).page_host === 'escape.myvivatour.com');
 }
 
 {
   // Too many keys.
   const bloated = { ...VALID };
-  for (let i = 0; i < 50; i++) bloated[`extra_${i}`] = 'x';
+  for (let i = 0; i < 80; i++) bloated[`extra_${i}`] = 'x';
   const { res, json, calls } = await run(bloated);
   check('rejects body with too many keys', res.status === 413 && json.success === false);
   check('does not write oversized-key payloads', calls.length === 0);
@@ -207,8 +407,538 @@ console.log('lead-ingest-handler');
   check('does not write oversized payloads', calls.length === 0);
 }
 
-// Source-level: forwardLeadToEmail / web3forms must be gone from handler.
-check('source has no forwardLeadToEmail', !source.includes('forwardLeadToEmail'));
+// ---- Gateway forward (HMAC contract) -----------------------------------------
+
+function gatewayRoute(status, body = { success: true, receiptId: 'gw-receipt-9' }) {
+  return { match: (u) => u.includes('/api/internal/lead-intake/'), respond: () => jsonResponse(status, body) };
+}
+function patchCalls() {
+  return calls.filter((c) => c.method === 'PATCH' && c.url.includes('/marketing_leads'));
+}
+
+{
+  const { res } = await run(VALID, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(200)] });
+  await Promise.all(waitUntils);
+  check('successful submit still ACKs', res.status === 200);
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  check('forward posted to the host gateway URL', Boolean(gw) && gw.url.startsWith('https://gw.example.test'));
+  const publicId = 'da6736a68ba84c1a';
+  check('forward path carries the escape publicId', gw.url.endsWith(`/api/internal/lead-intake/${publicId}`));
+
+  // Verify the HMAC exactly as the contract defines it.
+  const gwUrl = new URL(gw.url);
+  const ts = gw.init.headers['x-mvt-timestamp'];
+  const rawBody = gw.init.body;
+  const bodySha = crypto.createHash('sha256').update(rawBody).digest('hex');
+  const expected = crypto.createHmac('sha256', 'test-hmac-secret')
+    .update(`POST\n${gwUrl.pathname}\n${publicId}\n${bodySha}\n${ts}`)
+    .digest('hex');
+  check('x-mvt-signature matches the contract HMAC', gw.init.headers['x-mvt-signature'] === expected);
+  check('x-mvt-timestamp is unix seconds', /^\d{10}$/.test(ts));
+
+  const gwBody = JSON.parse(rawBody);
+  check('gateway body carries requestId + edgeReceiptId',
+    gwBody.requestId === VALID.requestId && gwBody.edgeReceiptId === 'edge-receipt-1');
+  check('gateway body carries turnstileVerifiedAt + landingUrl',
+    typeof gwBody.turnstileVerifiedAt === 'string' && gwBody.landingUrl === VALID.landing_url);
+  check('answers.contact prefers phone', gwBody.answers.contact === '0400000000'
+    && gwBody.answers.whatsapp === '0400000000' && gwBody.answers.email === 'jane@example.com');
+  check('answers.note merges trip lines',
+    gwBody.answers.note === 'Travel date: 2026-11-02\nParty size: 2\nTour: 10-day escape\nState: NSW\nMessage: Keen on the 10-day tour');
+  check('utm block carries click ids incl gbraid/wbraid',
+    gwBody.utm.gclid === 'Cj0KTest' && gwBody.utm.gbraid === 'GB-Test'
+      && gwBody.utm.wbraid === 'WB-Test' && gwBody.utm.utm_campaign === 'escape-core-au');
+
+  const patch = patchCalls();
+  check('forward 200 → PATCH crm_ack_at + receipt id', patch.length === 1
+    && typeof JSON.parse(patch[0].init.body).crm_ack_at === 'string'
+    && JSON.parse(patch[0].init.body).crm_receipt_id === 'gw-receipt-9');
+}
+
+{
+  const host = 'implant.vietnamdentaltravel.com';
+  const { res } = await run(VALID, { host }, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(200)] });
+  await Promise.all(waitUntils);
+  check('dental submit ACKs', res.status === 200);
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  check('dental forward uses the dental publicId', gw.url.endsWith('/api/internal/lead-intake/b7d3e1a95c2f4068'));
+}
+
+{
+  // Forward 4xx (permanent) → crm_error + attempts bumped, never ACKed.
+  await run(VALID, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(422, { error: 'schema' })] });
+  await Promise.all(waitUntils);
+  const patch = patchCalls();
+  const body = patch.length ? JSON.parse(patch[0].init.body) : {};
+  check('forward 422 → PATCH crm_error + forward_attempts=1',
+    patch.length === 1 && /^422/.test(body.crm_error) && body.forward_attempts === 1
+      && body.crm_ack_at === undefined);
+}
+
+{
+  // Forward 5xx (transient) → attempts bumped only; replay owns the retry.
+  await run(VALID, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(503, {})] });
+  await Promise.all(waitUntils);
+  const patch = patchCalls();
+  const body = patch.length ? JSON.parse(patch[0].init.body) : {};
+  check('forward 503 → PATCH forward_attempts=1 without crm_error/ack',
+    patch.length === 1 && body.forward_attempts === 1
+      && body.crm_error === undefined && body.crm_ack_at === undefined);
+}
+
+{
+  // Gateway env unset → no forward, submit still ACKs (email + inbox intact).
+  const { res, calls: localCalls } = await run(VALID);
+  await Promise.all(waitUntils);
+  check('no gateway call when env unset',
+    !localCalls.some((c) => c.url.includes('/api/internal/')));
+  check('submit still succeeds without gateway env', res.status === 200);
+}
+
+// ---- Scheduled: replay + retention -------------------------------------------
+
+function replayRow(overrides = {}) {
+  return {
+    id: 'replay-row-1',
+    request_id: VALID.requestId,
+    body_hash: 'hash',
+    turnstile_verified_at: '2026-09-23T00:00:00Z',
+    crm_ack_at: null,
+    crm_receipt_id: null,
+    crm_error: null,
+    forward_attempts: 0,
+    landing_page: 'escape',
+    page_host: 'escape.myvivatour.com',
+    page_path: '/',
+    form_id: 'bookingForm',
+    full_name: 'Jane Traveller',
+    email: 'jane@example.com',
+    phone: '0400000000',
+    state: 'NSW',
+    country: null,
+    travel_date: '2026-11-02',
+    party_size: '2',
+    tour_interest: '10-day escape',
+    message: 'Keen',
+    utm_source: 'google',
+    utm_medium: null,
+    utm_campaign: 'escape-core-au',
+    utm_term: null,
+    utm_content: null,
+    gclid: 'Cj0KTest',
+    gbraid: null,
+    wbraid: null,
+    fbclid: null,
+    landing_url: 'https://escape.myvivatour.com/',
+    ...overrides,
+  };
+}
+
+async function runScheduled(env, rows) {
+  calls = [];
+  stubFetch([
+    {
+      match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('/marketing_leads?'),
+      respond: () => jsonResponse(200, rows),
+    },
+    gatewayRoute(200),
+  ]);
+  await mod.handleLeadScheduled(env, {});
+  return calls;
+}
+
+{
+  const env = { ...GATEWAY_ENV, LEAD_REPLAY_HOSTS: 'escape.myvivatour.com,happytours.myvivatour.com' };
+  const scalls = await runScheduled(env, [replayRow(), replayRow({ id: 'replay-row-2', page_host: 'happytours.myvivatour.com' })]);
+  const select = scalls.find((c) => c.url.includes('/marketing_leads?'));
+  check('replay select filters unacked + verified + attempts + hosts', select && (() => {
+    const q = decodeURIComponent(select.url);
+    return q.includes('crm_ack_at=is.null') && q.includes('turnstile_verified_at=not.is.null')
+      && q.includes('forward_attempts=lt.20') && q.includes('page_host=in.')
+      && q.includes('escape.myvivatour.com') && q.includes('happytours.myvivatour.com')
+      && q.includes('limit=25');
+  })());
+  const forwards = scalls.filter((c) => c.url.includes('/api/internal/lead-intake/'));
+  check('each replayed row is forwarded once', forwards.length === 2);
+  check('happytours row forwards to its own publicId',
+    forwards.some((c) => c.url.endsWith('/api/internal/lead-intake/d1de3fa528854edf')));
+  const del = scalls.find((c) => c.method === 'DELETE');
+  check('retention deletes only ACKed rows',
+    Boolean(del) && decodeURIComponent(del.url).includes('crm_ack_at=lt.')
+      && !decodeURIComponent(del.url).includes('crm_ack_at=is.null'));
+  check('retention is scoped to this worker hosts',
+    Boolean(del) && decodeURIComponent(del.url).includes('page_host=in.')
+      && decodeURIComponent(del.url).includes('escape.myvivatour.com')
+      && !decodeURIComponent(del.url).includes('implant.vietnamdentaltravel.com'));
+}
+
+{
+  // No LEAD_REPLAY_HOSTS → the cron does nothing (no replay, no retention).
+  const scalls = await runScheduled(GATEWAY_ENV, [replayRow()]);
+  check('no replay select without LEAD_REPLAY_HOSTS',
+    !scalls.some((c) => c.method === 'GET' && c.url.includes('/marketing_leads?')));
+  check('no forward without LEAD_REPLAY_HOSTS',
+    !scalls.some((c) => c.url.includes('/api/internal/')));
+  check('no retention delete without LEAD_REPLAY_HOSTS',
+    !scalls.some((c) => c.method === 'DELETE'));
+}
+
+{
+  // Forward 429 (gateway throttling) is transient: attempts bumped, no crm_error.
+  await run(VALID, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(429, { error: 'slow_down' })] });
+  await Promise.all(waitUntils);
+  const patch = patchCalls();
+  const body = patch.length ? JSON.parse(patch[0].init.body) : {};
+  check('forward 429 → forward_attempts=1 without crm_error/ack',
+    patch.length === 1 && body.forward_attempts === 1
+      && body.crm_error === undefined && body.crm_ack_at === undefined);
+}
+
+{
+  // siteverify outage (5xx) is infra, not a bad token → 503 new_token, nothing inserted.
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(502, {}) },
+      ...defaultRoutes(),
+    ],
+  });
+  check('siteverify 5xx → 503 new_token', res.status === 503 && json.retry === 'new_token');
+  check('siteverify 5xx → no insert',
+    !calls.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+}
+
+{
+  // Insert failure logs never echo PostgREST error text (it can contain submitted PII).
+  const logs = [];
+  const realLog = console.log;
+  console.log = (...args) => logs.push(args.join(' '));
+  try {
+    await run(VALID, {}, {
+      routes: [
+        { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: true }) },
+        { match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'), respond: () => jsonResponse(200, []) },
+        {
+          match: (u, i) => i.method === 'POST' && u.includes('/marketing_leads'),
+          respond: () => jsonResponse(400, { code: '22007', message: 'invalid input jane@example.com' }),
+        },
+      ],
+    });
+  } finally {
+    console.log = realLog;
+  }
+  check('insert error log carries status + code only',
+    logs.some((l) => l.includes('insert 400 22007')) && !logs.some((l) => l.includes('jane@example.com')));
+}
+
+// ---- Nameless leads: never forward an empty answers.name --------------------
+
+async function forwardedBodyFor(payload) {
+  await run(payload, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(200)] });
+  await Promise.all(waitUntils);
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  return gw ? JSON.parse(gw.init.body) : null;
+}
+
+{
+  const body = await forwardedBodyFor({ ...VALID, full_name: '   ' });
+  check('whitespace-only name → answers.name falls back to email',
+    body && body.answers.name === 'jane@example.com');
+}
+
+{
+  const body = await forwardedBodyFor({ ...VALID, full_name: undefined, email: '', phone: '0411111111' });
+  check('no name + no email → answers.name falls back to phone',
+    body && body.answers.name === '0411111111');
+}
+
+{
+  const body = await forwardedBodyFor({ ...VALID, full_name: '  Jane Traveller  ' });
+  check('real name is trimmed and kept', body && body.answers.name === 'Jane Traveller');
+}
+
+{
+  // A replayed legacy row with a blank name is also covered (fallback lives in the
+  // gateway body builder, not only on the ingest path).
+  const env = { ...GATEWAY_ENV, LEAD_REPLAY_HOSTS: 'escape.myvivatour.com' };
+  const scalls = await runScheduled(env, [replayRow({ full_name: ' ' })]);
+  const gw = scalls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  check('replayed blank-name row forwards email as name',
+    Boolean(gw) && JSON.parse(gw.init.body).answers.name === 'jane@example.com');
+}
+
+{
+  // Fallback must not change body_hash: it is computed on the client payload.
+  const { calls: c1 } = await run({ ...VALID, full_name: '' });
+  const row = JSON.parse(c1.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads')).init.body);
+  const expected = await mod.computeLeadBodyHash({ ...VALID, full_name: '' });
+  check('body_hash is over the original client payload (no name fallback)',
+    row.body_hash === expected && row.full_name === null);
+}
+
+// ---- Rejected token vs concurrent receipt ------------------------------------
+
+{
+  // Winner consumed the shared single-use token; our siteverify says duplicate, but
+  // the winner's receipt now exists with the same hash → same ACK, not 403.
+  const hash = await mod.computeLeadBodyHash(VALID);
+  let lookups = 0;
+  const { res, json, calls: c2 } = await run(VALID, {}, {
+    routes: [
+      {
+        match: (u) => u.includes('siteverify'),
+        respond: () => jsonResponse(200, { success: false, 'error-codes': ['timeout-or-duplicate'] }),
+      },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => {
+          lookups += 1;
+          return jsonResponse(200, lookups === 1 ? [] : [{ id: 'winner-receipt', body_hash: hash }]);
+        },
+      },
+    ],
+  });
+  check('rejected token + concurrent same-hash receipt → 200 winner ACK',
+    res.status === 200 && json.success === true && json.receiptId === 'winner-receipt'
+      && json.duplicate === true);
+  check('reconciled ACK inserts nothing',
+    !c2.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+}
+
+{
+  // Token reported timeout-or-duplicate and the winner has not inserted yet →
+  // 503 new_token (client retries with the same requestId), never a hard 403.
+  let lookups = 0;
+  const { res, json, calls: c3 } = await run(VALID, {}, {
+    routes: [
+      {
+        match: (u) => u.includes('siteverify'),
+        respond: () => jsonResponse(200, { success: false, 'error-codes': ['timeout-or-duplicate'] }),
+      },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => { lookups += 1; return jsonResponse(200, []); },
+      },
+    ],
+  });
+  check('duplicate token + no receipt yet → 503 retry new_token',
+    res.status === 503 && json.retry === 'new_token' && json.success === false, `status ${res.status}`);
+  check('duplicate token + no receipt → nothing inserted',
+    !c3.some((c) => c.method === 'POST' && c.url.includes('/marketing_leads')));
+  check('duplicate token path does one receipt re-check (no fixed sleep)', lookups === 2, `lookups ${lookups}`);
+}
+
+{
+  // Same, but the re-check lookup itself fails → still 503 (retriable), not 403.
+  let lookups = 0;
+  const { res, json } = await run(VALID, {}, {
+    routes: [
+      {
+        match: (u) => u.includes('siteverify'),
+        respond: () => jsonResponse(200, { success: false, 'error-codes': ['timeout-or-duplicate'] }),
+      },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'),
+        respond: () => { lookups += 1; return lookups === 1 ? jsonResponse(200, []) : jsonResponse(500, 'db down'); },
+      },
+    ],
+  });
+  check('duplicate token + re-check lookup error → 503 new_token',
+    res.status === 503 && json.retry === 'new_token');
+}
+
+{
+  // Other error codes (bad/forged token) stay a hard 403.
+  for (const code of ['invalid-input-response', 'missing-input-response']) {
+    const { res, json } = await run(VALID, {}, {
+      routes: [
+        { match: (u) => u.includes('siteverify'), respond: () => jsonResponse(200, { success: false, 'error-codes': [code] }) },
+        { match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('request_id=eq.'), respond: () => jsonResponse(200, []) },
+      ],
+    });
+    check(`${code} + no receipt → 403 turnstile_rejected`,
+      res.status === 403 && json.error === 'turnstile_rejected');
+  }
+}
+
+// ---- Page-specific answers reach answers.note ---------------------------------
+
+// Shapes mirror what the client posts: the page's Web3Forms body (field names from
+// pages/*/index.html) merged with attribution by lead-attribution-client.js.
+const ATTRIBUTION = {
+  landing_page: 'x', page_path: '/?gclid=Cj0KTest', landing_url: 'https://h/?gclid=Cj0KTest',
+  landing_first_seen: '2026-09-01T00:00:00.000Z', referrer: 'https://www.google.com/',
+  utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'c', gclid: 'Cj0KTest', gad_source: '1',
+  msclkid: 'MS-1', fbclid: 'FB-1',
+};
+const DENTAL_PAYLOAD = {
+  access_key: 'cf0ca620-d064-4640-9454-afb27d588f67',
+  name: 'Sam Patient', full_name: 'Sam Patient', email: 'sam@example.com', phone: '0412345678',
+  state: 'VIC', treatment: 'Full arch (All-on-4)', timeline: 'Within 3 months',
+  referral: 'Google search', message: 'Missing two molars',
+  form_id: 'bookingForm', subject: 'New Dental Implant Inquiry — implant.vietnamdentaltravel.com',
+  from_name: 'VietnamDentalTravel Booking', replyto: 'sam@example.com',
+  ...ATTRIBUTION, landing_page: 'dental-implants-vietnam',
+  requestId: '22222222-2222-4333-8444-555555555555', turnstileToken: 'tok-dental',
+  'cf-turnstile-response': 'tok-dup', _gotcha: '',
+};
+const ESCAPE_PAYLOAD = {
+  access_key: 'cf0ca620-d064-4640-9454-afb27d588f67', subject: 'New escape enquiry',
+  from_name: 'MyVivaTour Escape', redirect: 'https://escape.myvivatour.com/thanks', botcheck: '',
+  name: 'Jane Traveller', full_name: 'Jane Traveller', email: 'jane@example.com', phone: '0400000000',
+  departure_city: 'Sydney', interests_summary: 'Food tours, Ha Long Bay cruise',
+  message: 'Two adults in November', form_id: 'bookingForm',
+  ...ATTRIBUTION, landing_page: 'escape',
+  requestId: '33333333-2222-4333-8444-555555555555', turnstileToken: 'tok-escape',
+};
+const NOTE_LEAKS = [
+  'cf0ca620', 'Cj0KTest', 'google', 'tok-', 'bookingForm', 'Booking', 'enquiry',
+  'Inquiry', 'thanks', 'MS-1', 'FB-1', 'sam@example.com', 'jane@example.com',
+  '0412345678', '0400000000', 'Sam Patient', 'Jane Traveller', '2026-09-01',
+];
+
+async function noteFor(payload, host) {
+  await run(payload, { host }, { env: GATEWAY_ENV, routes: [...defaultRoutes(), gatewayRoute(200)] });
+  await Promise.all(waitUntils);
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  return gw ? JSON.parse(gw.init.body).answers.note || '' : '';
+}
+
+{
+  const note = await noteFor(DENTAL_PAYLOAD, 'implant.vietnamdentaltravel.com');
+  check('dental note: trip lines, then sorted form answers, then the message last',
+    note === 'State: VIC\nReferral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)\nMessage: Missing two molars',
+    JSON.stringify(note));
+  const leaks = NOTE_LEAKS.filter((t) => note.includes(t));
+  check('dental note leaks no mapped/attribution/protocol field', leaks.length === 0, leaks.join(','));
+}
+
+{
+  const note = await noteFor(ESCAPE_PAYLOAD, 'escape.myvivatour.com');
+  check('escape note carries departure_city + interests_summary',
+    note === 'Departure city: Sydney\nInterests summary: Food tours, Ha Long Bay cruise\nMessage: Two adults in November',
+    JSON.stringify(note));
+  const leaks = NOTE_LEAKS.filter((t) => note.includes(t));
+  check('escape note leaks no mapped/attribution/protocol field', leaks.length === 0, leaks.join(','));
+}
+
+{
+  // Value types + caps: arrays joined, objects/null dropped, values ≤1000, note ≤5000.
+  const note = await noteFor({
+    ...VALID, message: 'm'.repeat(3000),
+    interests: ['Food', ' ', 'Culture'], nested: { a: 1 }, empty: '  ', nothing: null,
+    a_flag: true, b_count: 3, c_long: 'L'.repeat(1500), z_long: 'Z'.repeat(1500),
+  }, 'escape.myvivatour.com');
+  check('array answers are joined with ", "', note.includes('Interests: Food, Culture'));
+  check('boolean/number answers are kept', note.includes('A flag: true') && note.includes('B count: 3'));
+  check('object/null/blank answers are dropped',
+    !note.includes('Nested') && !note.includes('Nothing') && !note.includes('Empty'));
+  check('each answer value capped at 1000 chars', note.includes(`C long: ${'L'.repeat(1000)}\n`));
+  check('whole note capped at 5000 chars', note.length === 5000, `length ${note.length}`);
+}
+
+{
+  // A very long message is cut at the note cap — the structured answers survive.
+  const note = await noteFor({ ...DENTAL_PAYLOAD, message: 'q'.repeat(5000) }, 'implant.vietnamdentaltravel.com');
+  check('long message: every form answer survives the 5000 cap',
+    note.startsWith('State: VIC\nReferral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)\nMessage: q'),
+    JSON.stringify(note.slice(0, 120)));
+  check('long message: only the message tail is cut',
+    note.length === 5000 && note.endsWith('q') && !note.endsWith('q'.repeat(5000)), `length ${note.length}`);
+}
+
+{
+  // Replay reads the answers from the stored raw jsonb.
+  const env = { ...GATEWAY_ENV, LEAD_REPLAY_HOSTS: 'implant.vietnamdentaltravel.com' };
+  const scalls = await runScheduled(env, [replayRow({
+    page_host: 'implant.vietnamdentaltravel.com', travel_date: null, party_size: null,
+    tour_interest: null, state: 'VIC', message: null,
+    raw: { ...DENTAL_PAYLOAD, turnstileToken: undefined },
+  })]);
+  const select = scalls.find((c) => c.method === 'GET' && c.url.includes('/marketing_leads?'));
+  check('replay select includes raw', select && decodeURIComponent(select.url).includes(',raw'));
+  const gw = scalls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  const note = gw ? JSON.parse(gw.init.body).answers.note : '';
+  check('replayed dental row forwards treatment/timeline/referral',
+    note === 'State: VIC\nReferral: Google search\nTimeline: Within 3 months\nTreatment: Full arch (All-on-4)',
+    JSON.stringify(note));
+}
+
+{
+  // body_hash unchanged by the note work: still the client payload hash.
+  const { calls: c4 } = await run(ESCAPE_PAYLOAD);
+  const row = JSON.parse(c4.find((c) => c.method === 'POST' && c.url.includes('/marketing_leads')).init.body);
+  check('body_hash still covers the original client payload',
+    row.body_hash === await mod.computeLeadBodyHash(ESCAPE_PAYLOAD));
+}
+
+// ---- Gateway ACK shape -------------------------------------------------------
+
+async function forwardPatchFor(route) {
+  await run(VALID, {}, { env: GATEWAY_ENV, routes: [...defaultRoutes(), route] });
+  await Promise.all(waitUntils);
+  const patch = patchCalls();
+  return { patch, body: patch.length ? JSON.parse(patch[0].init.body) : {} };
+}
+
+function isTransientPatch({ patch, body }) {
+  return patch.length === 1 && body.forward_attempts === 1
+    && body.crm_ack_at === undefined && body.crm_error === undefined;
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: false, receiptId: 'gw-1' }));
+  check('200 with success:false → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: true }));
+  check('200 without receiptId → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: true, receiptId: '  ' }));
+  check('200 with blank receiptId → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(200, { success: true, receiptId: 42 }));
+  check('200 with non-string receiptId → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor({
+    match: (u) => u.includes('/api/internal/lead-intake/'),
+    respond: () => new Response('<html>ok</html>', { status: 200, headers: { 'content-type': 'text/html' } }),
+  });
+  check('200 HTML page → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor({
+    match: (u) => u.includes('/api/internal/lead-intake/'),
+    respond: () => new Response(JSON.stringify({ success: true, receiptId: 'gw-1' }), { status: 200 }),
+  });
+  check('200 JSON body without JSON content-type → transient, not ACKed', isTransientPatch(r));
+}
+
+{
+  const r = await forwardPatchFor({
+    match: (u) => u.includes('/api/internal/lead-intake/'),
+    respond: () => new Response(null, { status: 302, headers: { location: 'https://gw.example.test/login' } }),
+  });
+  check('302 redirect → transient, not ACKed', isTransientPatch(r));
+  const gw = calls.find((c) => c.url.includes('/api/internal/lead-intake/'));
+  check('gateway fetch does not follow redirects', gw && gw.init.redirect === 'manual');
+}
+
+{
+  const r = await forwardPatchFor(gatewayRoute(408, { error: 'timeout' }));
+  check('forward 408 → transient', isTransientPatch(r));
+}
+
+// Source-level: the old CRM push path must be gone.
+check('source has no pushLeadToCrm', !source.includes('pushLeadToCrm'));
+check('source has no MVT_CRM_LEAD_URL read', !/env\.MVT_CRM_LEAD_URL/.test(source));
 check('source has no web3forms URL', !source.includes('web3forms.com'));
 check('source has no WEB3FORMS_KEY binding', !source.includes('WEB3FORMS_KEY'));
 
